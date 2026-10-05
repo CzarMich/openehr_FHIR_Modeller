@@ -1,0 +1,15 @@
+# Development browser runtime and private CA. Credentials stay outside Git.
+services:
+  chat:
+    build:
+      target: chat
+    env_file:
+      - path: ${MODELLING_CHAT_ENV_FILE:?Set MODELLING_CHAT_ENV_FILE}
+        required: true
+    volumes:
+      - ${MODELLING_CA_FILE:?Set MODELLING_CA_FILE}:/run/secrets/dev-ca.crt:ro
+    environment:
+      NODE_EXTRA_CA_CERTS: /run/secrets/dev-ca.crt
+    extra_hosts:
+      - dev-auth.sandbox.hygeoniq.com:192.168.178.20
+      - dev-openehr-modelling.sandbox.hygeoniq.com:192.168.178.20

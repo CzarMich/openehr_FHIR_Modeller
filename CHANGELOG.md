@@ -1,0 +1,437 @@
+# Changelog
+
+This file records all notable changes to this project.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+- Account access moves into a single overlay, with private QR codes for authenticator setup.
+
+- Browser workspaces gain owner-managed shared connections, native signup and email-free lockout recovery.
+- Chat settings and continuation controls improve, with a twenty-minute modelling budget.
+
+- Template authoring preserves repository designer edits and supports deliberate CKM upgrades at stable artefact paths.
+
+- Browser conversations recover private drafts and completed work after interruptions, with persistent sessions for active users.
+
+- Retain the MIT project license and third-party attribution.
+
+- Add Copilot Studio browser connections with private Microsoft sign-in and workspace tools.
+
+- Artefacts use stable filenames with automatic revision history and exact template dependency versions.
+
+- Template compilation verifies form-schema generation and saves linked OPT and Web Template outputs.
+
+- AQL drafts directly into its editor, fixes path selection, isolates environment libraries and caches archetype packages.
+
+- CDR patient-data guards restrict execution and query-library access to the user’s AQL workspace.
+
+- AQL loads repository template packages automatically and offers exact-path completion and grounded assistant query drafting.
+
+- Template saves bundle exact archetype dependencies and a hash manifest in one repository commit.
+
+- Chat identifies GitHub token and branch restrictions and guides users through restoring repository access.
+
+- AQL workspace validates template paths and queries private CDR connections with protected credentials.
+
+- Chat allows longer file uploads and explains interrupted server responses.
+
+- Chat organises supporting artefacts by file type and exposes saved-file paths and version links.
+
+- Chat moves saved artefacts into project folders and places connection settings behind a gear.
+
+- Chat projects retain repository destinations and organise saved artefacts in selected folders.
+
+- Workspace simplifies sign-in and adds guided Copilot Studio connection setup.
+- Chat projects organise private conversations into collapsible folders.
+- Chat keeps repository selections consistent when creating conversations and sending messages.
+- Chat adds explicit repository activation and token updates, and restores enterprise CKM discovery.
+- Chat adds clickable modelling decisions, progress indicators and clearer PDF upload feedback.
+- Workspace keeps sign-in visible for signed-out and expired sessions.
+
+- Chat adds composer attachment cards, image previews and PNG/JPG interpretation.
+
+- Browser workspace includes a simple user guide with contextual help.
+- Browser chat adds private CKM and Git connections, source uploads and revocable conversation sharing.
+- Browser chat supports personal Claude and Codex connections with shared MCP tools.
+- MCP discovery includes the full catalogue for Codex.
+- Remove unused extension stubs, duplicate chat validation, redundant Git fetches and obsolete handoff documents.
+- Update the modelling engine's Jackson dependencies to address published advisories.
+
+- Add native local account administration with secure bootstrap, MFA, recovery and review identity.
+
+- Document external OIDC provisioning, authorization scopes and browser review role setup.
+
+- Extend bounded OET authoring, model comparison and exact-build QA evidence.
+
+- Expand project-scoped authorization, model application access and semantic comparison evidence.
+
+- Clarify review-only browser authentication and managed VPS configuration.
+
+## [0.21.0] - 2026-09-27
+
+- Immutable external model originals with protected import provenance and exact source downloads.
+
+- Expand legacy template compilation with reused nodes, RM attribute refinement and existing-model regression fixtures.
+
+- Add bounded legacy OET-to-OPT 1.4 compilation with preserved constraints and reproducible draft build evidence.
+- Handle large escaped model payloads without JSON scanner regex limits.
+
+- Add native ADL 2 validation, OPT 2 compilation and AQL parsing with exact-revision repository build evidence.
+
+- Integrate chat, model browsing and governance in one accessible blue-and-white browser workspace.
+- Preserve deployment script input during PostgreSQL cutover and verify the final deployed revision.
+
+- Add PostgreSQL governance storage, lossless ledger migration and optional model retrieval caching.
+
+- Share browser identity across chat and model governance with explicit platform-owner permissions.
+
+
+- Verified MCP protocol profile, negotiated clients and HTTP/stdio acceptance.
+
+- Add source-specific CKM authentication and bounded federated model discovery.
+
+- Add staged document validation, simplified JSON profiles and exact-revision project QA.
+
+- Add versioned requirements graphs with deterministic rationale queries and exact source/audit evidence.
+
+- Add persisted human governance, an independent browser review workspace and versioned review API.
+
+- Add revision-bound terminology binding plans with offline catalogue proposals, preserved native references and stale-evidence checks.
+
+- Add a versioned project terminology catalogue with offline operations and conditional draft saves.
+
+- Add optional terminology discovery and review-only translation with preserved language, paging and version evidence.
+
+- Add SharePoint snapshot repositories and shared revision semantics with bounded artifact metadata.
+
+- Add hosted GitHub/GitLab metadata, branches and draft reviews using the shared Git repository.
+
+- Add native OIDC verification, signed draft-write authorization and isolated tenant repositories.
+
+- Add authenticated browser chat for modelling discovery and confirmed draft changes.
+
+- Add Git model repositories, optional remote synchronization, and documented Codex development connectivity.
+
+### Added
+
+- SDD: REQ-N10 and ADR-0007 record that the public website lives in its own repository and consumes `docs/install.md` from here.
+
+### Changed
+
+- Docs: restructured the README and line-edited the contributor docs, correcting stale `make ci` and configuration details.
+
+## [0.20.0] - 2026-07-30
+
+### Added
+
+- Guides: new template-design guide `templates/cgem-framework` and runtime-serialisation guides `templates/opt-structure` and `templates/web-template`.
+- Guides: new spec digests — PROC (overview, task-planning, decision-language), CNF, and `lang-bmm3`.
+- SDD: machine-checked traceability — a `.sdd.yaml` descriptor, a `traceability.yaml` map, and a `spec-check` CI drift gate.
+- SDD: new REQ-N9 covering CI validation of published MCP tool input/output schemas.
+
+### Changed
+
+- Guides: broadened AQL versioning coverage (`VERSION` / `LATEST_VERSION` / `ALL_VERSIONS`, node/name predicates) and tightened ADL 1.4 archetype alignment.
+- Guides: extended the Simplified Formats guides (ordinal/proportion suffixes, participations, `ctx` defaults) and template serialisation guidance.
+- Guides: refreshed the `specs/` digests to development-branch class names and relations.
+- Prompts: aligned tool lists and workflows with current tools; added a CKM reuse-check, explain-only guardrails, and a `type_specification_explorer` coverage fix.
+- Prompts: consolidated the two CKM explorer prompts into a single `ckm_explorer`.
+- Dependencies: upgrade `mcp/sdk` to `^0.7` (eager element loading retained); refresh Guzzle, PHPUnit, PHPStan, and Symfony.
+- Tools: `guide_search` scoring is case-insensitive, Unicode-aware, and drops zero-score hits; `taskType` only re-ranks.
+- Tools: stricter input/output schemas (`additionalProperties: false`, nullable optional enums, required envelopes) — **breaking** for strict MCP clients.
+- Tools: search envelopes gained a `total` companion, counted before the result cap.
+- Tools: `guide_search` and `examples_search` share one query tokenizer; `topCandidates` no longer limits recall.
+- Prompts: real prompt arguments with safe `{{name}}` substitution — **breaking** for clients relying on parameterless `prompts/get`.
+- Prompts: `task_type` uses one vocabulary (`design | review`, plus `specialise` for archetypes) and is validated, as are review/artefact pairings — **breaking** for clients sending the old per-prompt tokens.
+- Prompts/docs: shared policy documented as a resilience layer, conditional full-rewrite output, and retrieved content treated as data.
+- Docs/guides: aligned `spec-lookup` wording on the `development` spec stream and dropped a false `guide_get` chunking claim.
+- Resources: Examples resource template no longer advertises an incorrect shared MIME type.
+- Server: the MCP discovery cache is namespaced by `APP_VERSION`; upgrading without a version bump requires clearing the cache (see [development.md](docs/development.md#gotcha--mcp-discovery-cache)).
+- Server instructions: ~13% shorter after folding thrice-stated discovery guidance into one policy bullet; guidance unchanged.
+
+### Fixed
+
+- Tools: multibyte-safe snippet slicing across the search tools; malformed UTF-8 previously broke the JSON-RPC response.
+- Tools: `guide_search` no longer returns an empty result for terms that appear only in a guide body.
+- Tools: CKM search rejects a drifted response envelope and logs dropped fields instead of reporting zero matches.
+- Tools: `type_specification_get` rejects a malformed BMM document instead of returning an incomplete payload.
+- Prompts: malformed or non-string arguments and unsubstitutable `{{tokens}}` are rejected by name.
+- Tools: CKM and terminology failures surface as tool errors carrying their message instead of a generic protocol error.
+- Tools: `ckm_archetype_get` reports an unresolvable identifier instead of mangling it into a doomed request — **breaking** for callers passing neither a CID nor an archetype-id.
+- Tools: CKM searches always score a minimum candidate window, so a small `maxResults` no longer changes which matches rank highest.
+- Resources: unreadable guide/example files are logged rather than silently dropped from `resources/list`.
+- Build: restored `make inspector` against MCP Inspector v2 — pinned image with an OS keyring, seeded dev targets, and a fixed auth-URL match.
+- Server: warn instead of silently starting without server instructions; harden bootstrap crash handling and preserve exception cause chain.
+
+## [0.19.0] - 2026-06-09
+
+### Added
+
+- Tools: human-readable titles and behaviour annotations (read-only / idempotent / open-world hints) across all tools; optional `rmClass` filter on `ckm_archetype_search`.
+- Guides: new `templates/serialization-formats` (OET vs OPT vs ADL-Designer `.t.json` vs web-template) and Dutch `archetypes/language-standards-nl`; OET attribute reference and a `DV_SCALE` vs `DV_ORDINAL` rating-scale idiom added to the archetype/template guides.
+
+### Changed
+
+- Tools: improved CKM search recall and ranking (wider candidate window, exact-concept boost, scoring aliases); trimmed redundant value-lists from parameter descriptions where an `enum` constraint already conveys the options.
+- Guides: refined archetype lint rules (idiomatic `ITEM_TREE.items {0..*}`, translation-accuracy and prose↔slot consistency checks) and a reuse-survey containers-vs-content note.
+
+## [0.18.0] - 2026-06-08
+
+### Changed
+
+- Tools: retuned CKM archetype/template search scoring — wider status gap (DRAFT now ranks above INITIAL more reliably) and gentler age decay.
+
+### Fixed
+
+- Transport: collapse a duplicated `Host` header before the DNS-rebinding check, fixing 403 "Invalid Host header" behind proxies that send `Host` twice.
+
+## [0.17.0] - 2026-06-08
+
+### Added
+
+- Tools: JSON Schema `enum` constraints on the `format`, `kind`, `category`, and `component` parameters.
+- Docs: Specification-Driven Development set under `docs/` (requirements, architecture, decision records, traceability), plus `install.md` and `conventions.md`.
+- Build: `make ci` target; the MCP Inspector now runs on the dev Docker network.
+- Config: `MCP_ALLOWED_HOSTS` allow-list for the `streamable-http` transport (SDK ≥ 0.6 DNS-rebinding protection).
+
+### Changed
+
+- Dependencies: upgraded `mcp/sdk` to `^0.6` and `symfony/cache` to `^8`; refreshed Guzzle/Symfony.
+- Docs: restructured `README.md`, `AGENTS.md`, and `CONTRIBUTING.md` for progressive disclosure (compact user-facing README; setup and conventions moved into `docs/`).
+- Resources: regenerated the `LANG` BMM schema resources.
+- Repo: track shared AI-assistant config (`.claude/`, `.cursor/`) and enable the maintainer dev plugin.
+
+## [0.16.0] - 2026-04-21
+
+### Added
+
+- Guides: new `specs` and `howto` categories (spec digests + toolchain how-tos); new `LANG` BMM component.
+- Examples: new `openehr://examples/{kind}/{name}` namespace with `examples_search` / `examples_get` (AQL, FLAT, STRUCTURED, ADL archetypes).
+- MCP `instructions`: `Spec-Lookup-First`, `Digest-First`, and `Examples-First` clauses.
+- MCP conformance tests via Docker.
+
+### Changed
+
+- Retired `rm` category (migrated to `specs/`); digests track `development`.
+- Moved guide-authoring scaffolding from `resources/guides/` to `src/templates/`.
+- Refreshed BMM JSON across AM/AM2/BASE/RM.
+- Extracted `TerminologyXmlLoader` helper.
+- Hardened guide / type-spec identifier handling (path-traversal checks).
+- Bumped Symfony + phpdocumentor dependencies.
+
+### Fixed
+
+- `AbstractPrompt`: error message for missing user block.
+
+## [0.15.0] - 2026-03-14
+
+### Added
+
+- Guides: Added RM guides for demographic model, EHR information model, and platform services with comprehensive summaries. Expanded AQL checklist with stored query governance and operational readiness. Added shared policy and refined related-resources references across guides.
+- MCP Conformance: Added `make conformance` to run the official MCP conformance suite against the server over HTTP. Requires dev stack (`make up-dev`). Results written to `conformance/`; expected failures in `tests/conformance-baseline.yml`. Added `node` service to dev compose (Node 22 + curl) built from multistage Dockerfile target `node`.
+- Tests: Added PromptCompositionTest and PromptPolicySeparationTest; expanded CkmServiceTest and GuideServiceTest for scoring, sizing, and ranking behaviour.
+
+### Changed
+
+- Tools: CKM archetype and template search now use enhanced scoring, fetch sizing/slicing, and increased default max results. Guide search refactored (dropped guides-index.json persistence); improved heading extraction and ranking. Removed redundant descriptions in guide properties to reduce context bloat.
+- Prompts: Centralized global policy in server instructions; streamlined prompt roles and task guidelines and reduced prompt text. Refined design_or_review and explain prompts across archetypes, templates, AQL, and simplified formats.
+- Guides: Refined ADL syntax and terminology (paths, identifiers); updated archetype guides (anti-patterns, structural constraints, terminology, reference formatting, language standards, principles, checklist), OET syntax, and simplified formats principles. Enhanced translation standards and terminology practices.
+- Docs: README recommends pairing with openEHR Assistant Plugin. AGENTS.md documents Docker-only runtime and MCP conformance workflow. Server instructions refined for tool usage and output policy.
+
+### Fixed
+
+- Tools: Resolved PHPStan warnings in heading extraction.
+- Tests: Removed xdebug ini setting for CI compatibility. Marked policy separation test as covers-nothing.
+
+## [0.14.0] - 2026-03-03
+
+### Changed
+
+- Docker: Moved all Docker assets into `.docker/` (Dockerfile, docker-compose.yml, docker-compose.dev.yml, Caddyfile, php/, php-fpm.d/). Makefile, docs, and GitHub Actions updated to use `.docker/` paths.
+- Docker Compose: Renamed services `mcp` → `app`, `caddy` → `ingress`; updated Caddyfile, Makefile, and docs accordingly.
+- Dependencies: Updated composer dependencies to latest versions.
+
+## [0.13.0] - 2026-02-21
+
+### Added
+
+- Docs: Added Norwegian Bokmål Language Standards Guide with specific conventions and terminology.
+- Docs: Added openEHR Archetype Language Standards Guide and reference formatting guide.
+- Docs: Added CGEM framework guidelines and refined composition semantics.
+- Docs: Added clinical modelling guidelines and clarified spec alignment practices.
+
+### Changed
+
+- Refactor: Moved transport option parsing to `CliOptions` helper.
+- Docs: Clarified usage of Instruction, Action, and Observation archetypes.
+- Docs: Updated archetype guides to reference language standards and per-language conventions.
+
+## [0.12.0] - 2026-02-17
+
+### Added
+
+- MCP Prompts: Added `explain_aql`, `design_or_review_aql`, `explain_simplified_format`, and `design_or_review_simplified_format`.
+- Guides: Added comprehensive AQL guides (principles, syntax, idioms, checklist) 
+- Guides: Added Simplified Formats guides (Flat/Structured principles, rules, idioms, checklist).
+- Docs: Added Table of Contents and improved Quick Start and client setup instructions in `README.md`.
+- Docs: Added guide alignment instructions for archetypes, templates, and simplified formats in `AGENTS.md`.
+
+### Changed
+
+- MCP Server: Simplified transport option parsing using `getopt` in `index.php`.
+- Guides: Updated archetype guides for anti-patterns, structural constraints, and terminology.
+- Dependencies: Updated composer dependencies to latest versions.
+
+### Fixed
+
+- MCP Server: Ensure cache directory is created if missing.
+- MCP Server: Ensure `HTTP_SSL_VERIFY` defaults to `true` if unset.
+- CKM Service: Improved total count calculation and corrected description text.
+- Core: Refined type hints and error handling across tools and tests.
+
+## [0.11.0] - 2026-02-03
+
+### Changed
+
+- MCP Prompts: migrate files to markdown format.
+- added Instructions and an Icon to ServerInitialise response
+
+## [0.10.0] - 2026-02-03
+
+### Added
+
+- Docs: Added `AGENTS.md` file with AI guidelines for project structure, coding conventions, and developer workflows.
+- MCP Tools: Added `guide_search`, `guide_get`, and `guide_adl_idiom_lookup` tools for model-reachable guide content retrieval.
+- MCP Prompts: Added `guide_explorer` prompt to orchestrate guide discovery and retrieval workflows.
+
+### Changed
+
+- MCP Resources: Changed terminology URI from `openehr://terminology/all` to `openehr://terminology`; removed URI templates for terminology resources.
+- MCP Server: Implemented file-based cache for discovery using Symfony Cache.
+- MCP Tools: Improve JSON handling with exceptions; improve search results scores and ordering.
+- MCP Prompts: Convert inline prompt classes to YAML prompt files; add `guide_get` tool references across resources and prompts.
+- CKM Service: Improve documentation for search and retrieval methods; add `guide_search` references.
+- Docs: Updated archetype guides (terminology, anti-patterns, structural constraints, ADL syntax, rules, principles) with AOM 1.4 constraints, specialisation rules, and improved clarity.
+- Docs: Updated `CONTRIBUTING.md` with file-based cache notes and terminology resource changes.
+- Infra: Update PHP-FPM and Caddy config for improved logging, health checks, and file handling.
+
+### Fixed
+
+- Tests: Update temp prompts directory path to use standard `/tmp` location.
+
+## [0.9.0] - 2026-01-20
+
+### Changed
+
+- Dependencies: Updated `mcp/sdk` to v0.3.0 and other developer tools (PHPUnit, PHPStan).
+- MCP Tools: Added `outputSchema` to all tools for better AI client integration and structured outputs.
+- CKM Service: Enhanced `ckm_archetype_search` and `ckm_template_search` with improved scoring logic and structured metadata.
+- Terminology & Type Spec: Refactored `terminology_resolve` and type specification tools to return structured objects instead of flat arrays.
+
+## [0.8.0] - 2026-01-20
+
+### Added
+
+- MCP Resource (Terminology): `openehr://terminology/all` to expose the entire openEHR terminology in JSON format.
+- BMM Specifications: Added AM2 (Archetype Model 2.0) components to bundled resources and updated existing ones for better compliance.
+- CI/CD: Added GitHub Actions for PR validation and enhanced Docker release process.
+
+### Changed
+
+- CKM Service: Refactored `ckm_archetype_search` and `ckm_template_search` tools to simplify result mapping and introduce result scoring for better relevance in AI workflows.
+- MCP Prompts:
+  - Updated `ckm_archetype_explorer` and `ckm_template_explorer` to leverage improved CKM search results.
+  - Enhanced `translate_archetype_language` with detailed clinical terminology guidelines and better structure.
+- Terminology: Improved `terminology_resolve` tool and `terminology_explorer` prompt for better clarity and coverage.
+- Specification: Updated and reorganized BMM files, moving AM to AM2 for better alignment with latest openEHR specifications.
+- Documentation: Updated `README.md` acknowledgments, documentation examples, and guides (checklist, rules, terminology).
+
+## [0.7.0] - 2026-01-07
+
+### Changed
+
+- Refined and improved prompt descriptions and system instructions for better AI alignment.
+- Enhanced resource discovery and registration in the server entry point.
+
+## [0.6.0] - 2026-01-06
+
+### Added
+
+- MCP server published at [https://openehr-assistant-mcp.apps.cadasto.com/](https://openehr-assistant-mcp.apps.cadasto.com/)
+
+### Changed
+
+- Decoupled Docker architecture: separated the MCP service into two distinct containers for PHP-FPM (`mcp`) and Caddy (`caddy`), improving security and maintainability.
+
+## [0.5.0] - 2026-01-03
+
+### Changed
+
+- Renamed Guidelines as Guides, remove the version segment from resource URI: `openehr://guides/{category}/{name}`.
+- Refined docstrings for some of the tools and prompts to improve clarity and consistency.
+- Streamlined wording across guided workflows for a better user experience.
+- Updated `README.md` with expanded usage instructions, feature lists, and development setup details.
+
+### Fixed
+
+- Removed redundant format parameters from internal `TextContent::code` calls in CKM archetype and template retrieval.
+
+## [0.4.0] - 2025-12-29
+
+### Added
+
+- MCP Resources (Terminologies): `openehr://terminology/{type}/{id}` for openEHR terminology groups and codesets.
+- MCP Tool (Terminology Service): `terminology_resolve` to resolve openEHR concept IDs and rubrics across groups.
+- MCP Prompt (Terminology Explorer): `terminology_explorer` to guide users through discovering openEHR terminologies.
+- Added tests for Terminologies resource, explorer prompt and terminology service tool.
+- Added CKM template tools: `ckm_template_search` and `ckm_template_get` for OET and OPT formats.
+- Added MCP Prompt (CKM Template Explorer): `ckm_template_explorer` to guide users through discovering CKM templates.
+- Added `design_or_review_template` prompt to assist with openEHR Template (OET) design and review.
+- Added comprehensive guides for openEHR templates (principles, rules, syntax, idioms, checklist) used by the new prompt.
+
+### Changed
+
+- Using mcp/php-sdk to v0.2.2.
+
+## [0.3.0] - 2025-12-22
+
+### Added
+
+- Documentation: Describe MCP Resource templates and Completion Providers now present in the codebase.
+  - MCP Resources (Guidelines): `openehr://guidelines/{category}/{version}/{name}`
+  - MCP Resources (Type Specifications): `openehr://spec/type/{component}/{name}`
+  - Completion Providers: `ArchetypeGuidelines` and `SpecificationComponents`
+- Added tests for MCP Resources and Completion Providers.
+
+### Changed
+
+- README and CONTRIBUTING updated to reflect current MCP Resources and Completion Providers.
+- Changed the resource URI scheme from `guidelines` to `openehr`.
+- improved openEHR type specification tool response and associated resources.
+
+## [0.2.0] - 2025-12-16
+
+### Added
+
+- CKM tools improvements
+- MCP Prompts: `explain_archetype_semantics`, `translate_archetype_language`, `fix_adl_syntax`, `design_or_review_archetype`
+- MCP Resources: developer guidelines exposed via `guidelines://{category}/{version}/{name}` URIs (e.g., `guidelines://archetypes/v1/checklist`).
+- CI: publish production Docker image to GitHub Container Registry (GHCR) on pushes to main.
+
+## [0.1.0] - 2025-12-14
+
+Initial public release.
+
+### Added
+
+- PHP-based MCP server builder on top of [https://github.com/modelcontextprotocol/php-sdk](https://github.com/modelcontextprotocol/php-sdk).
+- Configuration via environment variables (APP_ENV, LOG_LEVEL, HTTP_SSL_VERIFY, HTTP_TIMEOUT).
+- Two transport protocols: stdio and streamable-http.
+- Core tools and prompts 
+- Logging via Monolog.
+- HTTP client via Guzzle.
+- PHPUnit tests and PHPStan configuration.
+- Makefile, Dockerfile and docker-compose setup for local development.
+- Documentation and contribution guidelines.

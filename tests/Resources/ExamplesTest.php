@@ -1,0 +1,119 @@
+<?php
+declare(strict_types=1);
+
+namespace OpenEHR\Assistant\Tests\Resources;
+
+use OpenEHR\Assistant\Resources\Examples;
+use Mcp\Capability\Attribute\McpResourceTemplate;
+use Mcp\Exception\ResourceReadException;
+use Mcp\Server\Builder;
+use ReflectionMethod;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\TestCase;
+
+#[CoversClass(Examples::class)]
+final class ExamplesTest extends TestCase
+{
+    public function test_can_read_known_aql_example(): void
+    {
+        $reader = new Examples();
+        $content = $reader->read('aql', 'latest_blood_pressure_per_ehr');
+
+        $this->assertIsString($content);
+        $this->assertNotSame('', $content);
+        $this->assertStringContainsString('```aql', $content);
+    }
+
+    public function test_can_read_flat_example(): void
+    {
+        $reader = new Examples();
+        $content = $reader->read('flat', 'vital_signs_blood_pressure');
+
+        $this->assertStringContainsString('"ctx/language"', $content);
+        $this->assertStringContainsString('|magnitude', $content);
+    }
+
+    public function test_can_read_structured_example(): void
+    {
+        $reader = new Examples();
+        $content = $reader->read('structured', 'vital_signs_blood_pressure');
+
+        $this->assertStringContainsString('"ctx"', $content);
+        $this->assertStringContainsString('"|magnitude"', $content);
+    }
+
+    public function test_unknown_example_raises(): void
+    {
+        $reader = new Examples();
+        $this->expectException(ResourceReadException::class);
+        $reader->read('aql', 'unknown_example_xyz');
+    }
+
+    public function test_invalid_identifier_raises(): void
+    {
+        $reader = new Examples();
+        $this->expectException(ResourceReadException::class);
+        $reader->read('aql', '../../../etc/passwd');
+    }
+
+    public function test_can_read_native_adl_archetype(): void
+    {
+        $reader = new Examples();
+        $content = $reader->read('archetypes', 'openEHR-EHR-OBSERVATION.blood_pressure.v2');
+
+        $this->assertStringContainsString('archetype', $content);
+        $this->assertStringContainsString('openEHR-EHR-OBSERVATION.blood_pressure.v2', $content);
+    }
+
+    public function test_examples_resource_template_advertises_no_mime_type(): void
+    {
+        // Asserted on the published ResourceTemplate rather than on the attribute's argument
+        // list: the wire-visible outcome is what clients see, and it stays correct however the
+        // attribute happens to be written. The template serves both .md and .adl, so a single
+        // template-level mimeType would misdescribe one of them.
+        $rc = new ReflectionMethod(Examples::class, 'read');
+        $attrs = $rc->getAttributes(McpResourceTemplate::class);
+        /** @var McpResourceTemplate $attribute */
+        $attribute = $attrs[0]->newInstance();
+
+        $this->assertNull($attribute->mimeType);
+    }
+
+    public function test_addResources_registers_examples(): void
+    {
+        $builder = new Builder();
+        Examples::addResources($builder);
+
+        $ref = new \ReflectionClass($builder);
+        $prop = $ref->getProperty('resources');
+        $resources = $prop->getValue($builder);
+
+        $this->assertIsArray($resources);
+        $this->assertNotEmpty($resources);
+
+        $uris = array_map(static fn(array $r): string => (string)($r['uri'] ?? ''), (array)$resources);
+        $byUri = [];
+        foreach ((array)$resources as $r) {
+            $byUri[(string)($r['uri'] ?? '')] = $r;
+        }
+
+        $this->assertContains('openehr://examples/aql/latest_blood_pressure_per_ehr', $uris);
+        $this->assertContains('openehr://examples/flat/vital_signs_blood_pressure', $uris);
+        $this->assertContains('openehr://examples/structured/vital_signs_blood_pressure', $uris);
+        $this->assertContains('openehr://examples/archetypes/openEHR-EHR-OBSERVATION.blood_pressure.v2', $uris);
+
+        // Archetypes register with text/plain; Markdown examples with text/markdown
+        $adlRes = $byUri['openehr://examples/archetypes/openEHR-EHR-OBSERVATION.blood_pressure.v2'] ?? [];
+        $this->assertSame('text/plain', $adlRes['mimeType'] ?? null);
+        $mdRes = $byUri['openehr://examples/flat/vital_signs_blood_pressure'] ?? [];
+        $this->assertSame('text/markdown', $mdRes['mimeType'] ?? null);
+
+        foreach ($uris as $uri) {
+            $this->assertDoesNotMatchRegularExpression(
+                '#/README$|/_[^/]+$#',
+                $uri,
+                sprintf('Examples registry leaked authoring artifact: %s', $uri)
+            );
+        }
+    }
+}

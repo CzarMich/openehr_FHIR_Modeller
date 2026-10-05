@@ -1,0 +1,34 @@
+archetype (adl_version=2.0.6; rm_release=1.0.4)
+    openEHR-EHR-CLUSTER.engine_fixture.v1.0.0
+
+language
+    original_language = <[ISO_639-1::en]>
+
+description
+    lifecycle_state = <"unmanaged">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"Synthetic non-clinical engine contract fixture.">
+        >
+    >
+
+definition
+    CLUSTER[id1] matches {
+        items cardinality matches {1..*; unordered} matches {
+            ELEMENT[id2] occurrences matches {1..1} matches {
+                value matches {
+                    DV_TEXT[id3]
+                }
+            }
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1"] = <text = <"Fixture"> description = <"Synthetic cluster">>
+            ["id2"] = <text = <"Text element"> description = <"Synthetic value">>
+            ["id3"] = <text = <"Text"> description = <"Synthetic text">>
+        >
+    >

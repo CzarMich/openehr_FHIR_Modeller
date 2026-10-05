@@ -1,0 +1,16 @@
+{
+  "recorded_at": "2026-09-27T07:03:10.648852+00:00",
+  "status": "PASS",
+  "checks": {
+    "phpunit": "1103 tests, 4682 assertions",
+    "phpstan": "level 8, no errors",
+    "spec_check": "PASS",
+    "composer_audit": "No security advisories",
+    "container": "PostgreSQL/Valkey and production PHP/ingress; migration, competing append, role/tenant boundaries, authenticated governance, restart/replay, cache invalidation and outage fallback",
+    "diagrams": "5 Mermaid diagrams parsed and rendered"
+  },
+  "limits": [
+    "Synthetic retrieval timings do not establish production throughput",
+    "Cache is optional and never the source of authorization or governance authority"
+  ]
+}

@@ -1,0 +1,27 @@
+services:
+  cdr:
+    image: node:22.22.1-bookworm-slim
+    user: '${CDR_TEST_UID:-1000}:${CDR_TEST_GID:-1000}'
+    command: [node, /fixture/server.mjs]
+    volumes:
+      - ${CDR_TEST_ROOT:?}:/fixture-data
+      - ${CDR_TEST_REPO:?}/tests/fixtures/cdr/server.mjs:/fixture/server.mjs:ro
+    sysctls: {net.ipv4.ip_unprivileged_port_start: '0'}
+    networks: {default: {aliases: [cdr-fixture]}}
+    healthcheck:
+      test: [CMD, node, -e, "require('node:fs').accessSync('/fixture-data/ready')"]
+      interval: 1s
+      timeout: 3s
+      retries: 15
+  app:
+    image: openehr-modelling-assistant:cdr-test
+    build: {context: '${CDR_TEST_REPO:?}', target: production}
+    environment: {APP_ENV: testing}
+    volumes:
+      - ${CDR_TEST_REPO:?}/tests/fixtures/cdr/probe.php:/probe.php:ro
+      - ${CDR_TEST_ROOT:?}/tls.crt:/run/fixture-ca.crt:ro
+    depends_on: {cdr: {condition: service_healthy}}
+    tmpfs: ['/tmp:mode=1777,size=64m']
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]

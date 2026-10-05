@@ -1,0 +1,20 @@
+
+> test:browser
+> playwright test --config playwright.config.mjs
+
+[2m[WebServer] [22m(node:2576815) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:2576822) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2576822) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 test/browser.spec.mjs:16:1 › sign in, tool-backed chat, code rendering, history and sign out (763ms)
+  ✓  2 test/browser.spec.mjs:35:1 › model writes wait for an explicit browser confirmation (407ms)
+[2m[WebServer] [22m{"event":"chat_turn_failed","code":"STOPPED"}
+  ✓  3 test/browser.spec.mjs:45:1 › stopping a turn allows another message (605ms)
+  ✓  4 test/browser.spec.mjs:56:1 › mobile layout and untrusted markup remain safe (419ms)
+
+  4 passed (3.6s)

@@ -1,0 +1,13 @@
+{
+  "recorded_at": "2026-09-27T08:21:28.504Z",
+  "revision": "e4eb9425ad2412fc5d7a4fdcb1e271627fd2aabe",
+  "status": "PASS",
+  "checks": [
+    "Actual OIDC sign-in",
+    "Live conversational client invoked native template_compile over MCP",
+    "Returned OPT 2 ADL and exact output hash",
+    "Computation only: no model writes or clinical approval",
+    "No browser JavaScript errors"
+  ],
+  "clinical_approval": false
+}

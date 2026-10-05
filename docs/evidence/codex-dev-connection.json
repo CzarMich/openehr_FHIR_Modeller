@@ -1,0 +1,9 @@
+{
+  "client": "installed Codex app-server",
+  "server": "openehr_modelling_dev",
+  "endpoint": "https://dev-openehr-modelling.sandbox.hygeoniq.com/mcp",
+  "tools_discovered": 31,
+  "status": "PASS",
+  "headers_helper": "private local credential file",
+  "tls_verification": "enabled"
+}

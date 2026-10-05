@@ -1,0 +1,777 @@
+path	line	classification	reason
+.docker/Dockerfile	67	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+.docker/Dockerfile	74	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+.dockerignore	3	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+.editorconfig	298	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+.editorconfig	342	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+.env.chat.example	21	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+.github/ISSUE_TEMPLATE/bug_report.yml	44	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+.github/workflows/pr-validation.yml	60	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+.github/workflows/release.yml	40	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+.gitignore	40	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+.gitignore	41	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+.gitignore	49	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+.gitignore	50	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+AGENTS.md	14	technical	Requested current-product terms, rights boundaries or audit instructions; third-party and prior grants expressly preserved.
+AGENTS.md	15	technical	Requested current-product terms, rights boundaries or audit instructions; third-party and prior grants expressly preserved.
+AGENTS.md	67	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+CHANGELOG.md	48	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+CHANGELOG.md	195	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+CHANGELOG.md	353	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+CONTRIBUTING.md	21	technical	Requested current-product terms, rights boundaries or audit instructions; third-party and prior grants expressly preserved.
+CONTRIBUTING.md	25	technical	Requested current-product terms, rights boundaries or audit instructions; third-party and prior grants expressly preserved.
+Dockerfile	67	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+Dockerfile	74	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+LICENSE	3	technical	Requested current-product terms, rights boundaries or audit instructions; third-party and prior grants expressly preserved.
+LICENSE	8	technical	Requested current-product terms, rights boundaries or audit instructions; third-party and prior grants expressly preserved.
+LICENSE	12	technical	Requested current-product terms, rights boundaries or audit instructions; third-party and prior grants expressly preserved.
+LICENSE	14	technical	Requested current-product terms, rights boundaries or audit instructions; third-party and prior grants expressly preserved.
+LICENSE	18	technical	Requested current-product terms, rights boundaries or audit instructions; third-party and prior grants expressly preserved.
+LICENSE	21	technical	Requested current-product terms, rights boundaries or audit instructions; third-party and prior grants expressly preserved.
+LICENSE	23	technical	Requested current-product terms, rights boundaries or audit instructions; third-party and prior grants expressly preserved.
+LICENSE	24	technical	Requested current-product terms, rights boundaries or audit instructions; third-party and prior grants expressly preserved.
+README.md	5	technical	Requested current-product terms, rights boundaries or audit instructions; third-party and prior grants expressly preserved.
+README.md	13	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+README.md	34	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+README.md	71	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+README.md	113	technical	Requested current-product terms, rights boundaries or audit instructions; third-party and prior grants expressly preserved.
+README.md	115	technical	Requested current-product terms, rights boundaries or audit instructions; third-party and prior grants expressly preserved.
+README.md	119	technical	Requested current-product terms, rights boundaries or audit instructions; third-party and prior grants expressly preserved.
+README.md	121	technical	Requested current-product terms, rights boundaries or audit instructions; third-party and prior grants expressly preserved.
+THIRD_PARTY_NOTICES.md	3	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+THIRD_PARTY_NOTICES.md	7	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+THIRD_PARTY_NOTICES.md	14	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+THIRD_PARTY_NOTICES.md	16	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+THIRD_PARTY_NOTICES.md	21	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+THIRD_PARTY_NOTICES.md	25	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+THIRD_PARTY_NOTICES.md	31	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+THIRD_PARTY_NOTICES.md	39	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+THIRD_PARTY_NOTICES.md	43	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+THIRD_PARTY_NOTICES.md	44	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+THIRD_PARTY_NOTICES.md	45	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+THIRD_PARTY_NOTICES.md	46	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+THIRD_PARTY_NOTICES.md	48	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+THIRD_PARTY_NOTICES.md	52	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+THIRD_PARTY_NOTICES.md	54	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+THIRD_PARTY_NOTICES.md	55	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+THIRD_PARTY_NOTICES.md	56	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+THIRD_PARTY_NOTICES.md	57	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+THIRD_PARTY_NOTICES.md	58	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+chat/Dockerfile	17	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/Dockerfile	24	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/Dockerfile	31	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/Dockerfile	35	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/package-lock.json	9	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/package-lock.json	27	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/package-lock.json	29	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/package-lock.json	31	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/package-lock.json	38	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/package-lock.json	1425	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/package.json	15	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/package.json	31	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/aql-drafting.mjs	43	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/claude.mjs	1	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/claude.mjs	4	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/claude.mjs	8	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/claude.mjs	11	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/claude.mjs	47	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/claude.mjs	69	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/config.mjs	47	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/provider-store.mjs	7	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/providers.mjs	6	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/providers.mjs	15	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/providers.mjs	26	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/providers.mjs	33	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/providers.mjs	35	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/providers.mjs	43	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/providers.mjs	46	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/providers.mjs	48	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/providers.mjs	49	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/providers.mjs	124	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/server.mjs	181	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/server.mjs	560	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/server.mjs	575	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/server.mjs	577	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/src/server.mjs	654	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/browser.spec.mjs	88	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/browser.spec.mjs	649	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/browser.spec.mjs	656	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/browser.spec.mjs	659	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/browser.spec.mjs	667	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/browser.spec.mjs	670	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/browser.spec.mjs	677	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/browser.spec.mjs	681	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/browser.spec.mjs	691	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/browser.spec.mjs	697	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/browser.spec.mjs	698	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/browser.spec.mjs	699	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/browser.spec.mjs	700	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/browser.spec.mjs	702	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/browser.spec.mjs	703	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	8	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	22	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	23	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	24	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	25	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	31	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	32	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	33	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	34	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	39	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	41	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	45	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	47	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	48	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	54	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	62	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	63	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	166	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	183	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	213	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	215	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	223	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/providers.test.mjs	239	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/security.test.mjs	653	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/security.test.mjs	664	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/security.test.mjs	672	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/security.test.mjs	677	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/security.test.mjs	678	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/security.test.mjs	681	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/security.test.mjs	683	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+chat/test/security.test.mjs	689	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+composer.json	5	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+composer.lock	46	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	104	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	187	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	294	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	391	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	523	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	617	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	693	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	759	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	831	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	893	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	954	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	1019	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	1036	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	1092	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	1161	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	1223	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	1276	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	1315	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	1359	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	1412	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	1465	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	1516	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	1568	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	1622	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	1676	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	1733	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	1788	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	1838	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	1888	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	1961	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	2037	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	2116	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	2184	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	2264	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	2345	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	2432	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	2517	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	2594	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	2675	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	2765	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	2829	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	2890	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	2943	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	2953	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	2954	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	2958	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	2959	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3000	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3010	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3011	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3015	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3016	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3053	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3096	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3101	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3112	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3113	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3114	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3115	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3137	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3142	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3143	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3148	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3155	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3156	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3157	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3161	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3165	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3169	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3184	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3189	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3211	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3216	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3217	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3222	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3228	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3229	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3230	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3234	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3238	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3242	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3257	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3262	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3288	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3293	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3294	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3299	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3304	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3305	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3306	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3310	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3321	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3326	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3348	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3353	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3354	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3359	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3364	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3365	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3366	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3370	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3381	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3386	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3408	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3413	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3414	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3419	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3424	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3425	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3426	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3430	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3441	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3446	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3466	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3467	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3468	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3469	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3470	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3471	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3472	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3473	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3474	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3475	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3496	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3501	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3502	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3514	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3515	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	3516	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4640	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4676	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4680	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4685	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4707	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4712	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4713	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4718	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4720	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4721	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4722	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4726	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4730	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4734	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4738	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4745	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4749	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4754	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4762	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4763	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4783	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4788	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4789	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4805	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4812	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4813	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4814	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4818	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4822	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4826	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4830	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4837	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4841	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4846	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4869	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4874	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4875	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4880	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4882	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4883	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4884	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4888	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4895	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4899	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4904	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4927	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4932	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4933	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4941	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4949	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4950	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4951	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4955	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4962	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4966	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4971	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	4996	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5001	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5002	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5006	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5013	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5014	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5015	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5019	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5023	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5027	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5031	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5038	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5042	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5047	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5054	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5071	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5076	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5077	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5097	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5103	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5104	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5105	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5109	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5113	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5117	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5121	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5128	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5132	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5137	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5143	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5144	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5162	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5167	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5168	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5172	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5177	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5178	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5179	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5183	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5187	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5191	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5195	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5202	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5206	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5211	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5234	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5239	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5240	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5245	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5247	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5248	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5249	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5253	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5257	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5261	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5265	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5272	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5276	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5281	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5287	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5288	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5305	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5310	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5311	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5315	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5317	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5318	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5319	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5323	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5330	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5334	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5339	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5361	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5366	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5367	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5371	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5373	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5374	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5375	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5379	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5386	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5390	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5395	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5417	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5422	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5423	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5435	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5437	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5438	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5439	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5443	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5447	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5451	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5455	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5462	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5466	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5471	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5493	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5498	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5499	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5504	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5506	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5507	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5508	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5512	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5516	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5520	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5524	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5531	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5535	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5540	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5559	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5564	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5565	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5570	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5572	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5573	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5574	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5578	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5617	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5675	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5757	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+composer.lock	5822	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/ARCHETYPE_DESIGNER_INTEGRATION.md	33	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/ARCHITECTURE.md	3	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/ARCHITECTURE.md	9	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/ARCHITECTURE.md	76	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/BASELINE_AUDIT.md	38	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/BASELINE_AUDIT.md	40	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/BASELINE_AUDIT.md	41	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/BASELINE_AUDIT.md	44	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/BASELINE_AUDIT.md	46	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/BROWSER_CHAT.md	4	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/BROWSER_CHAT.md	16	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/BROWSER_CHAT.md	17	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/BROWSER_CHAT.md	25	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/BROWSER_CHAT.md	26	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/BROWSER_CHAT.md	27	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/BROWSER_CHAT.md	203	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/BROWSER_CHAT.md	226	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/BROWSER_CHAT.md	244	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/BROWSER_CHAT.md	245	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/BROWSER_CHAT.md	275	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/BROWSER_CHAT.md	303	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/EXTERNAL_MODELLING_REQUIREMENTS.json	1231	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/EXTERNAL_MODELLING_REQUIREMENTS.json	2215	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/EXTERNAL_MODELLING_REQUIREMENTS.json	2855	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/IMPLEMENTATION_REPORT.md	5	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/MCP_CLIENTS.md	34	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/MCP_CLIENTS.md	70	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/MCP_CLIENTS.md	73	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/MCP_CLIENTS.md	75	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/MCP_CLIENTS.md	79	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/MCP_TOOLS.md	2103	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/MICROSOFT_AGENT_INTEGRATION.md	5	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/MODEL_IMPORTS.md	45	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/PATIENT_DATA_BOUNDARY.md	18	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/README.md	5	technical	Requested current-product terms, rights boundaries or audit instructions; third-party and prior grants expressly preserved.
+docs/README.md	10	technical	Requested current-product terms, rights boundaries or audit instructions; third-party and prior grants expressly preserved.
+docs/README.md	11	technical	Requested current-product terms, rights boundaries or audit instructions; third-party and prior grants expressly preserved.
+docs/README.md	17	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/REVIEW_DEPLOYMENT.md	78	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/WHITE_LABEL_MIGRATION.md	5	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/WHITE_LABEL_MIGRATION.md	11	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/WHITE_LABEL_MIGRATION.md	19	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/architecture.md	7	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/decisions/0007-website-in-separate-repository.md	7	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/decisions/0007-website-in-separate-repository.md	9	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/decisions/0007-website-in-separate-repository.md	17	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/decisions/0007-website-in-separate-repository.md	31	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/decisions/0007-website-in-separate-repository.md	33	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	38	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	39	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	40	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	41	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	42	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	43	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	44	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	45	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	46	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	47	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	48	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	55	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	56	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	105	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	106	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	107	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	108	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	109	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	110	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	111	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	112	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	113	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	114	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	115	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	122	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	123	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/baseline-tests.txt	142	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/binding-tests.txt	1	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/catalogue-tests.txt	1	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/completion-baseline-tests.txt	7	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/designer-unit-tests.txt	1	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/engine-sbom.json	122	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	124	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	188	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	190	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	192	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	255	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	257	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	325	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	327	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	395	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	397	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	465	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	467	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	535	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	537	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	542	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	610	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	678	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	680	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	752	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	754	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	810	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	812	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	875	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	877	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	941	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	943	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1007	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1009	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1011	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1082	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1084	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1086	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1156	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1158	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1222	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1224	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1288	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1290	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1354	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1356	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1420	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1422	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1486	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1488	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1552	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1554	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1618	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1620	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1683	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1685	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1753	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1755	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1761	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1762	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1763	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1833	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1835	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1836	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1837	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1908	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1910	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1916	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1917	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1918	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1988	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	1990	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2057	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2059	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2130	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2132	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2203	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2205	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2265	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2267	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2326	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2328	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2391	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2393	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2399	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2463	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2465	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2470	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2475	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2477	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2543	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2545	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2608	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2610	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2674	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2676	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2678	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2753	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2755	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2757	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2832	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2834	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2836	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2911	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2913	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2985	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	2987	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3059	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3061	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3133	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3135	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3199	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3201	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3264	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3266	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3326	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3328	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3330	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3401	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3403	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3405	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3479	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3481	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3540	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3542	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3606	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3608	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3672	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3674	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3737	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3739	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3799	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3801	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3869	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3871	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3873	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3944	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3946	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/engine-sbom.json	3948	legal	Unmodified dependency package identity, author or license metadata; belongs to that component.
+docs/evidence/final-unit-tests.txt	10	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/git-unit-tests.txt	1	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/hosted-repository-tests.txt	1	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/oidc-unit-tests.txt	7	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/sharepoint-repository-tests.txt	1	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/terminology-tests.txt	1	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/evidence/tool-catalogue.json	2231	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/plans/archive/2026-07-28-mcp-audit-remediation-design.md	5	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/plans/archive/2026-07-28-mcp-audit-remediation-design.md	73	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/plans/archive/2026-07-28-mcp-audit-remediation-design.md	77	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/plans/archive/2026-07-28-mcp-audit-remediation.md	3	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/plans/archive/2026-07-28-mcp-audit-remediation.md	203	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/plans/archive/2026-07-28-mcp-audit-remediation.md	709	historical	Dated upstream/migration/build record or superseded decision, intentionally retained without rewriting authorship.
+docs/requirements.md	61	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+docs/traceability.yaml	330	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+engine/Dockerfile	5	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+engine/Dockerfile	13	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+engine/Dockerfile	17	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+engine/pom.xml	6	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+engine/pom.xml	8	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+engine/pom.xml	33	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+public/chat/app.js	1047	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+public/chat/app.js	1049	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+public/chat/app.js	1050	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+public/chat/app.js	1052	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+public/chat/app.js	1092	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+public/chat/index.html	307	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+public/chat/index.html	329	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+public/chat/index.html	330	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+public/chat/index.html	332	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+public/chat/index.html	335	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+public/chat/index.html	337	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+public/chat/index.html	343	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+public/chat/index.html	344	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+public/chat/index.html	1355	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+public/chat/index.html	1914	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+public/chat/index.html	1918	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+public/chat/index.html	1922	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+public/chat/index.html	1973	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+resources/bmm/BASE/RESOURCE_DESCRIPTION.bmm.json	76	technical	Unchanged third-party model/specification field or explanatory text; excluded from proprietary ownership.
+resources/bmm/BASE/RESOURCE_DESCRIPTION.bmm.json	78	technical	Unchanged third-party model/specification field or explanatory text; excluded from proprietary ownership.
+resources/bmm/BASE/RESOURCE_DESCRIPTION.bmm.json	79	technical	Unchanged third-party model/specification field or explanatory text; excluded from proprietary ownership.
+resources/bmm/BASE/RESOURCE_DESCRIPTION.bmm.json	85	technical	Unchanged third-party model/specification field or explanatory text; excluded from proprietary ownership.
+resources/bmm/BASE/RESOURCE_DESCRIPTION.bmm.json	91	technical	Unchanged third-party model/specification field or explanatory text; excluded from proprietary ownership.
+resources/bmm/RM/EXTRACT_ENTITY_MANIFEST.bmm.json	27	technical	Unchanged third-party model/specification field or explanatory text; excluded from proprietary ownership.
+resources/bmm/RM/RESOURCE_DESCRIPTION_ITEM.bmm.json	44	technical	Unchanged third-party model/specification field or explanatory text; excluded from proprietary ownership.
+resources/bmm/RM/RESOURCE_DESCRIPTION_ITEM.bmm.json	46	technical	Unchanged third-party model/specification field or explanatory text; excluded from proprietary ownership.
+resources/bmm/RM/RESOURCE_DESCRIPTION_ITEM.bmm.json	47	technical	Unchanged third-party model/specification field or explanatory text; excluded from proprietary ownership.
+resources/bmm/RM/RESOURCE_DESCRIPTION_ITEM.bmm.json	80	technical	Unchanged third-party model/specification field or explanatory text; excluded from proprietary ownership.
+resources/examples/archetypes/openEHR-EHR-ACTION.procedure.v1.adl	109	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-ACTION.procedure.v1.adl	197	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-ACTION.procedure.v1.adl	241	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-ACTION.procedure.v1.adl	285	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-ACTION.procedure.v1.adl	293	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-ACTION.procedure.v1.adl	301	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-ACTION.procedure.v1.adl	437	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-ACTION.procedure.v1.adl	439	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-ADMIN_ENTRY.translation_requirements.v1.adl	32	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-ADMIN_ENTRY.translation_requirements.v1.adl	47	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-ADMIN_ENTRY.translation_requirements.v1.adl	53	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-CLUSTER.anatomical_location.v1.adl	69	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-CLUSTER.anatomical_location.v1.adl	106	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-CLUSTER.anatomical_location.v1.adl	125	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-CLUSTER.anatomical_location.v1.adl	144	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-CLUSTER.anatomical_location.v1.adl	220	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-CLUSTER.anatomical_location.v1.adl	222	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-CLUSTER.anatomical_location.v1.adl	231	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-COMPOSITION.encounter.v1.adl	96	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-COMPOSITION.encounter.v1.adl	128	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-COMPOSITION.encounter.v1.adl	153	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-COMPOSITION.encounter.v1.adl	266	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-COMPOSITION.encounter.v1.adl	339	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-EVALUATION.problem_diagnosis.v1.adl	56	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-EVALUATION.problem_diagnosis.v1.adl	216	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-EVALUATION.problem_diagnosis.v1.adl	258	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-EVALUATION.problem_diagnosis.v1.adl	273	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-EVALUATION.problem_diagnosis.v1.adl	399	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-EVALUATION.problem_diagnosis.v1.adl	454	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-EVALUATION.problem_diagnosis.v1.adl	497	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-EVALUATION.problem_diagnosis.v1.adl	588	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-EVALUATION.problem_diagnosis.v1.adl	590	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-INSTRUCTION.medication_order.v3.adl	294	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-INSTRUCTION.medication_order.v3.adl	345	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-OBSERVATION.blood_pressure.v2.adl	26	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-OBSERVATION.blood_pressure.v2.adl	39	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-OBSERVATION.blood_pressure.v2.adl	97	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-OBSERVATION.blood_pressure.v2.adl	109	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-OBSERVATION.blood_pressure.v2.adl	144	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-OBSERVATION.blood_pressure.v2.adl	164	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-OBSERVATION.blood_pressure.v2.adl	176	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-OBSERVATION.blood_pressure.v2.adl	196	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-OBSERVATION.blood_pressure.v2.adl	211	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-OBSERVATION.blood_pressure.v2.adl	241	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-OBSERVATION.blood_pressure.v2.adl	257	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-OBSERVATION.blood_pressure.v2.adl	279	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-OBSERVATION.blood_pressure.v2.adl	302	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-OBSERVATION.blood_pressure.v2.adl	304	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/examples/archetypes/openEHR-EHR-OBSERVATION.blood_pressure.v2.adl	315	legal	Preserved third-party notice, source attribution or applicable component terms, scoped separately from the current product.
+resources/guides/specs/base-resource.md	11	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+resources/guides/specs/base-resource.md	21	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+resources/guides/specs/base-resource.md	27	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+resources/guides/templates/checklist.md	38	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+resources/guides/templates/rules.md	39	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+scripts/test-engine-container.sh	20	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+scripts/test-engine-container.sh	24	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+src/Application/ModelImports.php	153	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+src/Tools/ModelImportTools.php	39	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+tests/Content/InstallDocContractTest.php	16	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+tests/Content/InstallDocContractTest.php	28	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+tests/Content/InstallDocContractTest.php	30	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+tests/Content/InstallDocContractTest.php	31	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+tests/Content/InstallDocContractTest.php	33	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.
+tests/Content/InstallDocContractTest.php	36	technical	Product configuration, supported integrations, tests, metadata, documentation or legal-file packaging; no third-party ownership claim.

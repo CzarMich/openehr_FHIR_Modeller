@@ -1,0 +1,37 @@
+[
+  {
+    "check": "missing key",
+    "http_status": 401,
+    "expected": 401,
+    "pass": true
+  },
+  {
+    "check": "invalid key",
+    "http_status": 401,
+    "expected": 401,
+    "pass": true
+  },
+  {
+    "check": "valid key",
+    "http_status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "check": "forbidden Host",
+    "status": "SKIPPED",
+    "reason": "Shared proxy selects another virtual host; verify the application listener separately."
+  },
+  {
+    "check": "forbidden Origin",
+    "http_status": 403,
+    "expected": 403,
+    "pass": true
+  },
+  {
+    "check": "large request",
+    "http_status": 413,
+    "expected": 413,
+    "pass": true
+  }
+]

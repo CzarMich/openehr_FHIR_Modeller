@@ -1,0 +1,23 @@
+{
+  "recorded_at": "2026-09-27T10:10:40.528410+00:00",
+  "revision": "d410f03c75015c7d5340f792b4817b3194b7503c",
+  "pull_request": "https://github.com/CzarMich/openehr-modelling-assistant/pull/21",
+  "github_actions": "PASS",
+  "runs": [
+    "https://github.com/CzarMich/openehr-modelling-assistant/actions/runs/36310280632",
+    "https://github.com/CzarMich/openehr-modelling-assistant/actions/runs/36310304861",
+    "https://github.com/CzarMich/openehr-modelling-assistant/actions/runs/36310787554",
+    "https://github.com/CzarMich/openehr-modelling-assistant/actions/runs/36311216123"
+  ],
+  "development": {
+    "health": "6 containers healthy",
+    "fixture": "coverage-dev-fixture-acceptance.json",
+    "examples": "coverage-dev-example-acceptance.json"
+  },
+  "server": {
+    "health": "6 containers healthy",
+    "fixture": "coverage-server-fixture-acceptance.json",
+    "examples": "coverage-server-example-acceptance.json"
+  },
+  "clinical_approval": false
+}

@@ -1,0 +1,154 @@
+{
+    "name": "BMM_MODEL",
+    "documentation": "Model of a BMM schema (along with what is inherited from BMM_SCHEMA_CORE).",
+    "ancestors": [
+        "BMM_SCHEMA_CORE",
+        "BMM_PACKAGE_CONTAINER"
+    ],
+    "properties": {
+        "class_definitions": {
+            "_type": "P_BMM_GENERIC_PROPERTY",
+            "name": "class_definitions",
+            "documentation": "All classes in this schema.",
+            "type_def": {
+                "root_type": "Hash",
+                "generic_parameters": [
+                    "String",
+                    "BMM_CLASS"
+                ]
+            }
+        }
+    },
+    "functions": {
+        "primitive_types": {
+            "name": "primitive_types",
+            "documentation": "List of keys in `class_definitions' of items marked as primitive types, as defined in input schema.",
+            "result": {
+                "_type": "P_BMM_CONTAINER_TYPE",
+                "container_type": "List",
+                "type": "String"
+            },
+            "is_nullable": true
+        },
+        "enumeration_types": {
+            "name": "enumeration_types",
+            "documentation": "List of keys in `class_definitions' of items that are enumeration types, as defined in input schema.",
+            "result": {
+                "_type": "P_BMM_CONTAINER_TYPE",
+                "container_type": "List",
+                "type": "String"
+            },
+            "is_nullable": true
+        },
+        "class_definition": {
+            "name": "class_definition",
+            "documentation": "Retrieve the class definition corresponding to `a_type_name' (which may contain a generic part).",
+            "parameters": {
+                "a_name": {
+                    "_type": "P_BMM_SINGLE_FUNCTION_PARAMETER",
+                    "name": "a_name",
+                    "type": "String"
+                }
+            },
+            "result": {
+                "_type": "P_BMM_SIMPLE_TYPE",
+                "type": "BMM_CLASS"
+            }
+        },
+        "enumeration_definition": {
+            "name": "enumeration_definition",
+            "documentation": "Retrieve the enumeration definition corresponding to `a_type_name'.",
+            "parameters": {
+                "a_name": {
+                    "_type": "P_BMM_SINGLE_FUNCTION_PARAMETER",
+                    "name": "a_name",
+                    "type": "String"
+                }
+            },
+            "result": {
+                "_type": "P_BMM_SIMPLE_TYPE",
+                "type": "BMM_ENUMERATION"
+            }
+        },
+        "property_definition": {
+            "name": "property_definition",
+            "documentation": "Retrieve the property definition for `a_prop_name' in flattened class corresponding to `a_type_name'.",
+            "result": {
+                "_type": "P_BMM_SIMPLE_TYPE",
+                "type": "BMM_PROPERTY"
+            }
+        },
+        "ms_conformant_property_type": {
+            "name": "ms_conformant_property_type",
+            "documentation": "True if `a_ms_property_type' is a valid 'MS' dynamic type for `a_property' in BMM type `a_bmm_type_name'. 'MS' conformance means 'model-semantic' conformance, which abstracts away container types like List<>, Set<> etc and compares the dynamic type with the relation target type in the UML sense, i.e. regardless of whether there is single or multiple containment.",
+            "parameters": {
+                "a_bmm_type_name": {
+                    "_type": "P_BMM_SINGLE_FUNCTION_PARAMETER",
+                    "name": "a_bmm_type_name",
+                    "type": "String"
+                },
+                "a_bmm_property_name": {
+                    "_type": "P_BMM_SINGLE_FUNCTION_PARAMETER",
+                    "name": "a_bmm_property_name",
+                    "type": "String"
+                },
+                "a_ms_property_name": {
+                    "_type": "P_BMM_SINGLE_FUNCTION_PARAMETER",
+                    "name": "a_ms_property_name",
+                    "type": "String"
+                }
+            },
+            "result": {
+                "_type": "P_BMM_SIMPLE_TYPE",
+                "type": "Boolean"
+            }
+        },
+        "property_definition_at_path": {
+            "name": "property_definition_at_path",
+            "documentation": "Retrieve the property definition for `a_property_path' in flattened class corresponding to `a_type_name'.",
+            "result": {
+                "_type": "P_BMM_SIMPLE_TYPE",
+                "type": "BMM_PROPERTY"
+            }
+        },
+        "all_ancestor_classes": {
+            "name": "all_ancestor_classes",
+            "documentation": "Return all ancestor types of `a_class_name' up to root class (usually 'ANY', 'Object' or something similar). Does not include current class. Returns empty list if none.",
+            "parameters": {
+                "a_class": {
+                    "_type": "P_BMM_SINGLE_FUNCTION_PARAMETER",
+                    "name": "a_class",
+                    "type": "String"
+                }
+            },
+            "result": {
+                "_type": "P_BMM_CONTAINER_TYPE",
+                "container_type": "List",
+                "type": "String"
+            },
+            "is_nullable": true
+        },
+        "type_conforms_to": {
+            "name": "type_conforms_to",
+            "documentation": "Check conformance of `a_desc_type' to `an_anc_type'; the types may be generic, and may contain open generic parameters like 'T' etc. These are replaced with their appropriate constrainer types, or Any during the conformance testing process.",
+            "parameters": {
+                "a_desc_type": {
+                    "_type": "P_BMM_SINGLE_FUNCTION_PARAMETER",
+                    "name": "a_desc_type",
+                    "type": "String"
+                },
+                "an_anc_type": {
+                    "_type": "P_BMM_SINGLE_FUNCTION_PARAMETER",
+                    "name": "an_anc_type",
+                    "type": "String"
+                }
+            },
+            "result": {
+                "_type": "P_BMM_SIMPLE_TYPE",
+                "type": "Boolean"
+            }
+        }
+    },
+    "package": "org.openehr.lang.bmm.core",
+    "specUrl": "https://specifications.openehr.org/releases/LANG/development/bmm.html#_core_package"
+}

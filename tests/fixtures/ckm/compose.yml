@@ -1,0 +1,65 @@
+services:
+  fixture:
+    image: node:22.22.1-bookworm-slim
+    user: '${CKM_TEST_UID:-1000}:${CKM_TEST_GID:-1000}'
+    command: [node, /fixture/server.mjs]
+    volumes:
+      - ${CKM_TEST_ROOT:?}:/fixture-data
+      - ${CKM_TEST_REPO:?}/tests/fixtures/ckm/server.mjs:/fixture/server.mjs:ro
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: '0'
+    networks:
+      default:
+        aliases: [ckm-fixture]
+    healthcheck:
+      test: [CMD, node, -e, "require('node:fs').accessSync('/fixture-data/ready')"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+  app:
+    image: openehr-modelling-assistant:ckm-test
+    build:
+      context: ${CKM_TEST_REPO:?}
+      target: production
+    environment:
+      APP_ENV: testing
+      MODEL_REPOSITORY_PROVIDER: filesystem
+      CKM_API_BASE_URL: https://ckm-fixture/default/
+      CKM_SOURCES: '{"basic":"https://ckm-fixture/basic/","session":"https://ckm-fixture/session/","bearer":"https://ckm-fixture/bearer/","api-key":"https://ckm-fixture/api-key/","denied":"https://ckm-fixture/denied/","redirect":"https://ckm-fixture/redirect/"}'
+      CKM_AUTH: '{"basic":{"method":"basic","username":"fixture-user","secret":"fixture-password"},"session":{"method":"session","secret_file":"/run/ckm-session.secret"},"bearer":{"method":"bearer","secret":"fixture-token"},"api-key":{"method":"api_key","header":"X-CKM-Key","secret":"fixture-key"},"denied":{"method":"bearer","secret":"wrong-fixture-token"},"redirect":{"method":"bearer","secret":"fixture-redirect"}}'
+      HTTP_CA_BUNDLE: /run/fixture-ca.crt
+      MCP_ALLOWED_HOSTS: localhost,127.0.0.1,app,ingress
+    volumes:
+      - ${CKM_TEST_ROOT:?}/tls.crt:/run/fixture-ca.crt:ro
+      - ${CKM_TEST_ROOT:?}/session.secret:/run/ckm-session.secret:ro
+    tmpfs: ['/tmp:mode=1777,size=64m']
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      fixture:
+        condition: service_healthy
+  ingress:
+    image: openehr-modelling-ingress:ckm-test
+    build:
+      context: ${CKM_TEST_REPO:?}
+      target: ingress
+    user: '1000:1000'
+    volumes:
+      - ${CKM_TEST_REPO:?}/.docker/Caddyfile:/etc/caddy/Caddyfile:ro
+    ports: ['127.0.0.1::8343']
+    environment:
+      XDG_CONFIG_HOME: /tmp/caddy
+      XDG_DATA_HOME: /tmp/caddy
+    tmpfs: ['/tmp:mode=1777,size=16m']
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:8343/ready]
+      interval: 2s
+      timeout: 5s
+      retries: 15

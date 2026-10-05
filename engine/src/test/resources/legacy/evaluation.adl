@@ -1,0 +1,28 @@
+archetype (adl_version=1.4)
+    openEHR-EHR-EVALUATION.engine_fixture.v1
+concept
+    [at0000]
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <["de"] = <language = <[ISO_639-1::de]> author = <["name"] = <"Synthetic fixture">>>>
+description
+    lifecycle_state = <"unmanaged">
+    details = <["en"] = <language = <[ISO_639-1::en]> purpose = <"Synthetic non-clinical legacy compiler fixture.">>>
+definition
+    EVALUATION[at0000] matches { data matches { ITEM_TREE[at0001] matches { items cardinality matches {0..*; unordered} matches { allow_archetype CLUSTER[at0002] occurrences matches {0..*} matches { include archetype_id/value matches {/openEHR-EHR-CLUSTER\..*/} } } } } }
+ontology
+    term_definitions = <
+        ["en"] = <items = <
+            ["at0000"] = <text = <"Fixture"> description = <"Synthetic cluster">>
+            ["at0001"] = <text = <"Data"> description = <"Synthetic data">>
+            ["at0002"] = <text = <"Cluster slot"> description = <"Synthetic slot">>
+        >>
+        ["de"] = <items = <
+            ["at0000"] = <text = <"Testgruppe"> description = <"Synthetische Gruppe">>
+            ["at0001"] = <text = <"Daten"> description = <"Synthetische Daten">>
+            ["at0002"] = <text = <"Gruppenplatz"> description = <"Synthetischer Platz">>
+        >>
+    >
+    term_bindings = <
+        ["fixture"] = <items = <["at0001"] = <[fixture::EXAMPLE]>>>
+    >

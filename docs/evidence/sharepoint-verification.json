@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-09-27T02:49:22.403503+00:00",
+  "php": {
+    "tests": 768,
+    "assertions": 3261,
+    "status": "PASS"
+  },
+  "phpstan": {
+    "level": 8,
+    "status": "PASS"
+  },
+  "spec_check": "PASS",
+  "dependency_audit": "no advisories",
+  "production_container": "PASS",
+  "graph_environment": "isolated HTTPS contract fixture; not Microsoft tenant",
+  "oauth_client_credentials": "PASS",
+  "download_credential_separation": "PASS",
+  "live_sharepoint": "NOT_EXECUTED: tenant credentials and resource permissions unavailable",
+  "diagrams_rendered": 4,
+  "http_evidence": "sharepoint-container-smoke.json"
+}

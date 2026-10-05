@@ -1,0 +1,5 @@
+services:
+  app:
+    secrets: [governance-owner-password]
+    volumes:
+      - ${GOVERNANCE_TEST_REPO:?}/tests/fixtures/storage/probe.php:/storage-probe.php:ro

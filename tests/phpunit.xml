@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="../vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="../vendor/autoload.php"
+         colors="true"
+         processIsolation="false"
+         stopOnFailure="false"
+         requireCoverageMetadata="true"
+         beStrictAboutCoverageMetadata="false"
+         beStrictAboutOutputDuringTests="true"
+         displayDetailsOnTestsThatTriggerWarnings="true"
+         displayDetailsOnTestsThatTriggerNotices="true"
+         cacheResult="false">
+    <testsuites>
+        <testsuite name="Test Suite">
+            <directory>.</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory suffix=".php">../src</directory>
+        </include>
+        <exclude>
+            <directory>../vendor</directory>
+            <directory>../resources</directory>
+            <directory>.</directory>
+        </exclude>
+    </source>
+
+    <coverage includeUncoveredFiles="false" ignoreDeprecatedCodeUnits="true"/>
+    
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="LOG_LEVEL" value="debug"/>
+        <ini name="memory_limit" value="-1"/>
+        <ini name="error_reporting" value="-1"/>
+    </php>
+</phpunit>

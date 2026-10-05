@@ -1,0 +1,15 @@
+{
+  "recorded_at": "2026-09-27T08:26:23.324185+00:00",
+  "revision": "e4eb9425ad2412fc5d7a4fdcb1e271627fd2aabe",
+  "pull_request": "https://github.com/CzarMich/openehr-modelling-assistant/pull/19",
+  "github_actions": "PASS",
+  "runs": [
+    "https://github.com/CzarMich/openehr-modelling-assistant/actions/runs/36305650090",
+    "https://github.com/CzarMich/openehr-modelling-assistant/actions/runs/36306022254"
+  ],
+  "development": "engine-development-acceptance.json",
+  "server": "engine-server-acceptance.json",
+  "browser": "engine-browser-acceptance.json",
+  "profile": "ADL 2 / OPT 2 and AQL syntax only",
+  "clinical_approval": false
+}

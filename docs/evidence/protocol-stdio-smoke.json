@@ -1,0 +1,43 @@
+{
+  "timestamp": "2026-09-27T05:52:15Z",
+  "transport": "stdio",
+  "scope": "Advertised product protocol; no clinical model writes or external service calls",
+  "checks": [
+    {
+      "check": "initialize, advertised capabilities and ping",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "paginated discovery and every bundled resource",
+      "status": "PASS",
+      "detail": {
+        "tools": 63,
+        "resources": 91,
+        "templates": 3
+      }
+    },
+    {
+      "check": "every advertised prompt",
+      "status": "PASS",
+      "detail": {
+        "prompts": 14
+      }
+    },
+    {
+      "check": "resource template argument completion",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "logging level, text and structured tool result",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "unknown methods, invalid arguments, missing resources and traversal rejected",
+      "status": "PASS",
+      "detail": null
+    }
+  ]
+}

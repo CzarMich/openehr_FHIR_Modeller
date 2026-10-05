@@ -1,0 +1,87 @@
+{
+  "recorded_at": "2026-10-03T09:32:42.141857+00:00",
+  "status": "PASS",
+  "scope": "Development acceptance with public modelling artefacts and synthetic privacy markers; no patient queries executed. Hosted Designer import and clinical approval remain unverified.",
+  "base_application_revision": "7a77fb1f42e29a49962f3fe5eea8ded0e3cd667c",
+  "tests": {
+    "php": 1230,
+    "chat_service": 130,
+    "browser": 52,
+    "native_engine": 39,
+    "engine_runtime_audit": {
+      "status": "PASS",
+      "recorded_at": "2026-10-03T09:26:12Z",
+      "source": "https://api.osv.dev/v1/querybatch",
+      "bom_sha256": "cf3a39fe82b27fafd5bd185aafdcc3619abef4f5fad63cf53df57c6632bee003",
+      "runtime_packages": 59,
+      "findings": [],
+      "scope": "Known advisories for Maven runtime components; not proof of absence of vulnerabilities."
+    }
+  },
+  "form_regression": {
+    "before": "Independent SDK OPTParser failed because the compiled OPT had no description.",
+    "after": "Compiled OPT includes description/language metadata and passes independent Web Template generation.",
+    "native_sdk": "2.35.0",
+    "stage": "forms",
+    "templateId": "AKI clinical documentation",
+    "nodes": 1246,
+    "quantityFields": 4,
+    "checks": {
+      "full_aom_semantics": "NOT_EXECUTED",
+      "rm_structure_profile": "PASS",
+      "clinical_review": "NOT_EXECUTED",
+      "web_template_generation": "PASS",
+      "opt14_xml_schema": "PASS",
+      "external_terminology": "NOT_EXECUTED",
+      "adl14_parse": "PASS",
+      "oet_application": "PASS"
+    },
+    "generated": [
+      {
+        "kind": "opt",
+        "path": "templates/opt/AKI_clinical_documentation.a6bafe24772e.opt",
+        "sha256": "a6bafe24772e012d0b1da71d01179bae860f299f777cd064a5aed0f1fea614f3"
+      },
+      {
+        "kind": "web_template",
+        "path": "data/json/web-templates/AKI_clinical_documentation.7c9805d4d69d.webtemplate.json",
+        "sha256": "7c9805d4d69daf3b7ccb90840b5191232ab2d49f138ae749d932662081c0e86c"
+      }
+    ]
+  },
+  "cache": {
+    "stage": "cache",
+    "ref": "8cfa204f4f1385cfb55dd8a71615bfac6f9e676f",
+    "coldMs": 53465,
+    "coldCalls": 11,
+    "warmMs": 1328,
+    "warmCalls": 1,
+    "cacheHits": 9
+  },
+  "privacy": {
+    "directMcpBlocked": true,
+    "browserAgentBlocked": true,
+    "executionAndQueryLibrariesProtected": true,
+    "clinicalQueriesExecuted": 0
+  },
+  "query_library": {
+    "profileIsolation": true,
+    "environmentIsolation": true,
+    "legacyUnassignedPreserved": true,
+    "crossProfileReadBlocked": true,
+    "crossEnvironmentDeleteBlocked": true,
+    "clinicalQueriesExecuted": 0
+  },
+  "repaired_repository": {
+    "url": "https://github.com/CzarMich/openehr_modelling",
+    "commit": "fd354fe1066b4a10e7c78977bb76a6b3b3d83010",
+    "changed_files": [
+      "AKI/templates/opt/AKI_clinical_documentation.a6bafe24772e.opt",
+      "AKI/data/json/web-templates/AKI_clinical_documentation.7c9805d4d69d.webtemplate.json",
+      "AKI/data/json/template-packages/AKI_clinical_documentation.oet.json"
+    ],
+    "source_oet_and_archetypes_preserved": true
+  },
+  "clinical_queries_executed": 0,
+  "clinical_approval": false
+}

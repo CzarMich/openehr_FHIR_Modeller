@@ -1,0 +1,79 @@
+name: openehr-modelling-assistant
+services:
+  app:
+    image: openehr-modelling-assistant:local
+    build:
+      context: .
+      target: production
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      MODEL_REPOSITORY_PATH: /data/models
+    volumes:
+      - models:/data/models
+      - governance:/data/governance
+      - cdr-data:/data/cdr
+    tmpfs:
+      - /tmp:mode=1777,size=64m
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 512m
+    restart: unless-stopped
+  chat:
+    image: openehr-modelling-chat:local
+    build:
+      context: .
+      dockerfile: chat/Dockerfile
+      target: ${MODELLING_BROWSER_TARGET:-reviews}
+    env_file:
+      - path: ${MODELLING_CHAT_ENV_FILE:-.env.chat}
+        required: false
+    volumes:
+      - chat-data:/data/chat
+    tmpfs:
+      - /tmp:mode=1777,size=64m
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 512
+    mem_limit: 1536m
+    restart: unless-stopped
+  ingress:
+    image: openehr-modelling-ingress:local
+    build:
+      context: .
+      target: ingress
+    user: "1000:1000"
+    volumes:
+      - ./.docker/Caddyfile:/etc/caddy/Caddyfile:ro
+    ports:
+      - "${MCP_HOST:-127.0.0.1}:${MCP_PORT:-8343}:8343"
+    environment:
+      MAX_REQUEST_BYTES: ${MAX_REQUEST_BYTES:-2097152}
+      XDG_CONFIG_HOME: /tmp/caddy
+      XDG_DATA_HOME: /tmp/caddy
+    tmpfs:
+      - /tmp:mode=1777,size=16m
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 128m
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:8343/ready]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+volumes:
+  models:
+  governance:
+  chat-data:
+  cdr-data:

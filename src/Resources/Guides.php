@@ -1,0 +1,146 @@
+<?php
+declare(strict_types=1);
+
+namespace OpenEHR\Assistant\Resources;
+
+use OpenEHR\Assistant\CompletionProviders\Guides as GuidesCompletionProvider;
+use FilesystemIterator;
+use Mcp\Capability\Attribute\CompletionProvider;
+use Mcp\Capability\Attribute\McpResourceTemplate;
+use Mcp\Exception\ResourceReadException;
+use Mcp\Server\Builder;
+use Psr\Log\LoggerInterface;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use SplFileInfo;
+
+final class Guides
+{
+
+    public const string DIR = APP_DIR . '/resources/guides';
+
+    /**
+     * Read a guide markdown file from the resources/guides tree.
+     *
+     * URI template:
+     *  openehr://guides/{category}/{name}
+     *
+     * Examples:
+     *  - openehr://guides/archetypes/checklist
+     *  - openehr://guides/archetypes/adl-syntax
+     *  - openehr://guides/templates/explain-template
+     *  - openehr://guides/aql/syntax
+     */
+    #[McpResourceTemplate(
+        uriTemplate: 'openehr://guides/{category}/{name}',
+        name: 'guides',
+        description: 'The openEHR Assistant guides document (markdown) identified by category and name',
+        mimeType: 'text/markdown'
+    )]
+    public function read(
+        #[CompletionProvider(values: ['archetypes', 'templates', 'aql', 'simplified_formats', 'specs', 'howto'])]
+        string $category,
+        #[CompletionProvider(provider: GuidesCompletionProvider::class)]
+        string $name
+    ): string
+    {
+        foreach ([$category, $name] as $segment) {
+            if ($segment === '' || !\preg_match('/^[\w.-]+$/', $segment)) {
+                throw new ResourceReadException(\sprintf('Invalid guide resource identifier: %s', $segment));
+            }
+        }
+
+        $path = self::DIR . "/$category/$name.md";
+        $resolved = realpath($path);
+        $root = realpath(self::DIR);
+        if ($resolved === false || $root === false || !str_starts_with($resolved, $root . DIRECTORY_SEPARATOR)) {
+            throw new ResourceReadException('Resource not found within bundled resources.');
+        }
+        if (!\is_file($path) || !\is_readable($path)) {
+            throw new ResourceReadException(\sprintf('Guide not found: %s/%s', $category, $name));
+        }
+
+        return \file_get_contents($path) ?: throw new ResourceReadException(\sprintf('Unable to read guide %s/%s content.', $category, $name));
+    }
+
+    /**
+     * Registers guide markdown files as MCP resources for discoverability.
+     *
+     * This method scans a predefined directory for markdown files organized in a
+     * specific folder structure, parses the files' metadata, and registers them
+     * with the provided builder as resources accessible via uniform resource
+     * identifiers (URIs).
+     *
+     * Folder structure:
+     * resources/guides/{category}/{name}.md
+     *
+     *
+     * @param Builder $builder The resource builder instance used to register the guides.
+     *
+     * @return void This method does not return a value.
+     */
+    public static function addResources(Builder $builder, ?LoggerInterface $logger = null): void
+    {
+        if (is_dir(self::DIR) && is_readable(self::DIR)) {
+            $iterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator(self::DIR, FilesystemIterator::SKIP_DOTS)
+            );
+            /** @var SplFileInfo $fileInfo */
+            foreach ($iterator as $fileInfo) {
+                if (!$fileInfo->isFile()) {
+                    continue;
+                }
+                $ext = strtolower($fileInfo->getExtension());
+                if ($ext !== 'md') {
+                    continue;
+                }
+
+                // Expect path like resources/guides/{category}/{name}.md
+                $relative = str_replace(self::DIR . '/', '', $fileInfo->getPathname());
+                $parts = explode('/', $relative);
+                if (count($parts) < 2) {
+                    // not matching guides structure
+                    continue;
+                }
+
+                $basename = $fileInfo->getBasename('.md');
+                if ($basename === 'README' || str_starts_with($basename, '_')) {
+                    // skip per-category README files and underscore-prefixed
+                    // templates/scaffolding — they are authoring artifacts, not guides
+                    continue;
+                }
+
+                // `@` used to suppress the warning and `empty()` conflated an unreadable
+                // file with an empty one, so a bad file silently vanished from
+                // `resources/list` while the search index still advertised its URI —
+                // leaving a 404 with nothing logged anywhere to explain it.
+                $content = file_get_contents($fileInfo->getPathname());
+                if ($content === false || trim($content) === '') {
+                    $logger?->warning('Skipping unreadable or empty guide file; it will not be listed as a resource.', [
+                        'path' => $fileInfo->getPathname(),
+                        'readable' => $content !== false,
+                    ]);
+                    continue;
+                }
+
+                $category = $parts[0];
+                $name = $fileInfo->getBasename('.md');
+
+                $lines = explode("\n", $content, 2);
+                $description = trim($lines[0], ' #') ?: sprintf('Guide %s for %s', $name, $category);
+
+                // MCP resource names allow only [A-Za-z0-9_-], so sanitize dots or any other guide-name punctuation.
+                $resourceName = preg_replace('/[^\w-]/', '-', sprintf('guide_%s_%s', $category, $name)) ?: sprintf('guide_%s_%s', $category, $name);
+
+                $builder->addResource(
+                    handler: fn() => (string)$content,
+                    uri: sprintf('openehr://guides/%s/%s', $category, $name),
+                    name: $resourceName,
+                    description: $description,
+                    mimeType: 'text/markdown',
+                    size: strlen($content),
+                );
+            }
+        }
+    }
+}

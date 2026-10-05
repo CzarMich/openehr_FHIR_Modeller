@@ -1,0 +1,190 @@
+{
+  "timestamp": "2026-09-27T05:57:42Z",
+  "checks": [
+    {
+      "check": "initialize",
+      "status": "PASS",
+      "detail": {
+        "name": "openehr-modelling-assistant",
+        "version": "0.20.0",
+        "description": "AI-assisted openEHR modelling and knowledge services"
+      }
+    },
+    {
+      "check": "tools/list",
+      "status": "PASS",
+      "detail": [
+        "ckm_sources",
+        "terminology_catalogue_save",
+        "terminology_catalogue_get",
+        "terminology_catalogue_search",
+        "terminology_catalogue_lookup",
+        "terminology_catalogue_validate",
+        "terminology_catalogue_expand",
+        "terminology_catalogue_translate",
+        "governance_prepare",
+        "governance_validate",
+        "governance_request_review",
+        "governance_reopen_draft",
+        "governance_get",
+        "governance_list",
+        "model_projects",
+        "model_project_get",
+        "model_project_create",
+        "model_artifact_get",
+        "model_artifact_save",
+        "model_artifact_history",
+        "model_requirements_coverage",
+        "model_project_qa",
+        "ckm_archetype_search",
+        "ckm_archetype_get",
+        "ckm_template_search",
+        "ckm_template_get",
+        "ckm_federated_search",
+        "model_traceability_save",
+        "model_traceability_get",
+        "model_traceability_explain",
+        "model_traceability_requirement",
+        "model_terminology_inspect",
+        "terminology_binding_plan",
+        "terminology_binding_plan_save",
+        "terminology_binding_plan_get",
+        "guide_search",
+        "guide_get",
+        "guide_adl_idiom_lookup",
+        "type_specification_search",
+        "type_specification_get",
+        "examples_search",
+        "examples_get",
+        "terminology_resolve",
+        "model_repository_info",
+        "model_repository_branches",
+        "model_branch_create",
+        "model_review_request",
+        "model_review_get",
+        "model_repository_diff",
+        "model_validate",
+        "model_diff",
+        "template_build_oet",
+        "model_qa",
+        "terminology_capabilities",
+        "terminology_lookup",
+        "terminology_validate_code",
+        "terminology_expand",
+        "terminology_translate",
+        "terminology_resource_search",
+        "terminology_resource_get",
+        "terminology_binding_validate",
+        "terminology_diff",
+        "terminology_manifest"
+      ]
+    },
+    {
+      "check": "prompts/list",
+      "status": "PASS",
+      "detail": 14
+    },
+    {
+      "check": "resources/list",
+      "status": "PASS",
+      "detail": 91
+    },
+    {
+      "check": "resources/templates/list",
+      "status": "PASS",
+      "detail": 3
+    },
+    {
+      "check": "resources/read",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "prompts/get",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "configured CKMs",
+      "status": "PASS",
+      "detail": [
+        "default"
+      ]
+    },
+    {
+      "check": "guide_search",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "guide_get",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "examples_search",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "type_specification_search",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "terminology_resolve",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "invalid input rejected",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "XML validation and entity rejection",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "separate parse, shape and conformance stages; ambiguous JSON rejected",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "unavailable checks cannot certify release",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "repository capability discovery",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "persistent project, revisions, stale-write rejection",
+      "status": "PASS",
+      "detail": "smoke-1790488662503939268"
+    },
+    {
+      "check": "unconfigured hosted review rejected",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "offline terminology catalogue, versions, mapping review and revision conflicts",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "revision-bound binding plans, offline validation, unchanged source and stale evidence detection",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "persistent requirement/decision queries, exact anchors, write conflicts and stale source evidence",
+      "status": "PASS",
+      "detail": null
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+# openEHR Archetype Structural Constraint Guide
+
+**URI:** `openehr://guides/archetypes/structural-constraints`  
+**Version:** 1.2.0  
+**Scope:** Normative guidance for existence, cardinality, occurrences, and slots
+**Related:** openehr://guides/archetypes/adl-syntax, openehr://guides/archetypes/adl-idioms-cheatsheet, openehr://guides/specs/am2-AOM2, openehr://guides/specs/rm-data_types
+**Keywords:** cardinality, existence, occurrences, slots, constraints
+
+---
+
+## 1. Modelling Principle
+
+> Constrain only what is universally and clinically true.
+
+Archetypes optimise for reuse and safety, not local workflows.
+
+---
+
+## 2. Existence
+
+**Existence** constrains `C_ATTRIBUTE` — whether an attribute value must be present. (Present in both AOM 1.4 and AOM 2.)
+
+- Allowed values (ADL 1.4): `{0}`/`{0..0}` (attribute prohibited), `{0..1}` (optional), `{1}`/`{1..1}` (mandatory); default when unstated is `{1..1}`
+- Mandatory only when intrinsic to the concept
+- Optional by default
+
+**Note:** Existence applies to attributes. For object-level optionality, use **occurrences**.
+
+---
+
+## 3. Cardinality & Occurrences
+
+**Cardinality** (on container attributes like `items`, `events`) defines how many children the container may hold.
+
+- **Default for containers:** `1..*` (at least one child; empty containers are semantically invalid)
+- Single vs repeating reflects real-world semantics
+- Avoid `0..*` defaults (an empty container has no meaning)
+- Upper bounds must be clinically justified
+
+**Occurrences** (on object nodes) defines how many times an object may appear in its parent; separate from cardinality. Default when unstated (ADL 1.4) is `{1..1}`; `{0}`/`{0..0}` prohibits the node.
+
+**Consistency:** the interval (sum of sibling occurrences minima)..(sum of sibling occurrences maxima) must lie inside the container's cardinality interval (validator-tooling check `VCOC`).
+
+---
+
+## 4. Slots
+
+Use slots when:
+- Content varies by context
+- Multiple domain-specific implementations exist
+- Reuse across specialisations is expected
+
+Constraints:
+- Constrain by archetype type and purpose
+- Avoid unconstrained slots
+- Document intended usage
+
+---
+
+## 5. Clusters vs Elements
+
+- **CLUSTER** = inseparable group
+- **ELEMENT** = atomic value
+- Never use clusters as generic containers
+
+**Ordered rating-scale leaf:** DV_ORDINAL (integer rungs) or DV_SCALE (Real rungs, RM ≥ 1.1.0) — see `openehr://guides/archetypes/adl-idioms-cheatsheet` §5.
+
+---
+
+## 6. Avoid Over-Constraint
+
+Do not encode:
+- UI layout
+- Workflow
+- Local business rules
+- Template logic
+
+These belong in **templates**.
+
+---
+
+## 7. Structural Anti-Patterns
+
+- Everything mandatory
+- Deep nesting without semantics
+- Slots as modelling shortcuts
+
+---
+
+## 8. Review Questions
+
+- Is this universally true?
+- Does this limit reuse?
+- Should this be a template concern?
+
+---

@@ -1,0 +1,30 @@
+{
+    "name": "BMM_TYPE",
+    "documentation": "Abstract idea of specifying a type in some context. This is not the same as 'defining' a class. A type specification is essentially a reference of some kind, that defines the type of an attribute, or function result or argument. It may include generic parameters that might or might not be bound. See subtypes.",
+    "is_abstract": true,
+    "ancestors": [
+        "BMM_TYPE_ELEMENT"
+    ],
+    "functions": {
+        "has_type_substitutions": {
+            "name": "has_type_substitutions",
+            "documentation": "Determine if there are any type substitutions.",
+            "result": {
+                "_type": "P_BMM_SIMPLE_TYPE",
+                "type": "Boolean"
+            }
+        },
+        "type_substitutions": {
+            "name": "type_substitutions",
+            "documentation": "List of type substitutions if any available for this type within the current BMM model.",
+            "result": {
+                "_type": "P_BMM_CONTAINER_TYPE",
+                "container_type": "List",
+                "type": "String"
+            },
+            "is_nullable": true
+        }
+    },
+    "package": "org.openehr.lang.bmm.core",
+    "specUrl": "https://specifications.openehr.org/releases/LANG/development/bmm.html#_core_package"
+}

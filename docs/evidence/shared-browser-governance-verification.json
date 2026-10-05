@@ -1,0 +1,19 @@
+{
+  "recorded_at": "2026-09-27T06:31:58.059219+00:00",
+  "status": "PASS",
+  "checks": {
+    "phpunit": {
+      "tests": 1100,
+      "assertions": 4671
+    },
+    "phpstan": "level 8 PASS",
+    "spec_check": "PASS",
+    "node_tests": 31,
+    "browser_tests": 10,
+    "production_container_governance": "shared-browser-governance-smoke.json",
+    "owner_role": "Explicit modelling-administrator maps to all four governance roles",
+    "identity": "Same browser session; no username-based privilege grant",
+    "freshness": "3600-second read limit; 900-second decision limit",
+    "clinical_approval": "No real clinical model approved; validation and independent-human gates preserved"
+  }
+}

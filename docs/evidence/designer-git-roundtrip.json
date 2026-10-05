@@ -1,0 +1,27 @@
+{
+  "status": "PASS",
+  "repository": "CzarMich/openehr-models",
+  "visibility": "private",
+  "layout": {
+    "content_path": "local",
+    "layout": "flat"
+  },
+  "checks": [
+    "API-key HTTPS MCP connection",
+    "Repository-scoped SSH key",
+    "Assistant writes native ADL at local/<filename>",
+    "Independent Git client reads exact bytes",
+    "External edit fetched by assistant",
+    "Stale revision rejected",
+    "Assistant revision visible to external Git client",
+    "Original model bytes restored",
+    "Terminology remains optional"
+  ],
+  "source_sha256": "167e7748fe36f5cd3c15ef66588f85cfbf3154d6560975d49335cb4e5c13b05e",
+  "revisions": {
+    "assistant_first": "da5b95f07c834294bfb4f5144806230f341916f7",
+    "external": "3ef866988307f4c769470dc6df174f72a5273201",
+    "assistant_final": "9f8d1f9474f7caf92906c3edeb9f0779c4d4c2b1"
+  },
+  "hosted_designer_ui": "NOT_EXECUTED: hosted service requires account login; no account session available"
+}

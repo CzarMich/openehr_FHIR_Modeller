@@ -1,0 +1,36 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { ModelCache } from "../src/model-cache.mjs";
+
+test("model cache is encrypted, profile/repository/revision bound, bounded and disposable", (t) => {
+    const directory = mkdtempSync(join(tmpdir(), "model-cache-test-"));
+    t.after(() => rmSync(directory, { recursive: true, force: true }));
+    const config = { dataDir: directory, providerEncryptionKey: "a".repeat(64) };
+    let time = Date.now();
+    const cache = new ModelCache(config, { now: () => time, ttl: 1000, maxBytes: 5000 });
+    const repo = { id: "one", url: "https://github.com/example/private", kind: "github", token: "private-token" };
+    const key = cache.key("alice", repo, "revision", "file", "model.adl");
+    const value = { content: "Synthetic private archetype" };
+    cache.set(key, value);
+    assert.deepEqual(new ModelCache(config, { now: () => time }).get(key), value);
+    assert.equal(cache.get(cache.key("bob", repo, "revision", "file", "model.adl")), null);
+    assert.equal(cache.get(cache.key("alice", repo, "next-revision", "file", "model.adl")), null);
+    assert.equal(cache.get(cache.key("alice", { ...repo, token: "new-token" }, "revision", "file", "model.adl")), null);
+    const path = join(directory, "model-cache", readdirSync(join(directory, "model-cache"))[0]);
+    const encrypted = readFileSync(path, "utf8");
+    assert(!encrypted.includes(value.content));
+    assert(!encrypted.includes(repo.token));
+    const damaged = JSON.parse(encrypted);
+    damaged.tag = Buffer.alloc(16).toString("base64");
+    writeFileSync(path, JSON.stringify(damaged));
+    assert.equal(cache.get(key), null);
+    cache.set(key, value);
+    time += 1001;
+    assert.equal(cache.get(key), null);
+    cache.set("too-big", { content: "x".repeat(5000) });
+    assert.equal(cache.get("too-big"), null);
+    assert.equal(new ModelCache().get(key), null);
+});

@@ -1,0 +1,29 @@
+{
+  "timestamp": "2026-09-27T03:18:52.935163+00:00",
+  "scope": "terminology protocol increment",
+  "phpunit": {
+    "tests": 822,
+    "assertions": 3429,
+    "status": "PASS"
+  },
+  "phpstan_level_8": "PASS",
+  "spec_check": "PASS",
+  "dependency_audit": "PASS",
+  "production_container_mcp": "PASS",
+  "node_tests": {
+    "tests": 18,
+    "status": "PASS"
+  },
+  "browser_tests": {
+    "tests": 5,
+    "status": "PASS"
+  },
+  "mermaid_rendered": 4,
+  "live_core_operations": {
+    "development": "PASS",
+    "server": "PASS"
+  },
+  "live_discovery": "NOT_EXECUTED: configured servers return HTTP 404",
+  "live_translation": "NOT_EXECUTED: no configured live map",
+  "native_binding_application": "NOT_IMPLEMENTED"
+}

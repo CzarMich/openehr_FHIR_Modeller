@@ -1,0 +1,25 @@
+{
+  "recorded_at": "2026-09-27T05:58:36.659537+00:00",
+  "status": "PASS",
+  "phase": 1,
+  "scope": "Existing repository, authentication, terminology, binding-plan, governance, traceability, document/QA, CKM and advertised-protocol services",
+  "verification": "protocol-verification.json",
+  "checks": {
+    "repository_tests": "PASS",
+    "static_analysis": "PASS",
+    "container_build": "PASS",
+    "mcp_product_and_applicable_official_checks": "PASS",
+    "security_negative_tests": "PASS",
+    "filesystem_git_sharepoint_contracts": "PASS",
+    "documentation_and_generated_catalogue": "PASS"
+  },
+  "deferred_to_explicit_phase_2": [
+    "Native ADL/AOM/RM and full conformance",
+    "Genuine AQL parsing",
+    "Native inherited terminology application",
+    "Dependency resolution and genuine OET/OPT compilation",
+    "Qualified release evidence"
+  ],
+  "external_acceptance": "Account-specific tests remain separately BLOCKED EXTERNALLY in COMPLETION_QUEUE.json",
+  "clinical_qualification": false
+}

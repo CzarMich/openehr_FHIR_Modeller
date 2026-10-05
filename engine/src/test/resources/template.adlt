@@ -1,0 +1,27 @@
+template (adl_version=2.0.6; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.engine_fixture-template.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.engine_fixture.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+
+description
+    lifecycle_state = <"unmanaged">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"Synthetic non-clinical template compilation fixture.">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1]
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <text = <"Fixture template"> description = <"Synthetic template">>
+        >
+    >

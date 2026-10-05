@@ -1,0 +1,124 @@
+
+> test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: Codex protocol isolates secrets, declines native approvals and forwards only declared tool calls
+ok 1 - Codex protocol isolates secrets, declines native approvals and forwards only declared tool calls
+  ---
+  duration_ms: 134.949877
+  type: 'test'
+  ...
+# Subtest: cancellation terminates an active Codex turn
+ok 2 - cancellation terminates an active Codex turn
+  ---
+  duration_ms: 102.093181
+  type: 'test'
+  ...
+# Subtest: configuration refuses non-TLS public origins, embedded credentials, missing OIDC and invalid limits
+ok 3 - configuration refuses non-TLS public origins, embedded credentials, missing OIDC and invalid limits
+  ---
+  duration_ms: 5.314992
+  type: 'test'
+  ...
+# Subtest: authentication, same-origin CSRF and response redaction
+ok 4 - authentication, same-origin CSRF and response redaction
+  ---
+  duration_ms: 88.952184
+  type: 'test'
+  ...
+# Subtest: conversation IDs do not authorize another user to read, write, delete, stop or approve
+ok 5 - conversation IDs do not authorize another user to read, write, delete, stop or approve
+  ---
+  duration_ms: 40.709038
+  type: 'test'
+  ...
+# Subtest: actual tool execution streams an answer and persists it for the owning user
+ok 6 - actual tool execution streams an answer and persists it for the owning user
+  ---
+  duration_ms: 10.051872
+  type: 'test'
+  ...
+# Subtest: write confirmation binds the user, conversation, call and exact arguments
+ok 7 - write confirmation binds the user, conversation, call and exact arguments
+  ---
+  duration_ms: 13.71392
+  type: 'test'
+  ...
+# {"event":"chat_turn_failed","code":"PROVIDER_OR_TOOL_ERROR"}
+# Subtest: declined changes never reach the repository
+ok 8 - declined changes never reach the repository
+  ---
+  duration_ms: 7.922625
+  type: 'test'
+  ...
+# {"event":"chat_turn_failed","code":"STOPPED"}
+# Subtest: stop aborts a running response and concurrent turns do not race
+ok 9 - stop aborts a running response and concurrent turns do not race
+  ---
+  duration_ms: 11.286094
+  type: 'test'
+  ...
+# Subtest: MCP tool filtering fails closed for new or disabled write tools
+ok 10 - MCP tool filtering fails closed for new or disabled write tools
+  ---
+  duration_ms: 1.280558
+  type: 'test'
+  ...
+# Subtest: OIDC verifies signed identity and issues only secure opaque cookies
+ok 11 - OIDC verifies signed identity and issues only secure opaque cookies
+  ---
+  duration_ms: 28.915626
+  type: 'test'
+  ...
+# Subtest: OIDC rejects wrong nonce
+ok 12 - OIDC rejects wrong nonce
+  ---
+  duration_ms: 35.417821
+  type: 'test'
+  ...
+# Subtest: OIDC rejects wrong issuer
+ok 13 - OIDC rejects wrong issuer
+  ---
+  duration_ms: 34.068355
+  type: 'test'
+  ...
+# Subtest: OIDC rejects wrong audience
+ok 14 - OIDC rejects wrong audience
+  ---
+  duration_ms: 53.017006
+  type: 'test'
+  ...
+# Subtest: OIDC rejects wrong expiry
+ok 15 - OIDC rejects wrong expiry
+  ---
+  duration_ms: 47.079908
+  type: 'test'
+  ...
+# Subtest: OIDC rejects wrong signature
+ok 16 - OIDC rejects wrong signature
+  ---
+  duration_ms: 75.877032
+  type: 'test'
+  ...
+# Subtest: OIDC rejects forged state and unapproved groups
+ok 17 - OIDC rejects forged state and unapproved groups
+  ---
+  duration_ms: 80.929843
+  type: 'test'
+  ...
+# Subtest: retention removes stale conversations even when their owners do not return
+ok 18 - retention removes stale conversations even when their owners do not return
+  ---
+  duration_ms: 4.077105
+  type: 'test'
+  ...
+1..18
+# tests 18
+# suites 0
+# pass 18
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 816.36316

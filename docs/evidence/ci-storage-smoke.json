@@ -1,0 +1,36 @@
+{
+    "status": "PASS",
+    "recorded_at": "2026-09-27T10:21:57+00:00",
+    "migration": {
+        "events": 2,
+        "subjects": 1,
+        "nonces": 1,
+        "sha256": "55cc7f8cb0aa26d7da6dc776dfd50f9beb4bf97416982edec0a53f37a096e003",
+        "status": "migrated",
+        "backup": "pre-postgres-20260927102153-3d5d68b3.sqlite"
+    },
+    "checks": [
+        "exact event migration",
+        "immutable rows and restricted application role",
+        "concurrent append conflict",
+        "tenant isolation",
+        "audit stream filtering before pagination",
+        "durable replay prevention",
+        "cache hit, poison, eviction and revision isolation",
+        "external Git write and deletion invalidation"
+    ],
+    "synthetic_git_retrieval": {
+        "iterations": 15,
+        "timings": {
+            "uncached": {
+                "median_ms": 93.25,
+                "p95_ms": 94.44
+            },
+            "cached": {
+                "median_ms": 51.92,
+                "p95_ms": 52.63
+            }
+        },
+        "scope": "Single small synthetic template in local Git; not a production throughput claim"
+    }
+}

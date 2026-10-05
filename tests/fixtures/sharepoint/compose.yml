@@ -1,0 +1,74 @@
+services:
+  graph:
+    image: node:22.22.1-bookworm-slim
+    user: '${SHAREPOINT_TEST_UID:-1000}:${SHAREPOINT_TEST_GID:-1000}'
+    command: [node, /fixture/server.mjs]
+    volumes:
+      - ${SHAREPOINT_TEST_ROOT:?}:/fixture-data
+      - ${SHAREPOINT_TEST_REPO:?}/tests/fixtures/sharepoint/server.mjs:/fixture/server.mjs:ro
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: '0'
+    networks:
+      default:
+        aliases: [sharepoint-fixture]
+    healthcheck:
+      test: [CMD, node, -e, "require('node:fs').accessSync('/fixture-data/ready')"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+  app:
+    image: openehr-modelling-assistant:sharepoint-test
+    build:
+      context: ${SHAREPOINT_TEST_REPO:?}
+      target: production
+    environment:
+      APP_ENV: testing
+      MODEL_REPOSITORY_PROVIDER: sharepoint
+      MODEL_REPOSITORY_WRITE_ENABLED: 'true'
+      GOVERNANCE_ENABLED: 'true'
+      GOVERNANCE_DATABASE_PATH: /tmp/governance/audit.sqlite
+      SHAREPOINT_GRAPH_URL: https://sharepoint-fixture/v1.0/
+      SHAREPOINT_SITE_ID: site
+      SHAREPOINT_LIST_ID: list
+      SHAREPOINT_DRIVE_ID: drive
+      SHAREPOINT_FOLDER_ID: folder
+      SHAREPOINT_TOKEN_URL: https://sharepoint-fixture/token
+      SHAREPOINT_CLIENT_ID: fixture-client
+      SHAREPOINT_CLIENT_SECRET: fixture-secret
+      SHAREPOINT_DOWNLOAD_HOSTS: sharepoint-fixture
+      HTTP_CA_BUNDLE: /run/fixture-ca.crt
+      MCP_ALLOWED_HOSTS: localhost,127.0.0.1,app,ingress
+    volumes:
+      - ${SHAREPOINT_TEST_ROOT:?}/tls.crt:/run/fixture-ca.crt:ro
+      - ${SHAREPOINT_TEST_REPO:?}/scripts/sharepoint-smoke.php:/app/scripts/sharepoint-smoke.php:ro
+    tmpfs: ['/tmp:mode=1777,size=64m']
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      graph:
+        condition: service_healthy
+  ingress:
+    image: openehr-modelling-ingress:sharepoint-test
+    build:
+      context: ${SHAREPOINT_TEST_REPO:?}
+      target: ingress
+    user: '1000:1000'
+    volumes:
+      - ${SHAREPOINT_TEST_REPO:?}/.docker/Caddyfile:/etc/caddy/Caddyfile:ro
+    ports: ['127.0.0.1::8343']
+    environment:
+      XDG_CONFIG_HOME: /tmp/caddy
+      XDG_DATA_HOME: /tmp/caddy
+    tmpfs: ['/tmp:mode=1777,size=16m']
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:8343/ready]
+      interval: 2s
+      timeout: 5s
+      retries: 15

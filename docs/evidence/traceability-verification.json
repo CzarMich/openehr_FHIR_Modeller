@@ -1,0 +1,49 @@
+{
+  "recorded_at": "2026-09-27T04:44:42.154273+00:00",
+  "scope": "Versioned typed requirements, modelling decisions, exact source anchors and authoritative validation/review links",
+  "phpunit": {
+    "tests": 1003,
+    "assertions": 4008,
+    "status": "PASS"
+  },
+  "static_analysis": "PHPStan level 8 PASS",
+  "software_spec_traceability": "PASS",
+  "php_style": "PSR-12, PHP CS Fixer 3.95.27",
+  "production_container_build": "PASS",
+  "node_tests": {
+    "tests": 27,
+    "status": "PASS"
+  },
+  "browser_tests": {
+    "tests": 10,
+    "status": "PASS"
+  },
+  "mermaid_diagrams": {
+    "rendered": 5,
+    "status": "PASS"
+  },
+  "repository_contracts": [
+    "filesystem",
+    "git",
+    "sharepoint isolated HTTPS fixture"
+  ],
+  "independent_http_acceptance": [
+    "filesystem with authoritative governance events",
+    "git with authoritative governance events",
+    "sharepoint isolated HTTPS fixture"
+  ],
+  "negative_checks": [
+    "ambiguous JSON and unsafe XML",
+    "missing/stale/conflicting source revisions",
+    "invalid document anchors",
+    "cycles and incompatible graph edges",
+    "fabricated/cross-tenant audit evidence",
+    "mismatched validation sources",
+    "bounded graph/reference/source-byte processing"
+  ],
+  "dependency_audit": "PASS",
+  "real_clinical_approval": false,
+  "clinical_satisfaction": "NOT_ASSESSED: coverage is a recorded declaration, never inferred proof",
+  "native_openehr_path_resolution": "NOT_EXECUTED: requires qualified engine",
+  "live_sharepoint_acceptance": "External tenant credentials required; isolated contract and HTTP acceptance passed"
+}

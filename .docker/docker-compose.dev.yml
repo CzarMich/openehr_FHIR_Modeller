@@ -1,0 +1,33 @@
+services:
+  app:
+    image: openehr-modelling-assistant-dev:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    user: "1000:1000"
+    read_only: false
+    environment:
+      APP_ENV: development
+      COMPOSER_HOME: /tmp/composer
+      MODEL_REPOSITORY_PATH: /tmp/development-models
+      MCP_ALLOWED_HOSTS: "localhost,127.0.0.1,[::1],ingress,app"
+    volumes:
+      - ./:/app
+  node:
+    image: node:22-alpine
+    profiles: [tools]
+    working_dir: /app
+    volumes:
+      - ./:/app
+  inspector:
+    image: openehr-modelling-inspector:local
+    build:
+      context: .
+      target: inspector
+    profiles: [tools]
+    environment:
+      HOST: 0.0.0.0
+    ports:
+      - "127.0.0.1:6274:6274"
+      - "127.0.0.1:6277:6277"

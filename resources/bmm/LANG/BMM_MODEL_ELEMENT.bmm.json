@@ -1,0 +1,18 @@
+{
+    "name": "BMM_MODEL_ELEMENT",
+    "documentation": "Ancestor class of most BMM model elements.",
+    "is_abstract": true,
+    "ancestors": [
+        "BMM_DEFINITIONS"
+    ],
+    "properties": {
+        "documentation": {
+            "_type": "P_BMM_SINGLE_PROPERTY",
+            "name": "documentation",
+            "documentation": "Optional documentation of this element.",
+            "type": "String"
+        }
+    },
+    "package": "org.openehr.lang.bmm.core",
+    "specUrl": "https://specifications.openehr.org/releases/LANG/development/bmm.html#_core_package"
+}

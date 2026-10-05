@@ -1,0 +1,28 @@
+{
+    "name": "BMM_SIMPLE_TYPE",
+    "documentation": "Type reference to a single type i.e. not generic or container type.",
+    "ancestors": [
+        "BMM_TYPE"
+    ],
+    "properties": {
+        "base_class": {
+            "_type": "P_BMM_SINGLE_PROPERTY",
+            "name": "base_class",
+            "documentation": "The target type; this converts to the first parameter in generic_parameters in BMM_GENERIC_TYPE.",
+            "is_mandatory": true,
+            "type": "BMM_CLASS"
+        }
+    },
+    "functions": {
+        "type_name": {
+            "name": "type_name",
+            "documentation": "Return base_class.type_name.",
+            "result": {
+                "_type": "P_BMM_SIMPLE_TYPE",
+                "type": "String"
+            }
+        }
+    },
+    "package": "org.openehr.lang.bmm.core",
+    "specUrl": "https://specifications.openehr.org/releases/LANG/development/bmm.html#_core_package"
+}

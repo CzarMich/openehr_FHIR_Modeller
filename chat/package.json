@@ -1,0 +1,34 @@
+{
+  "name": "openehr-modelling-chat",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.22"
+  },
+  "scripts": {
+    "start": "node entrypoint.mjs",
+    "test": "node --test test/*.test.mjs",
+    "test:browser": "playwright test --config playwright.config.mjs",
+    "check:format": "prettier --check src test entrypoint.mjs playwright.config.mjs ../public/chat"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.131.0",
+    "@azure/msal-node": "7.0.1",
+    "@microsoft/agents-copilotstudio-client": "1.9.1",
+    "ipaddr.js": "2.5.0",
+    "mammoth": "1.13.0",
+    "openid-client": "6.8.8",
+    "pdfjs-dist": "6.3.289",
+    "qrcode": "1.5.4",
+    "sharp": "0.35.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.58.2",
+    "jsqr": "1.4.0",
+    "prettier": "3.8.1"
+  },
+  "author": "Michael Anywar",
+  "license": "MIT"
+}

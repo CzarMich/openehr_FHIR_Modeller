@@ -1,0 +1,11 @@
+# Optional private CDR profiles. Keep the encryption key outside the release and back it up with cdr-data.
+services:
+  app:
+    environment:
+      CDR_ENABLED: "true"
+      CDR_ENCRYPTION_KEY_FILE: /run/secrets/cdr-key
+    volumes:
+      - ${MODELLING_CDR_KEY_FILE:?Set a readable dedicated CDR encryption-key file}:/run/secrets/cdr-key:ro
+  chat:
+    environment:
+      CHAT_CDR_ENABLED: "true"

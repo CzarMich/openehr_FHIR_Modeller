@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-09-27T09:43:23.428654+00:00",
+  "status": "PASS",
+  "base_revision": "8858fca7dc4ec23c669a0c99e4f98a3e30d0fd9f",
+  "adapter_version": "1.2.0",
+  "scope": "Original internal reference expansion and explicit narrowing of open RM attributes within the documented legacy compiler profile",
+  "checks": {
+    "java_unit_tests": {
+      "status": "PASS",
+      "tests": 30
+    },
+    "php_unit_tests": {
+      "status": "PASS",
+      "tests": 1132,
+      "assertions": 4847
+    },
+    "phpstan_level_8": "PASS",
+    "spec_check": "PASS",
+    "mermaid_rendering": {
+      "status": "PASS",
+      "diagrams": 7
+    },
+    "container_mcp": "ci-engine-smoke.json",
+    "existing_examples": "ci-engine-examples-smoke.json",
+    "runtime_dependency_audit": "ci-engine-dependencies-smoke.json"
+  },
+  "negative_cases": [
+    "Missing internal-reference targets",
+    "Reference type incompatibility",
+    "Reference cycles",
+    "Explicit slot mismatch is not bypassed",
+    "Unknown RM attributes and incompatible child types",
+    "Required unfilled slots remain errors"
+  ],
+  "full_aom_semantics": "NOT_EXECUTED",
+  "designer_round_trip": "NOT_EXECUTED",
+  "clinical_approval": false
+}

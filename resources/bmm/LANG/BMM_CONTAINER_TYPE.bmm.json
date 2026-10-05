@@ -1,0 +1,35 @@
+{
+    "name": "BMM_CONTAINER_TYPE",
+    "documentation": "Type reference that specifies containers with one generic parameter.",
+    "ancestors": [
+        "BMM_TYPE"
+    ],
+    "properties": {
+        "container_type": {
+            "_type": "P_BMM_SINGLE_PROPERTY",
+            "name": "container_type",
+            "documentation": "The type of the container. This converts to the root_type in BMM_GENERIC_TYPE.",
+            "is_mandatory": true,
+            "type": "BMM_CLASS"
+        },
+        "base_type": {
+            "_type": "P_BMM_SINGLE_PROPERTY",
+            "name": "base_type",
+            "documentation": "The target type; this converts to the first parameter in generic_parameters in BMM_GENERIC_TYPE.",
+            "is_mandatory": true,
+            "type": "BMM_TYPE"
+        }
+    },
+    "functions": {
+        "type_name": {
+            "name": "type_name",
+            "documentation": "Return full type name, e.g. 'List<ELEMENT>'.",
+            "result": {
+                "_type": "P_BMM_SIMPLE_TYPE",
+                "type": "String"
+            }
+        }
+    },
+    "package": "org.openehr.lang.bmm.core",
+    "specUrl": "https://specifications.openehr.org/releases/LANG/development/bmm.html#_core_package"
+}

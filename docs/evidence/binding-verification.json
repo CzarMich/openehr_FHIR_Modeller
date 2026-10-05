@@ -1,0 +1,33 @@
+{
+  "recorded_at": "2026-09-27T03:57:39.449082+00:00",
+  "scope": "revision-bound explicit XML terminology binding plans",
+  "phpunit": {
+    "tests": 896,
+    "assertions": 3712,
+    "status": "PASS"
+  },
+  "static_analysis": "PHPStan level 8 PASS",
+  "traceability": "PASS",
+  "production_container_build": "PASS",
+  "node_tests": {
+    "tests": 20,
+    "status": "PASS"
+  },
+  "browser_tests": {
+    "tests": 7,
+    "status": "PASS"
+  },
+  "repository_contracts": [
+    "filesystem",
+    "git",
+    "sharepoint isolated HTTPS fixture"
+  ],
+  "source_mutation": false,
+  "clinical_approval": false,
+  "native_inherited_binding_application": "NOT_IMPLEMENTED_REQUIRES_QUALIFIED_ENGINE",
+  "mermaid_diagrams": {
+    "rendered": 4,
+    "status": "PASS"
+  },
+  "dependency_audit": "PASS"
+}

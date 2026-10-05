@@ -1,0 +1,36 @@
+{
+  "timestamp": "2026-09-27T03:41:45.371391+00:00",
+  "scope": "project terminology catalogue",
+  "phpunit": {
+    "tests": 866,
+    "assertions": 3579,
+    "status": "PASS"
+  },
+  "repository_contracts": [
+    "filesystem",
+    "git",
+    "stateful SharePoint fixture"
+  ],
+  "phpstan_level_8": "PASS",
+  "spec_check": "PASS",
+  "dependency_audit": "PASS",
+  "composer_validate": "PASS",
+  "production_container_mcp": [
+    "filesystem",
+    "git",
+    "isolated HTTPS SharePoint"
+  ],
+  "node_tests": {
+    "tests": 20,
+    "status": "PASS"
+  },
+  "browser_tests": {
+    "tests": 6,
+    "status": "PASS"
+  },
+  "mermaid_rendered": 4,
+  "external_server_required_for_local_catalogue": false,
+  "clinical_approval": false,
+  "native_binding_application": "NOT_IMPLEMENTED",
+  "browser_mcp_response_limit": "16 MiB, including explicit stream-cancellation test"
+}

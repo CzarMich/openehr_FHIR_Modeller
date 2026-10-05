@@ -1,0 +1,13 @@
+{
+  "recorded_at": "2026-09-27T07:23:34.807135+00:00",
+  "status": "PASS",
+  "checks": {
+    "node_unit_security": "36 tests passed",
+    "browser": "14 tests passed, desktop and mobile",
+    "accessibility": "No detected axe WCAG A/AA violations in the three primary desktop views",
+    "provider_independent_container": "Starts without model runtime/account; root workspace and shared session boundaries verified",
+    "format_and_audit": "Prettier passed; no npm vulnerabilities",
+    "architecture_diagrams": "5 Mermaid diagrams parsed and rendered"
+  },
+  "scope": "Unified workspace, fixed read-only model adapter and shared browser governance; no native identity or visual model editing claim."
+}
