@@ -50,7 +50,21 @@ class DevDeliveryTest(unittest.TestCase):
     def test_immutable_compose_preserves_data_and_private_networks(self):
         env = dict(os.environ, REVISION=REVISION)
         env.update({name.upper() + "_IMAGE": "ghcr.io/czarmich/openehr-fhir-modeller-" + name + "@sha256:" + "b" * 64 for name in SERVICES})
-        result = subprocess.run(["docker", "compose", "-f", str(ROOT / "deploy/fhir-dev/compose.yml"), "config", "--no-env-resolution", "--format", "json"], env=env, check=True, capture_output=True, text=True)
+        # Hosted runners do not have the protected Dev env files. Some Compose
+        # versions check their existence even with --no-env-resolution; supply
+        # empty fixtures without opening the real configuration or starting Docker.
+        with tempfile.TemporaryDirectory() as directory:
+            empty_env = Path(directory, "empty.env")
+            empty_env.write_text("")
+            source = (ROOT / "deploy/fhir-dev/compose.yml").read_text()
+            for name in ("runtime", "chat"):
+                declaration = "env_file: /opt/hygeoniq/projects/openehr-fhir-modeller/config/" + name + ".env"
+                self.assertEqual(source.count(declaration), 1)
+                source = source.replace(declaration, "env_file: " + str(empty_env))
+            compose = Path(directory, "compose.yml")
+            compose.write_text(source)
+            result = subprocess.run(["docker", "compose", "-f", str(compose), "config", "--format", "json"], env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
         config = json.loads(result.stdout)
         self.assertEqual(config["name"], "openehr-fhir-modeller")
         self.assertEqual(set(config["services"]), set(SERVICES))
