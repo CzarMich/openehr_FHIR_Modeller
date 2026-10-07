@@ -19,6 +19,7 @@ R4, R4B and R5 package discovery, reuse analysis, FSH authoring, SUSHI compilati
 validation, synthetic examples, semantic comparison and explicit mapping proposals.
 Shared Dev uses [GitHub image delivery](docs/FHIR_DEV_DELIVERY.md) and the
 `dev-openehr-fhir-modeller.sandbox.hygeoniq.com` address.
+Production uses [explicit promotion of verified Dev images](docs/FHIR_PRODUCTION_DELIVERY.md).
 
 The private FHIR engine is optional; see [Dev setup](docs/FHIR_DEV.md) and the
 [FHIR workspace](docs/FHIR_WORKSPACE.md).

@@ -2,8 +2,9 @@
 
 This fork's shared Dev deployment uses [GitHub delivery with immutable images](FHIR_DEV_DELIVERY.md).
 That document owns the current host, HTTPS access and protected configuration.
+Production uses [promotion of verified Dev image digests](FHIR_PRODUCTION_DELIVERY.md).
 The environment examples and original deployment history below remain reference
-material; this fork has no VPS deployment workflow or script.
+material; the inherited VPS build-and-deploy workflow is removed.
 
 ## Purpose and boundaries
 

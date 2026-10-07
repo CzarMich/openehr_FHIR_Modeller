@@ -1,0 +1,126 @@
+name: Promote FHIR Modeller Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      dev_run_id:
+        description: Successful Dev delivery run for the current main revision
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: fhir-modeller-production-promotion
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.repository == 'CzarMich/openehr_FHIR_Modeller' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    outputs:
+      revision: ${{ steps.dev.outputs.revision }}
+    steps:
+      - name: Require an actual successful Dev deployment of current main
+        id: dev
+        uses: actions/github-script@v7
+        env:
+          DEV_RUN_ID: ${{ inputs.dev_run_id }}
+        with:
+          script: |
+            if (!/^[1-9][0-9]*$/.test(process.env.DEV_RUN_ID)) throw new Error('Invalid Dev run ID');
+            const run_id = Number(process.env.DEV_RUN_ID);
+            if (!Number.isSafeInteger(run_id)) throw new Error('Invalid Dev run ID');
+            const {data: run} = await github.rest.actions.getWorkflowRun({...context.repo, run_id});
+            const {data: main} = await github.rest.git.getRef({...context.repo, ref: 'heads/main'});
+            if (run.path !== '.github/workflows/deploy-dev.yml' || run.head_branch !== 'main' || run.head_sha !== main.object.sha || run.head_repository.full_name !== context.payload.repository.full_name || run.status !== 'completed' || run.conclusion !== 'success') throw new Error('Only a successful Dev delivery for current main can be promoted');
+            if (context.sha !== main.object.sha) throw new Error('The dispatch revision is stale');
+            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {...context.repo, run_id});
+            const deployed = jobs.some(job => job.name === 'deploy' && job.conclusion === 'success' && job.steps.some(step => step.name === 'Deploy pinned images on the marked local Dev host' && step.conclusion === 'success'));
+            if (!deployed) throw new Error('The Dev deployment step did not succeed');
+            const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {...context.repo, run_id});
+            for (const name of [`fhir-dev-deployment-${run.head_sha}`, ...['app','chat','ingress','fhir'].map(service => `fhir-dev-image-${service}-${run.head_sha}`)]) {
+              if (!artifacts.some(artifact => artifact.name === name && !artifact.expired)) throw new Error(`Missing Dev evidence: ${name}`);
+            }
+            core.setOutput('revision', run.head_sha);
+
+  promote:
+    needs: verify
+    runs-on: ubuntu-24.04
+    environment: production
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      actions: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify.outputs.revision }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.dev_run_id }}
+          github-token: ${{ github.token }}
+          pattern: fhir-dev-image-*-${{ needs.verify.outputs.revision }}
+          path: ${{ runner.temp }}/promotion/images
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.dev_run_id }}
+          github-token: ${{ github.token }}
+          name: fhir-dev-deployment-${{ needs.verify.outputs.revision }}
+          path: ${{ runner.temp }}/promotion/dev-evidence
+      - name: Match promoted digests to successful Dev readiness and MCP evidence
+        env:
+          REVISION: ${{ needs.verify.outputs.revision }}
+        run: python3 scripts/fhir-promotion-evidence.py "$REVISION" "$RUNNER_TEMP/promotion/images" "$RUNNER_TEMP/promotion/dev-evidence"
+      - name: Configure the dedicated production SSH identity
+        id: ssh
+        env:
+          SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.PROD_SSH_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 "$RUNNER_TEMP/fhir-prod-ssh"
+          printf '%s\n' "$SSH_KEY" > "$RUNNER_TEMP/fhir-prod-ssh/key"
+          printf '%s\n' "$KNOWN_HOSTS" > "$RUNNER_TEMP/fhir-prod-ssh/known_hosts"
+          chmod 600 "$RUNNER_TEMP/fhir-prod-ssh/"*
+          ssh-keygen -F 82.165.59.171 -f "$RUNNER_TEMP/fhir-prod-ssh/known_hosts" >/dev/null
+      - name: Transfer tracked deployment files and promote the verified Dev images
+        env:
+          REVISION: ${{ needs.verify.outputs.revision }}
+          DEV_RUN_ID: ${{ inputs.dev_run_id }}
+          GHCR_TOKEN: ${{ github.token }}
+          GHCR_USER: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          ssh_args=(-i "$RUNNER_TEMP/fhir-prod-ssh/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/fhir-prod-ssh/known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=4)
+          stage="$RUNNER_TEMP/promotion/transfer"
+          install -d "$stage/scripts" "$stage/deploy/fhir-prod" "$stage/deploy/production"
+          cp scripts/deploy-fhir-prod.sh scripts/fhir-dev-manifest.py scripts/fhir-promotion-evidence.py scripts/mcp-smoke.py "$stage/scripts/"
+          cp deploy/fhir-prod/compose.yml "$stage/deploy/fhir-prod/"
+          cp deploy/production/java-memory-guard.sh "$stage/deploy/production/"
+          cp -r "$RUNNER_TEMP/promotion/images" "$RUNNER_TEMP/promotion/dev-evidence" "$stage/"
+          remote="/opt/hygeoniq/projects/openehr-fhir-modeller-prod/deployment/incoming/$REVISION"
+          ssh "${ssh_args[@]}" amcdr@82.165.59.171 "mkdir -p '$remote'"
+          tar -czf - -C "$stage" . | ssh "${ssh_args[@]}" amcdr@82.165.59.171 "tar -xzf - --no-same-owner -C '$remote'"
+          printf '%s\n' "$GHCR_TOKEN" | ssh "${ssh_args[@]}" amcdr@82.165.59.171 "cd '$remote' && GITHUB_ACTIONS=true GITHUB_REPOSITORY=CzarMich/openehr_FHIR_Modeller bash scripts/deploy-fhir-prod.sh '$REVISION' '$DEV_RUN_ID' '$GHCR_USER'"
+      - name: Retrieve production verification
+        if: always() && steps.ssh.outcome == 'success'
+        env:
+          REVISION: ${{ needs.verify.outputs.revision }}
+        run: |
+          install -d "$RUNNER_TEMP/production-evidence"
+          scp -r -i "$RUNNER_TEMP/fhir-prod-ssh/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/fhir-prod-ssh/known_hosts" -o ConnectTimeout=20 "amcdr@82.165.59.171:/opt/hygeoniq/projects/openehr-fhir-modeller-prod/deployment/releases/$REVISION/evidence/." "$RUNNER_TEMP/production-evidence/"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fhir-production-deployment-${{ needs.verify.outputs.revision }}
+          path: ${{ runner.temp }}/production-evidence/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Remove temporary SSH credentials
+        if: always()
+        run: rm -f "$RUNNER_TEMP/fhir-prod-ssh/key" "$RUNNER_TEMP/fhir-prod-ssh/known_hosts"
