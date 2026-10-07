@@ -43,15 +43,24 @@ install -m 0644 deploy/fhir-dev/compose.yml "$release_dir/compose.yml"
 # manifest may select images/revision, including during rollback.
 unset APP_IMAGE CHAT_IMAGE INGRESS_IMAGE FHIR_IMAGE REVISION
 compose=(docker compose --project-name openehr-fhir-modeller --env-file "$release_dir/images.env" -f "$release_dir/compose.yml")
+retry_network() {
+  local attempt
+  for attempt in 1 2 3; do
+    if "$@"; then return 0; fi
+    if [[ "$attempt" == 3 ]]; then return 1; fi
+    echo 'Network operation failed; retrying in ten seconds without changing the validated revision.' >&2
+    sleep 10
+  done
+}
 "${compose[@]}" config --quiet
 echo 'Pulling the four pinned Dev images; layer progress is suppressed to preserve WAN bandwidth.'
-"${compose[@]}" pull --quiet
+retry_network "${compose[@]}" pull --quiet
 echo 'Pinned Dev image transfer completed.'
 while IFS='=' read -r name image; do
   [[ "$name" == *_IMAGE ]] || continue
   [[ "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image")" == "$revision" ]] || { echo 'Image provenance revision mismatch.' >&2; exit 2; }
 done < "$release_dir/images.env"
-latest_revision=$(timeout 45s gh api repos/CzarMich/openehr_FHIR_Modeller/git/ref/heads/main --jq .object.sha)
+latest_revision=$(retry_network timeout 45s gh api repos/CzarMich/openehr_FHIR_Modeller/git/ref/heads/main --jq .object.sha)
 unset GH_TOKEN
 if [[ "$latest_revision" != "$revision" ]]; then
   echo 'Main advanced during image transfer; deployment is skipped.'

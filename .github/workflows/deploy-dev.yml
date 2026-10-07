@@ -126,6 +126,7 @@ jobs:
         env:
           VALIDATED_REVISION: ${{ needs.gate.outputs.revision }}
         with:
+          retries: 3
           script: |
             const main = await github.rest.git.getRef({...context.repo, ref: 'heads/main'});
             const eligible = main.data.object.sha === process.env.VALIDATED_REVISION;
@@ -143,16 +144,24 @@ jobs:
           path: ${{ runner.temp }}/fhir-dev-images
           merge-multiple: true
       - name: Isolate registry login configuration
+        id: registry_config
         if: steps.current.outputs.eligible == 'true'
         run: |
           install -d -m 700 "$RUNNER_TEMP/fhir-modeller-docker"
           printf 'DOCKER_CONFIG=%s\n' "$RUNNER_TEMP/fhir-modeller-docker" >> "$GITHUB_ENV"
-      - uses: docker/login-action@v3
+      - name: Authenticate the image pull with bounded network retries
         if: steps.current.outputs.eligible == 'true'
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if printf '%s\n' "$GHCR_TOKEN" | timeout 90s docker login ghcr.io --username "$GHCR_USER" --password-stdin; then break; fi
+            if [[ "$attempt" == 3 ]]; then exit 1; fi
+            echo 'Registry authentication encountered a network error; retrying in ten seconds.' >&2
+            sleep 10
+          done
       - name: Deploy pinned images on the marked local Dev host
         if: steps.current.outputs.eligible == 'true'
         env:
@@ -167,3 +176,6 @@ jobs:
           path: /opt/hygeoniq/projects/openehr-fhir-modeller/deployment/releases/${{ needs.gate.outputs.revision }}/evidence/
           if-no-files-found: warn
           retention-days: 30
+      - name: Remove temporary registry credentials
+        if: always() && steps.registry_config.outcome == 'success'
+        run: rm -f "$RUNNER_TEMP/fhir-modeller-docker/config.json"
