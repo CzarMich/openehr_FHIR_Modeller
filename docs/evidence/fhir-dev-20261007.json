@@ -1,0 +1,256 @@
+{
+  "environment": "development",
+  "productionDeployed": false,
+  "modellerCommit": "611ce35b52f88aa091d39d96bdb572ac610c18e9",
+  "upstreamBudgetCommit": "ca0f425ee215da1f5e3e3f192a0d5bc6416e4f41",
+  "ci": "https://github.com/CzarMich/openehr_FHIR_Modeller/actions/runs/37673117634",
+  "checks": {
+    "specCheck": "passed",
+    "phpstan": "passed",
+    "phpUnitTests": 1283,
+    "phpUnitAssertions": 5690,
+    "chatUnitTests": 198,
+    "browserFixtureTests": 65,
+    "engineUnitTests": 15
+  },
+  "browser": {
+    "environment": "development",
+    "synthetic": true,
+    "mockedApis": false,
+    "startedAt": "2026-10-07T18:36:31.548Z",
+    "checks": [
+      {
+        "name": "authenticated browser sign-in with MFA",
+        "success": true,
+        "elapsedMs": 1205
+      },
+      {
+        "name": "confirmed independent FHIR project with artifact Git destination",
+        "success": true,
+        "elapsedMs": 1357
+      },
+      {
+        "name": "author draft FSH after authoritative Patient reuse analysis",
+        "success": true,
+        "elapsedMs": 345
+      },
+      {
+        "name": "save exact FSH with review and optimistic revision",
+        "success": true,
+        "elapsedMs": 419
+      },
+      {
+        "name": "actual pinned SUSHI compilation through browser, MCP and private engine",
+        "success": true,
+        "elapsedMs": 3373
+      },
+      {
+        "name": "compiled StructureDefinition inspected and saved with provenance",
+        "success": true,
+        "elapsedMs": 673
+      },
+      {
+        "name": "actual HL7 validator checks generated StructureDefinition",
+        "success": true,
+        "elapsedMs": 7363
+      },
+      {
+        "name": "generate synthetic example with exact profile lineage",
+        "success": true,
+        "elapsedMs": 283
+      },
+      {
+        "name": "valid synthetic example passes profile validation",
+        "success": true,
+        "elapsedMs": 7177
+      },
+      {
+        "name": "edited invalid example clears evidence and fails fixed value and cardinality validation",
+        "success": true,
+        "elapsedMs": 7160
+      },
+      {
+        "name": "saved engineering source survives browser reload",
+        "success": true,
+        "elapsedMs": 800
+      },
+      {
+        "name": "separate mappings workspace retains explicit semantic boundary",
+        "success": true,
+        "elapsedMs": 441
+      }
+    ],
+    "projectId": "browser-dev-muyg8c00",
+    "profileValidation": {
+      "valid": true,
+      "status": "valid",
+      "publicationReady": false,
+      "counts": {
+        "errors": 0,
+        "warnings": 1,
+        "information": 0
+      }
+    },
+    "validExample": {
+      "valid": true,
+      "status": "valid",
+      "publicationReady": false,
+      "counts": {
+        "errors": 0,
+        "warnings": 0,
+        "information": 1
+      }
+    },
+    "invalidExample": {
+      "valid": false,
+      "status": "invalid",
+      "counts": {
+        "errors": 2,
+        "warnings": 0,
+        "information": 0
+      }
+    },
+    "success": true,
+    "completedAt": "2026-10-07T18:37:02.487Z"
+  },
+  "engine": {
+    "environment": "development",
+    "synthetic": true,
+    "clinicalApproval": false,
+    "checkedAt": "2026-10-07T18:35:07.656116+00:00",
+    "image": "sha256:204b0d4b0542fb5d0d54171be096fa0ecc745c27fdaca123926404939bc8f9f8",
+    "buildMethod": "Existing cached Node22/Java21 runtime with current source and freshly compiled Java21 runner; Docker Hub base layer downloads stalled. Committed multi-stage Dockerfile build is a separate CI check.",
+    "sourceHashes": {
+      "lib/tooling.mjs": "f2102b3095c11e5032124ef660cecd465357ea3fa7766334f9207c901d3485ae",
+      "server.mjs": "d196a013c18f9851be7be5ff7140c477ecc7836a81421d46e57f33acaec91e3d",
+      "tools/ValidationRunner.class": "91990332454b35fa164e4a89fdd3c8e60be4af82a2d5d3db3dec6d59cda9e87f"
+    },
+    "health": {
+      "httpStatus": 200,
+      "toolsReady": true
+    },
+    "authenticatedHttpChecks": [
+      {
+        "example": "synthetic-dev-patient",
+        "httpStatus": 200,
+        "valid": true,
+        "errors": 0,
+        "publicationReady": false
+      },
+      {
+        "example": "synthetic-invalid-patient",
+        "httpStatus": 200,
+        "valid": false,
+        "errors": 2,
+        "publicationReady": false
+      }
+    ],
+    "packageCacheTenant": "shared",
+    "supportPackageOwner": {
+      "uid": 10001,
+      "gid": 10001
+    },
+    "notes": [
+      "No terminology service configured; publication is not authorized by offline validation.",
+      "No production deployment performed."
+    ]
+  },
+  "gitHandoff": {
+    "environment": "development",
+    "projectId": "fhir-git-dev-20261007",
+    "synthetic": true,
+    "clinicalApproval": false,
+    "files": [
+      {
+        "path": "fhir/input/fsh/hyq-dev-patient.fsh",
+        "revision": "a681c2626c011df7f0e4a504e33c3924",
+        "sha256": "20257569a98402ba04680a0e9ed720452fc31624c35a0608d612a573ede92b15"
+      },
+      {
+        "path": "fhir/fsh-generated/resources/StructureDefinition-hyq-dev-patient.json",
+        "revision": "c4bc3be134e5cc945e3385573ddb0970",
+        "sha256": "497f4539a3574a8adee4437b9a63c3d3ed0a846fdcfbd38dcd73ed3b872e2182"
+      }
+    ],
+    "profileValidation": {
+      "valid": true,
+      "publicationReady": false,
+      "counts": {
+        "errors": 0,
+        "warnings": 1,
+        "information": 0
+      },
+      "platformProvenance": {
+        "event": "7e3c2e02738382645b3e848b34326ae3d453beeffb6a3900c0f148ea88441770",
+        "hash": "34bdb3794bf09c4ccf7914b9d01afdcea6b828460a4c1f48e5fc886da35582c5",
+        "timestamp": "2026-10-07T19:20:42+00:00",
+        "actor": "api-key-service",
+        "project": "fhir-git-dev-20261007",
+        "clinicalApproval": false
+      }
+    },
+    "igConnected": true,
+    "import": {
+      "jobId": "220a2d20-e393-4c69-a640-b0c4517d15ec",
+      "status": "Succeeded",
+      "commitSha": "117aabbe578e615a8fafa54afb463ba0ceed1490",
+      "imported": 1,
+      "unchanged": 0,
+      "conflicts": 0,
+      "artifacts": [
+        {
+          "path": "fsh-generated/resources/StructureDefinition-hyq-dev-patient.json",
+          "sha256": "497f4539a3574a8adee4437b9a63c3d3ed0a846fdcfbd38dcd73ed3b872e2182",
+          "artifactVersionId": "69866871-9d75-4a17-b95a-5c9cee49b4f9"
+        }
+      ],
+      "removedPaths": [],
+      "publication": "NOT_REQUESTED",
+      "distributionAuthority": "http://ig-dev-api:8092"
+    },
+    "idempotentRetry": true,
+    "completedAt": "2026-10-07T19:36:42.648148+00:00"
+  },
+  "boundaries": {
+    "git": "Authoritative engineering source and review history",
+    "modeller": "Authoring, reuse analysis, validation, mappings and draft handoff",
+    "existingIgPlatform": "Review, publication and distribution",
+    "runtimeFhirServer": "Operational resources"
+  },
+  "limitations": [
+    "Live clinical artifact acceptance used synthetic R4 fixtures.",
+    "Terminology service was not configured; publicationReady is false and no clinical approval is granted.",
+    "FHIR XML originals are preserved; semantic inspection and validation currently use JSON/FSH.",
+    "IG source/storage implementation and its acceptance record are maintained in CzarMich/hyq_fhir."
+  ],
+  "gitRoundTrip": {
+    "environment": "development",
+    "synthetic": true,
+    "commitSha": "4190a6ef292b54430c42aade7c7d90d380c29433",
+    "path": "ig-workspace/resources/StructureDefinition-hyq-dev-patient.json",
+    "sha256": "497f4539a3574a8adee4437b9a63c3d3ed0a846fdcfbd38dcd73ed3b872e2182",
+    "exactBytesPreserved": true,
+    "validatedFromGit": true,
+    "validation": {
+      "valid": true,
+      "publicationReady": false,
+      "counts": {
+        "errors": 0,
+        "warnings": 1,
+        "information": 0
+      },
+      "platformProvenance": {
+        "event": "87bc9b219940003589ad8bcc8764b7f7a7c496f68fe28ed0fc923822a2dec5d3",
+        "hash": "61d0ad8346b5ad2fdfc6fcf23f2640c308fea0312fe329df99c070b5b2e66c0b",
+        "timestamp": "2026-10-07T19:49:03+00:00",
+        "actor": "api-key-service",
+        "project": "fhir-git-dev-20261007",
+        "clinicalApproval": false
+      }
+    },
+    "publicationRequested": false,
+    "checkedAt": "2026-10-07T19:49:03.564918+00:00"
+  },
+  "artifactMainCommit": "e549408460d2aad87d2879c7f00f70c98ced440d",
+  "artifactMainCi": "https://github.com/CzarMich/fhir_ig/actions/runs/37676521526"
+}
