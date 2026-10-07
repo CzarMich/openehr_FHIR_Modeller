@@ -52,6 +52,12 @@ scheme to `127.0.0.1:18350`. The private engine has no host port. Production use
 the public certificate chain, without disabling TLS verification or loading the
 development CA.
 
+GitHub delivery installs only the tracked site named
+`openehr-fhir-modeller.sandbox.hygeoniq.com.conf`, after containers are healthy.
+It rejects an unrelated existing file or enabled-site link, saves previous bytes
+and link state, checks `nginx -t` before reload, and restores the prior managed
+site if activation or subsequent verification fails. Other sites remain intact.
+
 The engine has a 2 GiB limit for its existing 1,536 MiB validator heap and native
 overhead. A production-only Java wrapper is mounted read-only from the tracked
 release. The shared host lock `/opt/hygeoniq/fhir-production-tooling/java.lock`

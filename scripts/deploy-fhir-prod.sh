@@ -63,12 +63,15 @@ done < "$release_dir/images.env"
 latest_revision=$(printf '%s' "$registry_token" | timeout 60s python3 -c 'import json,sys,urllib.request; token=sys.stdin.read(); request=urllib.request.Request("https://api.github.com/repos/CzarMich/openehr_FHIR_Modeller/git/ref/heads/main",headers={"Authorization":"Bearer "+token,"Accept":"application/vnd.github+json"}); print(json.load(urllib.request.urlopen(request,timeout=45))["object"]["sha"])')
 unset registry_token
 [[ "$latest_revision" == "$revision" ]] || { echo 'Main advanced during transfer; refusing stale production promotion.' >&2; exit 2; }
+bash scripts/fhir-prod-nginx.sh prepare "$release_dir/nginx-previous"
+nginx_active=false
 previous=''
 if [[ -r "$state_dir/current-revision" ]]; then previous=$(cat "$state_dir/current-revision"); fi
 rollback() {
   status=$?
   trap - ERR
   echo 'Production verification failed; preserving volumes and restoring the prior pinned release when available.' >&2
+  if [[ "$nginx_active" == true ]]; then bash scripts/fhir-prod-nginx.sh restore "$release_dir/nginx-previous" || true; fi
   if [[ "$previous" =~ ^[0-9a-f]{40}$ && -f "$state_dir/releases/$previous/compose.yml" ]]; then
     docker compose --project-name openehr-fhir-modeller-prod --env-file "$state_dir/releases/$previous/images.env" -f "$state_dir/releases/$previous/compose.yml" up -d --no-build --wait --wait-timeout 300 || true
   fi
@@ -77,6 +80,8 @@ rollback() {
 trap rollback ERR
 "${compose[@]}" up -d --no-build --wait --wait-timeout 300
 curl --fail --silent --show-error --max-time 30 http://127.0.0.1:18350/ready > "$release_dir/evidence/loopback-ready.json"
+bash scripts/fhir-prod-nginx.sh activate "$release_dir/nginx-previous"
+nginx_active=true
 for attempt in $(seq 1 15); do
   if curl --fail --silent --show-error --connect-timeout 3 --max-time 10 --resolve "$public_host:443:82.165.59.171" "https://$public_host/ready" > "$release_dir/evidence/https-ready.json"; then break; fi
   if [[ "$attempt" == 15 ]]; then false; fi

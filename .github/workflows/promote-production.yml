@@ -49,7 +49,9 @@ jobs:
   promote:
     needs: verify
     runs-on: ubuntu-24.04
-    environment: production
+    environment:
+      name: production
+      url: https://openehr-fhir-modeller.sandbox.hygeoniq.com/
     timeout-minutes: 120
     permissions:
       contents: read
@@ -99,9 +101,10 @@ jobs:
           ssh_args=(-i "$RUNNER_TEMP/fhir-prod-ssh/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/fhir-prod-ssh/known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=4)
           stage="$RUNNER_TEMP/promotion/transfer"
           install -d "$stage/scripts" "$stage/deploy/fhir-prod" "$stage/deploy/production"
-          cp scripts/deploy-fhir-prod.sh scripts/fhir-dev-manifest.py scripts/fhir-promotion-evidence.py scripts/mcp-smoke.py "$stage/scripts/"
+          cp scripts/deploy-fhir-prod.sh scripts/fhir-prod-nginx.sh scripts/fhir-dev-manifest.py scripts/fhir-promotion-evidence.py scripts/mcp-smoke.py "$stage/scripts/"
           cp deploy/fhir-prod/compose.yml "$stage/deploy/fhir-prod/"
           cp deploy/production/java-memory-guard.sh "$stage/deploy/production/"
+          cp deploy/production/openehr-fhir-modeller.sandbox.hygeoniq.com.conf "$stage/deploy/production/"
           cp -r "$RUNNER_TEMP/promotion/images" "$RUNNER_TEMP/promotion/dev-evidence" "$stage/"
           remote="/opt/hygeoniq/projects/openehr-fhir-modeller-prod/deployment/incoming/$REVISION"
           ssh "${ssh_args[@]}" amcdr@82.165.59.171 "mkdir -p '$remote'"
