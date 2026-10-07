@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "timestamp": "2026-09-27T08:18:02Z",
+  "checks": [
+    "Native operation schemas discovered through actual MCP",
+    "Native ADL 2 AOM/RM validation and exact source hash",
+    "Malformed ADL, unknown RM types and invalid intervals rejected",
+    "Pinned ADL 2 template compilation, output validation and byte-identical rebuild",
+    "Actual model paths, RM types and terminology inspected",
+    "Native AQL grammar accepts valid queries and rejects malformed/trailing tokens without a CDR"
+  ],
+  "clinical_approval": false,
+  "external_services": [],
+  "scope": "ADL 2/OPT 2 and AQL native engine; legacy OET/OPT remains separate"
+}

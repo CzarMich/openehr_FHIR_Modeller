@@ -1,0 +1,38 @@
+{
+  "tools": [
+    "ckm_archetype_search",
+    "ckm_archetype_get",
+    "ckm_template_search",
+    "ckm_template_get",
+    "guide_search",
+    "guide_get",
+    "guide_adl_idiom_lookup",
+    "type_specification_search",
+    "type_specification_get",
+    "examples_search",
+    "examples_get",
+    "terminology_resolve"
+  ],
+  "prompts": [
+    "explain_aql",
+    "translate_archetype_language",
+    "explain_template",
+    "design_or_review_archetype",
+    "type_specification_explorer",
+    "explain_archetype",
+    "terminology_explorer",
+    "design_or_review_aql",
+    "fix_adl_syntax",
+    "design_or_review_simplified_format",
+    "explain_simplified_format",
+    "guide_explorer",
+    "design_or_review_template",
+    "ckm_explorer"
+  ],
+  "resources": [
+    "openehr://guides/{category}/{name}",
+    "openehr://spec/type/{component}/{name}",
+    "openehr://terminology",
+    "openehr://examples/{kind}/{name}"
+  ]
+}

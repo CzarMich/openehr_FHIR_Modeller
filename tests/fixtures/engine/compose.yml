@@ -1,0 +1,57 @@
+services:
+  app:
+    image: openehr-modelling-assistant:engine-test
+    build: {context: '${ENGINE_TEST_REPO:?}', target: production}
+    environment:
+      APP_ENV: testing
+      MCP_ALLOWED_HOSTS: localhost,127.0.0.1,app,ingress
+      MODEL_REPOSITORY_WRITE_ENABLED: "true"
+      MODEL_REPOSITORY_PATH: /tmp/models
+      GOVERNANCE_ENABLED: "true"
+      GOVERNANCE_DATABASE_PATH: /tmp/governance/audit.sqlite
+      AUTH_MODE: api_key
+      AUTH_API_KEY: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      OPENEHR_ENGINE_URL: http://127.0.0.1:8090
+      OPENEHR_ENGINE_KEY_FILE: /run/secrets/engine-key
+    volumes:
+      - ${ENGINE_TEST_KEY:?}:/run/secrets/engine-key:ro
+      - ${ENGINE_TEST_REPO:?}/engine/src/test/resources:/fixtures:ro
+      - ${ENGINE_TEST_REPO:?}/scripts/engine-transport-smoke.php:/probe.php:ro
+    tmpfs: ['/tmp:mode=1777,size=64m']
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+  engine:
+    image: openehr-modelling-engine:test
+    build: {context: '${ENGINE_TEST_REPO:?}', dockerfile: engine/Dockerfile}
+    network_mode: service:app
+    volumes: ['${ENGINE_TEST_KEY:?}:/run/secrets/engine-key:ro']
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ['/tmp:size=32m,noexec,nosuid,nodev']
+    mem_limit: 1536m
+    pids_limit: 160
+    depends_on: {app: {condition: service_started}}
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:8090/health]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+  ingress:
+    image: openehr-modelling-ingress:engine-test
+    build: {context: '${ENGINE_TEST_REPO:?}', target: ingress}
+    user: '1000:1000'
+    volumes: ['${ENGINE_TEST_REPO:?}/.docker/Caddyfile:/etc/caddy/Caddyfile:ro']
+    ports: ['127.0.0.1::8343']
+    environment: {XDG_CONFIG_HOME: /tmp/caddy, XDG_DATA_HOME: /tmp/caddy}
+    tmpfs: ['/tmp:mode=1777,size=16m']
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    depends_on: {app: {condition: service_healthy}, engine: {condition: service_healthy}}
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:8343/ready]
+      interval: 2s
+      timeout: 3s
+      retries: 15

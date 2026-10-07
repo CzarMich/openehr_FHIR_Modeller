@@ -1,0 +1,22 @@
+<?php
+require '/app/vendor/autoload.php';
+use OpenEHR\Assistant\Configuration\Settings;
+use OpenEHR\Assistant\Integrations\Cdr\{CdrHttp,CdrConnection,ConfiguredCredentials,OpenEhrRestAdapter};
+$settings = new Settings(['CDR_ALLOWED_HOSTS' => 'cdr-fixture', 'HTTP_CA_BUNDLE' => '/run/fixture-ca.crt']);
+$http = new CdrHttp($settings);
+$connection = (new CdrConnection($http))->validate(['name' => 'Synthetic', 'baseUrl' => 'https://cdr-fixture', 'auth' => 'bearer', 'secrets' => ['token' => 'fixture-cdr-token']]);
+$adapter = new OpenEhrRestAdapter($http, new ConfiguredCredentials());
+$result = $adapter->execute($connection, 'SELECT e/ehr_id/value FROM EHR e WHERE e/ehr_id/value = $ehr', ['ehr' => '00000000-0000-0000-0000-000000000000'], 1, 0, fn () => false);
+if ($result['count'] !== 0) throw new RuntimeException('Expected empty fixture result');
+$templates = $adapter->templates($connection);
+if ($templates['source'] !== 'remote_cdr' || $templates['items'][0]['identifier'] !== 'Synthetic') throw new RuntimeException('Template contract');
+$expected = function (string $code, callable $call): void { try { $call(); throw new RuntimeException('Expected failure: ' . $code); } catch (RuntimeException $error) { if ($error->getMessage() !== $code) throw $error; } };
+$expected('CDR_NETWORK_NOT_ALLOWED', fn () => (new CdrHttp(new Settings()))->request('https://cdr-fixture', 'GET', [], null, 2, '', fn () => false));
+$expected('CDR_TLS_FAILED', fn () => (new CdrHttp(new Settings(['CDR_ALLOWED_HOSTS' => 'cdr-fixture'])))->request('https://cdr-fixture', 'GET', [], null, 2, '', fn () => false));
+$expected('CDR_TIMEOUT', fn () => $http->request('https://cdr-fixture/slow', 'GET', [], null, 1, '', fn () => false));
+$expected('CDR_RESPONSE_LIMIT', fn () => $http->request('https://cdr-fixture/large', 'GET', [], null, 5, '', fn () => false));
+$started = microtime(true);
+$expected('CDR_CANCELLED', fn () => $http->request('https://cdr-fixture/slow', 'GET', [], null, 10, '', fn () => microtime(true) - $started > 0.5));
+if (microtime(true) - $started > 4) throw new RuntimeException('Cancellation did not abort transfer');
+$expected('CDR_UNSAFE_RESPONSE', fn () => $adapter->execute(array_replace($connection, ['queryUrl' => 'https://cdr-fixture/reflect']), 'SELECT e FROM EHR e', [], 1, 0, fn () => false));
+echo json_encode(['passed' => true, 'checks' => ['portable_parameterized_query', 'empty_result', 'remote_templates', 'private_network_policy', 'tls_verification', 'timeout', 'response_limit', 'cancellation', 'credential_reflection']], JSON_PRETTY_PRINT) . "\n";

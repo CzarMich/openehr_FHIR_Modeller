@@ -1,0 +1,184 @@
+{
+  "timestamp": "2026-09-26T22:25:51Z",
+  "checks": [
+    {
+      "check": "initialize",
+      "status": "PASS",
+      "detail": {
+        "name": "openehr-modelling-assistant",
+        "version": "0.20.0",
+        "description": "AI-assisted openEHR modelling and knowledge services",
+        "websiteUrl": "https://openehr-modelling.sandbox.hygeoniq.com"
+      }
+    },
+    {
+      "check": "tools/list",
+      "status": "PASS",
+      "detail": [
+        "guide_search",
+        "guide_get",
+        "guide_adl_idiom_lookup",
+        "ckm_archetype_search",
+        "ckm_archetype_get",
+        "ckm_template_search",
+        "ckm_template_get",
+        "model_projects",
+        "model_project_get",
+        "model_project_create",
+        "model_artifact_get",
+        "model_artifact_save",
+        "model_artifact_history",
+        "model_requirements_coverage",
+        "terminology_resolve",
+        "ckm_sources",
+        "model_validate",
+        "model_diff",
+        "template_build_oet",
+        "model_qa",
+        "examples_search",
+        "examples_get",
+        "type_specification_search",
+        "type_specification_get",
+        "terminology_capabilities",
+        "terminology_lookup",
+        "terminology_validate_code",
+        "terminology_expand",
+        "terminology_binding_validate",
+        "terminology_diff",
+        "terminology_manifest"
+      ]
+    },
+    {
+      "check": "prompts/list",
+      "status": "PASS",
+      "detail": 14
+    },
+    {
+      "check": "resources/list",
+      "status": "PASS",
+      "detail": 91
+    },
+    {
+      "check": "resources/templates/list",
+      "status": "PASS",
+      "detail": 3
+    },
+    {
+      "check": "resources/read",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "prompts/get",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "configured CKMs",
+      "status": "PASS",
+      "detail": [
+        "default"
+      ]
+    },
+    {
+      "check": "guide_search",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "guide_get",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "examples_search",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "type_specification_search",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "terminology_resolve",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "invalid input rejected",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "XML validation and entity rejection",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "unavailable checks cannot certify release",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "repository capability discovery",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "persistent project, revisions, stale-write rejection",
+      "status": "PASS",
+      "detail": "smoke-1790461540295700488"
+    },
+    {
+      "check": "live ckm_archetype_search",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "live ckm_archetype_get",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "live ckm_template_search",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "live ckm_template_get",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "live CKM draft OET generation",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "live terminology lookup",
+      "status": "PASS",
+      "detail": {
+        "returned_version": "http://snomed.info/sct"
+      }
+    },
+    {
+      "check": "live CodeSystem validation",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "check": "live bounded ValueSet expansion",
+      "status": "PASS",
+      "detail": {
+        "count": 2,
+        "total": 128077
+      }
+    },
+    {
+      "check": "live ValueSet membership",
+      "status": "PASS",
+      "detail": null
+    }
+  ]
+}

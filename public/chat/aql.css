@@ -1,0 +1,312 @@
+.aql-panel {
+    overflow-y: auto;
+    padding-bottom: 3rem;
+}
+.aql-heading,
+.aql-actions,
+.aql-environment {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+.aql-heading {
+    justify-content: space-between;
+}
+.aql-heading h1,
+.aql-heading h2 {
+    margin: 0;
+}
+.aql-heading p {
+    color: #526782;
+}
+.aql-environment {
+    margin: 1rem 0;
+}
+.aql-environment select {
+    min-width: 14rem;
+    flex: 1;
+}
+.aql-card {
+    border: 1px solid #d5e2ef;
+    border-radius: 12px;
+    padding: 1.2rem;
+    background: white;
+    margin: 1rem 0;
+    min-width: 0;
+}
+.aql-card summary,
+#cdr-settings summary {
+    cursor: pointer;
+    font-weight: 650;
+    padding: 0.5rem 0;
+}
+.aql-card label,
+.cdr-fields label,
+#aql-files-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin: 0.5rem 0;
+}
+.aql-card input,
+.aql-card select,
+.aql-card textarea,
+.cdr-fields input,
+.cdr-fields textarea,
+.cdr-fields select {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+.aql-card textarea {
+    width: 100%;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.aql-card p,
+#cdr-settings p {
+    color: #526782;
+    line-height: 1.55;
+    font-size: 0.9rem;
+}
+.aql-editor-wrap {
+    position: relative;
+    margin-top: 0.5rem;
+    height: 260px;
+    border: 1px solid #9db3cf;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f8fafc;
+}
+#aql-editor,
+#aql-highlight {
+    box-sizing: border-box;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 16px;
+    border: 0;
+    border-radius: 0;
+    font:
+        14px/1.65 ui-monospace,
+        SFMono-Regular,
+        Consolas,
+        monospace;
+    white-space: pre;
+    overflow: auto;
+    tab-size: 4;
+    letter-spacing: normal;
+}
+#aql-editor {
+    resize: none;
+    background: transparent;
+    color: transparent;
+    caret-color: #133756;
+    z-index: 1;
+}
+#aql-editor::selection {
+    background: #b1d5ff80;
+}
+#aql-highlight {
+    pointer-events: none;
+    color: #16324f;
+}
+#aql-highlight .keyword {
+    color: #035ebb;
+    font-weight: normal;
+}
+#aql-highlight .literal {
+    color: #8b361b;
+}
+#aql-highlight .parameter {
+    color: #7439a8;
+}
+#aql-highlight .comment {
+    color: #65776d;
+}
+.aql-progress {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #315577;
+}
+.aql-progress .progress-ring {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #cfdfed;
+    border-top-color: #0064c8;
+    border-radius: 50%;
+    animation: aql-spin 0.9s linear infinite;
+}
+@keyframes aql-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .aql-progress .progress-ring {
+        animation: none;
+    }
+}
+.aql-library {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+.aql-library .aql-card {
+    margin-top: 0;
+}
+.aql-list-row,
+.cdr-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid #e4ebf4;
+    flex-wrap: wrap;
+}
+.aql-list-row > span,
+.cdr-row > span {
+    flex: 1;
+    min-width: 120px;
+    overflow-wrap: anywhere;
+}
+.aql-list-row small {
+    display: block;
+    color: #526782;
+}
+.aql-check {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 0.5rem;
+}
+.aql-check input {
+    width: auto;
+}
+#aql-paths {
+    max-height: 300px;
+    overflow: auto;
+}
+.aql-path-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    border-bottom: 1px solid #e4ebf4;
+    padding: 0.45rem;
+}
+.aql-path-row label {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font:
+        12px/1.5 ui-monospace,
+        monospace;
+}
+.aql-path-row input {
+    width: auto;
+}
+#aql-result-body {
+    max-height: 540px;
+    overflow: auto;
+    margin-top: 1rem;
+    border: 1px solid #d5e2ef;
+    border-radius: 6px;
+}
+#aql-result-body pre {
+    margin: 0;
+    padding: 1rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: 12px;
+}
+.aql-panel table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+.aql-panel th,
+.aql-panel td {
+    border-bottom: 1px solid #e2e8f0;
+    text-align: left;
+    padding: 0.6rem;
+    vertical-align: top;
+    max-width: 400px;
+    overflow-wrap: anywhere;
+}
+.aql-panel th {
+    position: sticky;
+    top: 0;
+    background: #edf4fb;
+}
+#aql-findings {
+    overflow-x: auto;
+}
+#aql-findings .aql-fail {
+    color: #a51d30;
+}
+#aql-findings .aql-pass {
+    color: #16633e;
+}
+.cdr-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem 1rem;
+}
+.cdr-fields .wide {
+    grid-column: 1 / -1;
+}
+#cdr-settings {
+    border-top: 1px solid #d5e2ef;
+    padding-top: 0.6rem;
+    margin-top: 1rem;
+}
+#cdr-settings-status,
+#aql-notice {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+#cdr-form {
+    padding-top: 0.6rem;
+}
+@media (max-width: 720px) {
+    .aql-library,
+    .cdr-fields {
+        grid-template-columns: 1fr;
+    }
+    .aql-card {
+        padding: 0.8rem;
+    }
+    .aql-environment select {
+        min-width: 0;
+        width: 100%;
+        flex-basis: 100%;
+    }
+    .aql-actions button {
+        padding: 0.55rem 0.65rem;
+    }
+}
+.aql-suggestions {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border: 1px solid var(--border, #ccd7e5);
+    border-radius: 0.5rem;
+}
+.aql-suggestions p {
+    margin: 0 0 0.5rem;
+}
+#aql-suggestion-list {
+    max-height: 14rem;
+    overflow: auto;
+}
+#aql-suggestion-list [role="option"] {
+    padding: 0.5rem;
+    font-family: monospace;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+}
+#aql-suggestion-list [aria-selected="true"] {
+    background: #e8f2fc;
+    color: #123d6a;
+}

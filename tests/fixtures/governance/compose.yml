@@ -1,0 +1,53 @@
+services:
+  app:
+    image: openehr-modelling-assistant:governance-fixture
+    build:
+      context: ${GOVERNANCE_TEST_REPO:?}
+      target: production
+    environment:
+      APP_ENV: testing
+      AUTH_MODE: api_key
+      AUTH_API_KEY: zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+      MODEL_REPOSITORY_PROVIDER: filesystem
+      MODEL_REPOSITORY_WRITE_ENABLED: 'true'
+      MODEL_REPOSITORY_PATH: /data/models
+      GOVERNANCE_ENABLED: 'true'
+      GOVERNANCE_DATABASE_PATH: /data/governance/audit.sqlite
+      GOVERNANCE_BROWSER_ORIGIN: https://browser.fixture
+      GOVERNANCE_OIDC_ISSUER: https://identity.fixture
+      GOVERNANCE_BROWSER_KEYS: '{"active":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}'
+      MCP_ALLOWED_HOSTS: localhost,127.0.0.1,app,ingress
+    volumes:
+      - models:/data/models
+      - governance:/data/governance
+    tmpfs: ['/tmp:mode=1777,size=64m']
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+  ingress:
+    image: openehr-modelling-ingress:governance-fixture
+    build:
+      context: ${GOVERNANCE_TEST_REPO:?}
+      target: ingress
+    user: '1000:1000'
+    volumes:
+      - ${GOVERNANCE_TEST_REPO:?}/.docker/Caddyfile:/etc/caddy/Caddyfile:ro
+    ports: ['127.0.0.1::8343']
+    environment:
+      XDG_CONFIG_HOME: /tmp/caddy
+      XDG_DATA_HOME: /tmp/caddy
+    tmpfs: ['/tmp:mode=1777,size=16m']
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:8343/ready]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+volumes:
+  models:
+  governance:

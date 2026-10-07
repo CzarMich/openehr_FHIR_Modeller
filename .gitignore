@@ -1,0 +1,75 @@
+# Composer
+/vendor/
+# Commit your application's lock file https://getcomposer.org/doc/01-basic-usage.md#commit-your-composer-lock-file-to-version-control
+# composer.lock
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+/logs/
+*.log
+
+# Testing
+/coverage/
+.phpunit.cache/
+phpunit.xml.bak
+/conformance/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# ai assistants
+/.aiassistant/
+/.junie/
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Cursor local hook state (machine-specific paths)
+.cursor/hooks/state/
+
+# Git worktrees
+.worktrees/
+worktrees/
+# Claude Code local project memory (machine-specific)
+CLAUDE.local.md
+
+/var/
+/models/
+
+__pycache__/
+*.pyc
+
+# Browser chat dependencies and local test output
+chat/node_modules/
+chat/test-results/
+chat/playwright-report/
+
+.env.chat
+
+# Native validation engine build output
+/engine/target/
+
+# Local private deployment credentials
+/.secrets/
+/fhir/node_modules/
+/fhir/.data/
+/fhir/tools/
+/fhir/acceptance-results.json
+/fhir/acceptance-export/
+/test-results/

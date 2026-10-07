@@ -1,0 +1,17 @@
+{
+  "recorded_at": "2026-09-27T07:34:51.865Z",
+  "revision": "773af2f366f56694f45485f45cd61f4be66a839b",
+  "status": "PASS",
+  "checks": [
+    "Root serves unified workspace",
+    "Actual OIDC login",
+    "Same authenticated user in chat and governance",
+    "Platform owner can list reviews without another sign-in",
+    "Live project and exact artifact retrieval",
+    "Unsent chat preserved across tabs",
+    "One browser page throughout",
+    "All tabs usable at 390px without horizontal overflow",
+    "No browser JavaScript errors"
+  ],
+  "clinical_approval": false
+}

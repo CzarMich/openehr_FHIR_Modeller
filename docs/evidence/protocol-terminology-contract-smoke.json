@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "scope": "isolated synthetic HTTPS FHIR fixture through production MCP container",
+  "checks": [
+    "lookup retains repeated multilingual designations",
+    "positive and negative membership with independent versions",
+    "bounded expansion and size-only request",
+    "ConceptMap candidates require review and retain unconfirmed version evidence",
+    "canonical discovery and exact resource resolution"
+  ]
+}

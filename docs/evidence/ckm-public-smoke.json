@@ -1,0 +1,41 @@
+{
+    "timestamp": "2026-09-27T05:28:12+00:00",
+    "status": "PASS",
+    "scope": "Read-only public CKM discovery/retrieval; no model changes or clinical certification",
+    "sources": {
+        "default": "https://ckm.openehr.org/ckm/rest/",
+        "norway": "https://arketyper.no/ckm/rest/"
+    },
+    "source_results": [
+        {
+            "source": "default",
+            "status": "PASS",
+            "reported_total": 10,
+            "returned": 10,
+            "error": null
+        },
+        {
+            "source": "norway",
+            "status": "PASS",
+            "reported_total": 9,
+            "returned": 9,
+            "error": null
+        }
+    ],
+    "retrievals": [
+        {
+            "source": "default",
+            "cid": "1013.1.2960",
+            "archetype_id": "openEHR-EHR-OBSERVATION.body_weight.v2",
+            "sha256": "0f61613a6f79125dfb60acade4cafa1342af5c1fd4893178555f9a9dea4b9958",
+            "bytes": 92000
+        },
+        {
+            "source": "norway",
+            "cid": "1078.36.2273",
+            "archetype_id": "openEHR-EHR-OBSERVATION.body_weight.v2",
+            "sha256": "b6631b7fded4807a6944b497ad51659f1b78072fcd96df83f4743a92a99a95c9",
+            "bytes": 85924
+        }
+    ]
+}

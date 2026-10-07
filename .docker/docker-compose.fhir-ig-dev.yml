@@ -1,0 +1,16 @@
+# Connect only the modeller's adapter to the existing isolated IG Dev network.
+# Prepare private files described in docs/FHIR_DEV.md before enabling this layer.
+services:
+  app:
+    environment:
+      FHIR_CONNECTIONS_FILE: /run/secrets/fhir-connections.json
+      FHIR_ALLOWED_HOSTS: ig-dev-api
+      FHIR_ALLOW_HTTP: "true"
+    networks: [default, ig-dev]
+    volumes:
+      - ./.secrets/fhir-connections.json:/run/secrets/fhir-connections.json:ro
+      - ./.secrets/ig-dev-login.json:/run/secrets/ig-dev-login.json:ro
+networks:
+  ig-dev:
+    external: true
+    name: hyq-fhir-ig-dev_default

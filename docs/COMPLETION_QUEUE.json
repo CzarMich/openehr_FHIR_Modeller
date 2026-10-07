@@ -1,0 +1,613 @@
+{
+  "schema_version": 1,
+  "baseline_revision": "295cb60f212b2f79a90f9943d71bded26d9adbb1",
+  "active_phase": 2,
+  "active_capability": "Governed external model originals and exchange",
+  "statuses": [
+    "IMPLEMENTED",
+    "PARTIAL",
+    "NOT IMPLEMENTED",
+    "BLOCKED EXTERNALLY"
+  ],
+  "capabilities": [
+    {
+      "id": "mcp-core",
+      "status": "IMPLEMENTED",
+      "scope": "MCP HTTP/stdio, discovery, prompts, resources",
+      "implementation": "public/index.php",
+      "evidence": "docs/evidence/http-smoke.json"
+    },
+    {
+      "id": "mcp-conformance",
+      "status": "IMPLEMENTED",
+      "scope": "Explicit supported profile, production HTTP/stdio product probes and applicable pinned official scenarios; not universal demonstration-suite certification",
+      "implementation": "src/Mcp",
+      "evidence": "docs/evidence/protocol-verification.json"
+    },
+    {
+      "id": "ckm",
+      "status": "IMPLEMENTED",
+      "scope": "Named public/authenticated CKM retrieval and bounded federated discovery with source/version provenance; isolated authentication and two live public CKMs verified",
+      "implementation": "src/Application/FederatedCkmSearch.php",
+      "evidence": "docs/evidence/ckm-verification.json"
+    },
+    {
+      "id": "filesystem",
+      "status": "IMPLEMENTED",
+      "scope": "Persistent snapshots, history and compare-and-swap revisions",
+      "implementation": "src/Integrations/Repository/FileSystemRepository.php",
+      "evidence": "tests/Enterprise/RepositoryAndGovernanceTest.php"
+    },
+    {
+      "id": "git",
+      "status": "IMPLEMENTED",
+      "scope": "Native files, remote synchronization, branches, history and conflicts",
+      "implementation": "src/Integrations/Repository/GitModelRepository.php",
+      "evidence": "tests/Enterprise/GitRepositoryTest.php"
+    },
+    {
+      "id": "hosted-git",
+      "status": "IMPLEMENTED",
+      "scope": "Configured-repository metadata, branches/protection and draft reviews over shared Git; GitLab live acceptance requires credentials",
+      "implementation": "src/Integrations/Repository/Hosted",
+      "evidence": "docs/evidence/hosted-github-acceptance.json"
+    },
+    {
+      "id": "sharepoint",
+      "status": "IMPLEMENTED",
+      "scope": "Graph snapshots, OAuth/static credentials, revisions/history, conditional writes and tenant mapping; live tenant acceptance external",
+      "implementation": "src/Integrations/Repository/SharePointRepository.php",
+      "evidence": "docs/evidence/sharepoint-container-smoke.json"
+    },
+    {
+      "id": "oidc",
+      "status": "IMPLEMENTED",
+      "scope": "Native discovery/JWKS, RS256/time/audience checks, scoped draft writes and issuer/tenant/session isolation; full project RBAC remains later work",
+      "implementation": "src/Auth/OidcAuthenticator.php",
+      "evidence": "docs/evidence/oidc-live-acceptance.json"
+    },
+    {
+      "id": "browser-chat",
+      "status": "IMPLEMENTED",
+      "scope": "Separate optional MCP client; not a core provider dependency",
+      "implementation": "chat/src/server.mjs",
+      "evidence": "docs/evidence/browser-chat-live.json"
+    },
+    {
+      "id": "terminology",
+      "status": "PARTIAL",
+      "scope": "Managed versioned local CodeSystem/ValueSet/ConceptMap catalogue, offline operations and optional FHIR protocol; native binding and terminology governance remain",
+      "implementation": "src/Domain/Terminology/TerminologyProvider.php",
+      "evidence": "tests/Enterprise/TerminologyCatalogueTest.php"
+    },
+    {
+      "id": "terminology-catalogue",
+      "status": "IMPLEMENTED",
+      "scope": "Project CodeSystem/ValueSet/ConceptMap records, revision history and offline operations on all repository providers",
+      "implementation": "src/Application/TerminologyCatalogue.php",
+      "evidence": "docs/evidence/catalogue-sharepoint-smoke.json"
+    },
+    {
+      "id": "binding-plans",
+      "status": "IMPLEMENTED",
+      "scope": "Revision-bound explicit OET/OPT inspection, exact-membership catalogue candidates, pinned local code checks and persisted unresolved-choice evidence; no native application or clinical approval",
+      "implementation": "src/Application/TerminologyBindingPlans.php",
+      "evidence": "docs/evidence/binding-verification.json"
+    },
+    {
+      "id": "binding",
+      "status": "PARTIAL",
+      "scope": "Explicit OET/OPT inspection, persisted revision-bound plans, local catalogue candidates and unresolved-choice findings implemented; native ADL/inherited application and compilation require qualified engine",
+      "implementation": "src/Application/TerminologyBindingPlans.php",
+      "evidence": "tests/Enterprise/TerminologyBindingPlanTest.php"
+    },
+    {
+      "id": "structural-validation",
+      "status": "IMPLEMENTED",
+      "scope": "Separate safe parse and bounded XML/OET/OPT/FLAT/STRUCTURED document profiles; ADL header only, genuine language/RM conformance remains engine Phase 2",
+      "implementation": "src/Validation/ModelValidator.php",
+      "evidence": "docs/evidence/validation-qa-verification.json"
+    },
+    {
+      "id": "governance",
+      "status": "IMPLEMENTED",
+      "scope": "Persisted exact-revision lifecycle, independent interactive human roles, append-only audit and browser/REST decisions; real approval requires qualified validation still pending engine phase",
+      "implementation": "src/Application/ModelGovernance.php",
+      "evidence": "docs/evidence/governance-verification.json"
+    },
+    {
+      "id": "traceability",
+      "status": "IMPLEMENTED",
+      "scope": "Versioned typed requirement/decision/model graph, exact document/audit references and deterministic queries; declared clinical satisfaction stays distinct from reference verification and engine qualification",
+      "implementation": "src/Application/ProjectTraceability.php",
+      "evidence": "docs/evidence/traceability-verification.json"
+    },
+    {
+      "id": "qa",
+      "status": "IMPLEMENTED",
+      "scope": "Formal document/project findings, exact source/provenance/requirement/audit checks and explicit unavailable qualified-engine/dependency checks",
+      "implementation": "src/Application/ProjectQuality.php",
+      "evidence": "docs/evidence/validation-qa-verification.json"
+    },
+    {
+      "id": "designer-live",
+      "status": "BLOCKED EXTERNALLY",
+      "scope": "Hosted Designer account authorization unavailable; independent Git round trip passed",
+      "implementation": "docs/ARCHETYPE_DESIGNER_INTEGRATION.md",
+      "evidence": "docs/evidence/designer-git-roundtrip.json"
+    },
+    {
+      "id": "copilot-live",
+      "status": "BLOCKED EXTERNALLY",
+      "scope": "No Microsoft tenant acceptance account configured",
+      "implementation": "docs/MICROSOFT_AGENT_INTEGRATION.md",
+      "evidence": null
+    },
+    {
+      "id": "entra-live",
+      "status": "BLOCKED EXTERNALLY",
+      "scope": "Entra-style signed claims and configuration profile tested; live tenant credentials not configured",
+      "implementation": "docs/OIDC.md",
+      "evidence": "tests/Enterprise/OidcAuthenticationTest.php"
+    },
+    {
+      "id": "optional-client-packaging",
+      "status": "IMPLEMENTED",
+      "scope": "Default provider-neutral OIDC/review image; conversational provider runtime requires an explicit target",
+      "implementation": "chat/Dockerfile",
+      "evidence": "docs/evidence/governance-verification.json"
+    },
+    {
+      "id": "gitlab-live-acceptance",
+      "status": "BLOCKED EXTERNALLY",
+      "scope": "Live GitLab installation acceptance requires a configured account/token; adapter and contract tests complete",
+      "implementation": "scripts/hosted-repository-smoke.php",
+      "evidence": "tests/Enterprise/HostedRepositoryTest.php"
+    },
+    {
+      "id": "sharepoint-live-acceptance",
+      "status": "BLOCKED EXTERNALLY",
+      "scope": "Requires tenant credentials, site/list/library identifiers and resource permissions; adapter and contract/container tests complete",
+      "implementation": "scripts/sharepoint-smoke.php",
+      "evidence": "tests/Enterprise/SharePointRepositoryTest.php"
+    },
+    {
+      "id": "server-review-live-acceptance",
+      "status": "BLOCKED EXTERNALLY",
+      "scope": "Server browser OIDC client not configured; stored identity administration credential rejected. Core governance configured; actual development OIDC/browser review passes.",
+      "implementation": "docs/REVIEW_DEPLOYMENT.md",
+      "evidence": "docs/evidence/governance-verification.json"
+    },
+    {
+      "id": "private-ckm-live-acceptance",
+      "status": "BLOCKED EXTERNALLY",
+      "scope": "Private CKM account and permissions not configured; isolated Basic/session/bearer/API-key contracts pass",
+      "implementation": "docs/CKM_SOURCES.md",
+      "evidence": "docs/evidence/ckm-container-smoke.json"
+    },
+    {
+      "id": "openehr-engine",
+      "status": "PARTIAL",
+      "scope": "Native ADL 2/OPT 2 compilation, bounded OET/ADL 1.4 to OPT 1.4 XML, exact-revision builds and AQL parsing. Complete legacy AOM semantics and broader qualification remain.",
+      "implementation": "src/Application/NativeModels.php",
+      "evidence": "docs/evidence/ci-engine-smoke.json"
+    },
+    {
+      "id": "native-human-identity",
+      "status": "PARTIAL",
+      "scope": "Native local owner bootstrap, password login/reset, TOTP and recovery codes, persistent revocable sessions, role administration, invitation/recovery links, managed service credentials, local review identity and chained audit; single-instance JSON storage, no mail/passkeys, and no shared transactional identity backend",
+      "implementation": "chat/src/identity-store.mjs",
+      "evidence": "chat/test/identity-http.test.mjs"
+    },
+    {
+      "id": "openehr-ui-theme",
+      "status": "PARTIAL",
+      "scope": "Unified responsive blue/white Chat/Models/Governance/Accounts workspace; full visual modeller remains.",
+      "implementation": "public/chat/workspace.css",
+      "evidence": "docs/evidence/unified-workspace-live.json"
+    },
+    {
+      "id": "native-opt2",
+      "status": "IMPLEMENTED",
+      "scope": "ADL 2-to-OPT 2 native compilation, exact-revision saved DRAFT builds and native AQL syntax; live development/server and browser chat accepted; legacy OET and release qualification excluded",
+      "implementation": "src/Application/TemplateBuilds.php",
+      "evidence": "docs/evidence/engine-delivery.json"
+    },
+    {
+      "id": "legacy-opt14",
+      "status": "PARTIAL",
+      "scope": "Explicit nested OET/ADL 1.4 compilation, original internal references, RM attribute narrowing, typed bindings, output schema/RM structure and exact-revision DRAFT build evidence; full OET/AOM semantics remain incomplete",
+      "implementation": "engine/src/main/java/org/openehr/modelling/engine/LegacyTemplateCompiler.java",
+      "evidence": "docs/evidence/legacy-compiler-verification.json"
+    },
+    {
+      "id": "manual-original-import",
+      "status": "IMPLEMENTED",
+      "scope": "Exact immutable originals, bounded type inspection, protected idempotent platform receipts and verified browser download; external-tool origin remains unverified, full exchange/migration pending",
+      "implementation": "src/Application/ModelImports.php",
+      "evidence": "docs/evidence/ci-import-smoke.json"
+    }
+  ],
+  "phases": [
+    {
+      "phase": 1,
+      "scope": "Existing repository/authentication/terminology/governance/CKM and document/evidence capabilities; native conformance and compilation explicitly Phase 2",
+      "status": "IMPLEMENTED",
+      "capabilities": [
+        "oidc",
+        "hosted-git",
+        "sharepoint",
+        "terminology",
+        "binding",
+        "structural-validation",
+        "governance",
+        "traceability",
+        "qa",
+        "mcp-conformance",
+        "optional-client-packaging",
+        "ckm"
+      ],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation",
+      "evidence": "docs/evidence/phase-1-gate.json"
+    },
+    {
+      "phase": 2,
+      "scope": "Qualified openEHR engine, ADL/AOM/RM, OPT compilation, dependencies and AQL parser",
+      "status": "PARTIAL",
+      "capabilities": [
+        "native-opt2",
+        "legacy-opt14",
+        "openehr-engine"
+      ],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation",
+      "evidence": "docs/evidence/ci-engine-examples-smoke.json"
+    },
+    {
+      "phase": 3,
+      "scope": "Domain application services, versioned REST/OpenAPI and shared CLI",
+      "status": "PARTIAL",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 4,
+      "scope": "Vendor-neutral modelling workflows and review preparation",
+      "status": "PARTIAL",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 5,
+      "scope": "Canonical semantic model tree, inspector, semantic and impact diffs",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 6,
+      "scope": "Project workspace/dashboard, dependency graph and provenance",
+      "status": "PARTIAL",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 7,
+      "scope": "Repository product model, indexed/cross-source search, import and upstream changes",
+      "status": "PARTIAL",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 8,
+      "scope": "Reproducible releases, release gates and signed manifests",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 9,
+      "scope": "Capability-aware CDR adapters, controlled deployment and composition validation",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 10,
+      "scope": "Model-aware AQL, path explorer, saved query engineering and tests",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 12,
+      "scope": "Terminology governance, dependency graph, version pinning and drift",
+      "status": "PARTIAL",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 13,
+      "scope": "Provider-neutral reviews, comments, resolutions and human approval policy",
+      "status": "PARTIAL",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 14,
+      "scope": "Tenants, organisations, workspaces, teams, RBAC and audit",
+      "status": "PARTIAL",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 15,
+      "scope": "Unified typed search and optional provider-neutral embeddings",
+      "status": "PARTIAL",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 16,
+      "scope": "Knowledge packages, schema, safe import/export, lock files and reproducible builds",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 17,
+      "scope": "Conformance framework, real model cases, regression selection and compatibility evidence",
+      "status": "PARTIAL",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 18,
+      "scope": "Dependency-aware impacts, breaking-change policy and migration evidence",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 19,
+      "scope": "Deployment registry and drift detection without automatic production overwrite",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 20,
+      "scope": "Configurable clinical modelling policies and deterministic evaluation",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 21,
+      "scope": "Controlled extension contracts, configuration schemas and compatibility discovery",
+      "status": "PARTIAL",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 22,
+      "scope": "Mature MCP schemas, side-effect classes, authorization and dangerous-operation controls",
+      "status": "PARTIAL",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 23,
+      "scope": "Persistent explicit agent workflows and evidence-based explanations",
+      "status": "PARTIAL",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 24,
+      "scope": "Reference visual modelling application over public APIs and safe domain edits",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 25,
+      "scope": "Generated human/machine modelling and governance documentation",
+      "status": "PARTIAL",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 26,
+      "scope": "Structured telemetry, metrics, readiness and correlation without content leakage",
+      "status": "PARTIAL",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 27,
+      "scope": "Dedicated security review and uniform parsing/network/operation limits",
+      "status": "PARTIAL",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 28,
+      "scope": "Measured performance, version-aware caching and governed-state invalidation",
+      "status": "PARTIAL",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 29,
+      "scope": "Tested backup/restore, portable complete workspace and integrity verification",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 30,
+      "scope": "CI/CD acceptance for all implemented adapters and representative conformance fixtures",
+      "status": "PARTIAL",
+      "capabilities": [],
+      "gate": "tests, static analysis, container, protocol/security/contract checks and matching documentation"
+    },
+    {
+      "phase": 31,
+      "scope": "Developer Experience",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "Repeatable tests, security, contract/container checks, documentation and deployed acceptance where configured"
+    },
+    {
+      "phase": 32,
+      "scope": "openEHR Standards Compatibility",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "Repeatable tests, security, contract/container checks, documentation and deployed acceptance where configured"
+    },
+    {
+      "phase": 33,
+      "scope": "Archetype Engineering",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "Repeatable tests, security, contract/container checks, documentation and deployed acceptance where configured"
+    },
+    {
+      "phase": 34,
+      "scope": "Template Engineering",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "Repeatable tests, security, contract/container checks, documentation and deployed acceptance where configured"
+    },
+    {
+      "phase": 35,
+      "scope": "OPT Engineering",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "Repeatable tests, security, contract/container checks, documentation and deployed acceptance where configured"
+    },
+    {
+      "phase": 36,
+      "scope": "Simplified Data Template Support",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "Repeatable tests, security, contract/container checks, documentation and deployed acceptance where configured"
+    },
+    {
+      "phase": 37,
+      "scope": "openEHR-derived Web Template, simplified paths, data/form schemas and validated synthetic compositions",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "Repeatable tests, security, contract/container checks, documentation and deployed acceptance where configured"
+    },
+    {
+      "phase": 39,
+      "scope": "External Knowledge Sources",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "Repeatable tests, security, contract/container checks, documentation and deployed acceptance where configured"
+    },
+    {
+      "phase": 40,
+      "scope": "Offline and Restricted-Network Deployment",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "Repeatable tests, security, contract/container checks, documentation and deployed acceptance where configured"
+    },
+    {
+      "phase": 41,
+      "scope": "White-Labelling",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "Repeatable tests, security, contract/container checks, documentation and deployed acceptance where configured"
+    },
+    {
+      "phase": 42,
+      "scope": "Enterprise Microsoft Integration",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "Repeatable tests, security, contract/container checks, documentation and deployed acceptance where configured"
+    },
+    {
+      "phase": 43,
+      "scope": "Generic Agent Integration",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "Repeatable tests, security, contract/container checks, documentation and deployed acceptance where configured"
+    },
+    {
+      "phase": 44,
+      "scope": "API Stability and Versioning",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "Repeatable tests, security, contract/container checks, documentation and deployed acceptance where configured"
+    },
+    {
+      "phase": 45,
+      "scope": "Data and Schema Migration",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "Repeatable tests, security, contract/container checks, documentation and deployed acceptance where configured"
+    },
+    {
+      "phase": 46,
+      "scope": "Production Deployment",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "Repeatable tests, security, contract/container checks, documentation and deployed acceptance where configured"
+    },
+    {
+      "phase": 47,
+      "scope": "High Availability Readiness",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "Repeatable tests, security, contract/container checks, documentation and deployed acceptance where configured"
+    },
+    {
+      "phase": 48,
+      "scope": "Accessibility and Internationalisation Foundation",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "Repeatable tests, security, contract/container checks, documentation and deployed acceptance where configured"
+    },
+    {
+      "phase": 49,
+      "scope": "Compliance Evidence",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "Repeatable tests, security, contract/container checks, documentation and deployed acceptance where configured"
+    },
+    {
+      "phase": 50,
+      "scope": "Reference End-to-End Demonstration",
+      "status": "NOT IMPLEMENTED",
+      "capabilities": [],
+      "gate": "Repeatable tests, security, contract/container checks, documentation and deployed acceptance where configured"
+    }
+  ],
+  "product_boundary": "openEHR modelling only; external FHIR terminology APIs allowed. CQL/CDS, FHIR/HL7 mapping and generic ETL excluded by updated mandate.",
+  "priority_followups": [
+    "Complete legacy OET/AOM coverage beyond the qualified compatibility profile",
+    "Governed external modelling-tool exchange and provenance",
+    "Native production identity and owner administration"
+  ],
+  "final_gates": [
+    "Fresh scope/capability audit",
+    "Native identity workflow without external IAM",
+    "Representative and large openEHR model fixtures",
+    "Neonatal modelling-to-release demonstration",
+    "Independent AI approval prohibition checks",
+    "Optional test CDR round trips",
+    "Backup/restore and workspace portability",
+    "Dependency/SBOM/security/performance/concurrency checks",
+    "All tests and GitHub Actions successful",
+    "Deployment verification and clean published repository"
+  ],
+  "external_modelling_exchange_queue": "docs/EXTERNAL_MODELLING_REQUIREMENTS.json",
+  "immediate_queue": [
+    "Complete legacy OET/AOM coverage beyond the qualified compatibility profile",
+    "Governed external modelling-tool exchange and provenance",
+    "Native production identity and owner administration",
+    "Remaining original phase capabilities and evidence gates"
+  ]
+}

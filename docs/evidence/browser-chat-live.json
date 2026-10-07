@@ -1,0 +1,44 @@
+{
+  "endpoint": "https://dev-openehr-modelling.sandbox.hygeoniq.com/chat/",
+  "status": "PASS",
+  "tls_verification": "enabled",
+  "synthetic_project": "browser-chat-smoke-1790471065319",
+  "checks": [
+    {
+      "check": "Keycloak authorization-code sign-in with verified TLS",
+      "status": "PASS"
+    },
+    {
+      "check": "Live Codex response using actual CKM tool results",
+      "status": "PASS"
+    },
+    {
+      "check": "Conversation context retained",
+      "status": "PASS"
+    },
+    {
+      "check": "Real project creation requires browser confirmation",
+      "status": "PASS"
+    },
+    {
+      "check": "Confirmed draft saved through the Git model repository",
+      "status": "PASS"
+    },
+    {
+      "check": "Private conversation history survives page reload",
+      "status": "PASS"
+    },
+    {
+      "check": "Mobile viewport has no horizontal overflow",
+      "status": "PASS"
+    },
+    {
+      "check": "No browser JavaScript errors",
+      "status": "PASS"
+    },
+    {
+      "check": "Sign-out clears browser access",
+      "status": "PASS"
+    }
+  ]
+}

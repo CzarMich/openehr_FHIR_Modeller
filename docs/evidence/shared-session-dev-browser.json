@@ -1,0 +1,12 @@
+{
+  "recorded_at": "2026-09-27T06:52:46.978Z",
+  "status": "PASS",
+  "checks": [
+    "Actual OIDC login through chat",
+    "Same user displayed in governance",
+    "No second sign-in",
+    "Platform owner role authorized review listing"
+  ],
+  "clinical_approval": false,
+  "deployed_revision": "af41ef41ea983c7ed70ff80f21dbc646c6180c57"
+}

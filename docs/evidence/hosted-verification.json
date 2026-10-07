@@ -1,0 +1,24 @@
+{
+  "timestamp": "2026-09-27T02:25:07.496850+00:00",
+  "php": {
+    "tests": 727,
+    "assertions": 3170,
+    "status": "PASS"
+  },
+  "phpstan": {
+    "level": 8,
+    "status": "PASS"
+  },
+  "spec_check": "PASS",
+  "dependency_audit": "no advisories",
+  "production_container": "PASS",
+  "browser": {
+    "security_tests": 18,
+    "browser_tests": 5,
+    "format": "PASS"
+  },
+  "diagrams_rendered": 4,
+  "github_live": "PASS; synthetic review closed and branch deleted",
+  "gitlab_live": "NOT_EXECUTED: credentials unavailable",
+  "http_evidence": "hosted-http-smoke.json"
+}

@@ -1,0 +1,58 @@
+{
+  "assistant": {
+    "revision": "467c52882e6546e4d276824428a92eefafb5230f",
+    "endpoint": "https://openehr-modelling.sandbox.hygeoniq.com/mcp",
+    "validation": "https://github.com/CzarMich/openehr-modelling-assistant-fork-archive/actions/runs/36276053833",
+    "deployment": "https://github.com/CzarMich/openehr-modelling-assistant-fork-archive/actions/runs/36276145229",
+    "result": "success"
+  },
+  "amyterm": {
+    "revision": "4a0626ae9bc964c24a3c0232a84ae29c93c4d8e8",
+    "image_tag": "20260926T223523Z-4a0626ae9bc9",
+    "environments": [
+      "development",
+      "amcdr-vps",
+      "Kubernetes"
+    ],
+    "workflow": "https://github.com/CzarMich/AmTerminology/actions/runs/36276407659",
+    "result": "success",
+    "gitops_revision": "185c7a53a159ffb4e6f4945fddb6cfd6afaacf9b"
+  },
+  "cleanup": {
+    "minimum_age_days": 10,
+    "development_images_removed": 152,
+    "development_build_cache_reclaimed_gb": 84.94,
+    "vps_images_removed": 154,
+    "vps_build_cache_reclaimed_gb": 101.2,
+    "kubernetes_unused_images_removed": 8,
+    "harbor_artifacts_removed": 1,
+    "harbor_gc_job": 187,
+    "harbor_gc_result": "Success",
+    "policy": "Preserve container references and recent rollback images; Harbor requires both push and pull activity older than cutoff. Docker age does not prove last use."
+  },
+  "repository_migration": {
+    "active_repository": "CzarMich/openehr-modelling-assistant",
+    "github_id": 1389854562,
+    "fork": false,
+    "parent": null,
+    "archive": "CzarMich/openehr-modelling-assistant-fork-archive",
+    "archive_github_id": 1389742347,
+    "archive_read_only": true,
+    "archive_deployment_secrets_removed": true,
+    "git_history_preserved": true,
+    "verified_workflows": [
+      {
+        "conclusion": "success",
+        "status": "completed",
+        "url": "https://github.com/CzarMich/openehr-modelling-assistant/actions/runs/36277658469",
+        "workflowName": "Deploy openEHR Modelling Assistant"
+      },
+      {
+        "conclusion": "success",
+        "status": "completed",
+        "url": "https://github.com/CzarMich/openehr-modelling-assistant/actions/runs/36277576378",
+        "workflowName": "PR validation"
+      }
+    ]
+  }
+}

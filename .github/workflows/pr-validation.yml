@@ -1,0 +1,171 @@
+name: PR validation
+
+on:
+  pull_request:
+  push:
+    branches: [main, "feat/**", "fix/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fhir-engine:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.1'
+          cache: npm
+          cache-dependency-path: fhir/package-lock.json
+      - run: npm ci --prefix fhir --ignore-scripts --no-audit
+      - run: npm --prefix fhir test
+      - name: Build the private FHIR toolchain
+        run: docker build -f fhir/Dockerfile -t fhir-engine-ci .
+      - name: Verify real compilation and accepted/rejected synthetic examples
+        run: |
+          mkdir -p fhir/acceptance-export
+          chmod 777 fhir/acceptance-export
+          docker run --rm --memory=3g --cpus=2 -e FHIR_ACCEPTANCE_EXPORT=/evidence \
+            -v "$PWD/fhir/acceptance-export:/evidence" fhir-engine-ci node test/acceptance.mjs
+      - name: Preserve FHIR validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fhir-engine-acceptance
+          path: fhir/acceptance-export/
+          if-no-files-found: warn
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: curl, dom, json, mbstring, pdo_sqlite, pdo_pgsql, redis, simplexml
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Validate SDD traceability (spec-check)
+        run: composer check:spec
+
+      - name: Run PHPStan
+        run: composer check:phpstan
+
+      - name: Run PHPUnit
+        run: composer test
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image (production target)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          target: production
+          push: false
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Exercise real container protocol and persistence
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .env.example .env
+          docker compose up -d --build --wait
+          for service in app chat; do
+            for notice in LICENSE THIRD_PARTY_NOTICES.md; do
+              docker compose exec -T "$service" cat "/app/$notice" | cmp "$notice" -
+            done
+          done
+          curl --fail --silent --output /tmp/modelling-workspace.html http://127.0.0.1:8343/
+          grep -q 'role="tablist"' /tmp/modelling-workspace.html
+          python3 scripts/mcp-smoke.py --evidence docs/evidence/ci-http-smoke.json
+
+      - name: Verify advertised MCP profile over HTTP and stdio
+        run: scripts/test-protocol-container.sh
+
+      - name: Exercise Git persistence without terminology
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -i 's/MODEL_REPOSITORY_PROVIDER=filesystem/MODEL_REPOSITORY_PROVIDER=git/; s/MODEL_REPOSITORY_WRITE_ENABLED=false/MODEL_REPOSITORY_WRITE_ENABLED=true/; s/GOVERNANCE_ENABLED=false/GOVERNANCE_ENABLED=true/' .env
+          docker compose up -d --force-recreate --wait
+          python3 scripts/mcp-smoke.py --writes --governance --without-terminology --evidence docs/evidence/ci-git-smoke.json
+
+      - name: Verify provider-independent browser review image
+        run: scripts/test-review-workspace-container.sh
+
+      - name: Dependency audit
+        run: composer audit
+
+      - name: Exercise isolated OIDC authentication and authorization over HTTP
+        run: scripts/test-oidc-container.sh
+
+      - name: Exercise SharePoint contracts with isolated HTTPS Graph and OAuth fixtures
+        run: scripts/test-sharepoint-container.sh
+
+      - name: Exercise authenticated federated CKM discovery over HTTPS
+        run: scripts/test-ckm-container.sh
+
+      - name: Exercise FHIR operations over isolated authenticated HTTPS
+        run: scripts/test-terminology-container.sh
+
+      - name: Exercise interactive governance authentication and durable audit
+        run: scripts/test-governance-container.sh
+
+      - name: Verify PostgreSQL migration, concurrency, durability and cache invalidation
+        run: scripts/test-storage-container.sh
+
+      - name: Verify native openEHR engine, compilation and persisted build evidence
+        run: scripts/test-engine-container.sh
+
+      - name: Verify CDR query transport, privacy, TLS and cancellation
+        run: scripts/test-cdr-container.sh
+
+      - name: Audit native engine runtime dependency SBOM
+        run: python3 scripts/audit-engine-dependencies.py
+
+      - name: Preserve protocol evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: modelling-assistant-protocol-evidence
+          path: |
+            docs/evidence/ci-*-smoke.json
+            docs/evidence/engine-sbom.json
+          if-no-files-found: warn
+
+  browser-chat:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.1'
+          cache: npm
+          cache-dependency-path: chat/package-lock.json
+      - run: npm ci --prefix chat --ignore-scripts
+      - run: npm --prefix chat run check:format
+      - run: npm --prefix chat test
+      - run: npx playwright install --with-deps chromium
+        working-directory: chat
+      - run: npm --prefix chat run test:browser
+      - run: npm audit --prefix chat
+      - name: Preserve browser verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: modelling-browser-evidence
+          path: chat/test-results/
+          if-no-files-found: ignore

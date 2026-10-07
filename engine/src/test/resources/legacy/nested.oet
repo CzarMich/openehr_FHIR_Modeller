@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template xmlns="openEHR/v1/Template" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <id>33826b37-78c6-4796-9b4b-6e6e926e4375</id>
+  <name>Synthetic Legacy Compiler Test</name>
+  <definition xsi:type="COMPOSITION" archetype_id="openEHR-EHR-COMPOSITION.engine_fixture.v1">
+    <Content xsi:type="SECTION" archetype_id="openEHR-EHR-SECTION.engine_fixture.v1" path="/content[at0001]" min="1" max="1" name="Synthetic section">
+      <Item xsi:type="EVALUATION" archetype_id="openEHR-EHR-EVALUATION.engine_fixture.v1" path="/items[at0001]" min="1" max="1">
+        <Items xsi:type="CLUSTER" archetype_id="openEHR-EHR-CLUSTER.engine_fixture.v1" path="/data[at0001]/items[at0002]" min="1" max="1">
+          <Rule path="/items[at0001]" annotation="Synthetic annotation; not clinical advice."/>
+        </Items>
+      </Item>
+    </Content>
+  </definition>
+</template>

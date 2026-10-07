@@ -1,0 +1,44 @@
+{
+    "name": "BMM_ENUMERATION",
+    "documentation": "Definition of an enumeration type. In the BMM system, an 'enumeration' type is understood as an underlying basic type and a set of named constants of that type. It is designed so that the default type is Integer, and the default constants are numbered 0, 1, ... Optional model elements can be specified to override the values and / or the type.",
+    "ancestors": [
+        "BMM_CLASS"
+    ],
+    "properties": {
+        "item_names": {
+            "_type": "P_BMM_CONTAINER_PROPERTY",
+            "name": "item_names",
+            "documentation": "The list of names of the enumeration. If no values are supplied, the integer values 0, 1, 2, ... are assumed.",
+            "type_def": {
+                "container_type": "List",
+                "type": "String"
+            },
+            "cardinality": {
+                "lower": 0,
+                "upper_unbounded": true
+            }
+        },
+        "item_values": {
+            "_type": "P_BMM_CONTAINER_PROPERTY",
+            "name": "item_values",
+            "documentation": "Optional list of specific values. Must be 1:1 with `item_names' list.",
+            "type_def": {
+                "container_type": "List",
+                "type": "T"
+            },
+            "cardinality": {
+                "lower": 0,
+                "upper_unbounded": true
+            }
+        },
+        "underlying_type_name": {
+            "_type": "P_BMM_SINGLE_PROPERTY",
+            "name": "underlying_type_name",
+            "documentation": "Name of type any concrete BMM_ENUMERATION_* sub-type is based on, i.e. the name of type bound to 'T' in a declared use of this type.",
+            "is_mandatory": true,
+            "type": "String"
+        }
+    },
+    "package": "org.openehr.lang.bmm.core",
+    "specUrl": "https://specifications.openehr.org/releases/LANG/development/bmm.html#_core_package"
+}

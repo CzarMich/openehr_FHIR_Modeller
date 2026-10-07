@@ -1,0 +1,52 @@
+{
+  "status": "PASS",
+  "fixture": "isolated production HTTP containers; synthetic identities only",
+  "checks": [
+    {
+      "check": "MCP prepares review but exposes no clinical approval tool",
+      "status": "PASS"
+    },
+    {
+      "check": "interactive route exposes exact source and incomplete validation",
+      "status": "PASS"
+    },
+    {
+      "check": "wrong audience rejected",
+      "status": "PASS"
+    },
+    {
+      "check": "expired assertion rejected",
+      "status": "PASS"
+    },
+    {
+      "check": "wrong body binding rejected",
+      "status": "PASS"
+    },
+    {
+      "check": "wrong tenant rejected",
+      "status": "PASS"
+    },
+    {
+      "check": "wrong role rejected",
+      "status": "PASS"
+    },
+    {
+      "check": "ordinary model API key cannot attest an interactive human",
+      "status": "PASS"
+    },
+    {
+      "check": "human review is recorded once; replay and stale sequence rejected",
+      "status": "PASS"
+    },
+    {
+      "check": "unexecuted conformance checks prevent approval even for an interactive approver",
+      "status": "PASS"
+    },
+    {
+      "check": "audit history and actor evidence survive process restart",
+      "status": "PASS"
+    }
+  ],
+  "clinical_approval": false,
+  "timestamp": "2026-09-27T05:57:39Z"
+}

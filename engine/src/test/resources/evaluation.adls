@@ -1,0 +1,24 @@
+archetype (adl_version=2.0.6; rm_release=1.0.4)
+    openEHR-EHR-EVALUATION.engine_fixture.v1.0.0
+language
+    original_language = <[ISO_639-1::en]>
+description
+    lifecycle_state = <"unmanaged">
+definition
+    EVALUATION[id1] matches {
+        data matches {
+            ITEM_TREE[id2] matches {
+                items matches {
+                    use_archetype CLUSTER[id3, openEHR-EHR-CLUSTER.engine_fixture.v1] occurrences matches {1..1}
+                }
+            }
+        }
+    }
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1"] = <text = <"Synthetic evaluation"> description = <"Engine fixture, not a clinical model">>
+            ["id2"] = <text = <"Data"> description = <"Synthetic data tree">>
+            ["id3"] = <text = <"Fixture cluster"> description = <"Embedded archetype">>
+        >
+    >

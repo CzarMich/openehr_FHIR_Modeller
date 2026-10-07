@@ -1,0 +1,39 @@
+{
+  "recorded_at": "2026-09-27T05:37:14.016133+00:00",
+  "scope": "Source-bound CKM credentials and deterministic federated discovery",
+  "phpunit": {
+    "tests": 1095,
+    "assertions": 4606,
+    "status": "PASS"
+  },
+  "static_analysis": "PHPStan level 8 PASS",
+  "software_spec_traceability": "PASS",
+  "production_container_build": "PASS",
+  "node_tests": {
+    "tests": 27,
+    "status": "PASS"
+  },
+  "browser_tests": {
+    "tests": 10,
+    "status": "PASS"
+  },
+  "mermaid_diagrams": {
+    "rendered": 5,
+    "status": "PASS"
+  },
+  "independent_mcp_acceptance": "Git repository, governance and offline terminology regression PASS",
+  "public_tools": 63,
+  "dependency_audit": "PASS",
+  "isolated_ckm_acceptance": "ckm-container-smoke.json",
+  "live_public_ckm_acceptance": "ckm-public-smoke.json",
+  "security_and_negative_coverage": [
+    "Per-source sync/async credential isolation",
+    "Malformed configuration, duplicate JSON keys, unknown source and header injection rejection",
+    "Credential rotation and missing file rejection",
+    "Redirect and authentication failure handling",
+    "Bounded queries, result windows and shared time budget",
+    "Explicit partial source failures and retained versions"
+  ],
+  "live_private_ckm_acceptance": "External account required; no live private credentials used",
+  "clinical_approval": false
+}

@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-09-27T10:20:57.851089+00:00",
+  "base_revision": "d410f03c75015c7d5340f792b4817b3194b7503c",
+  "status": "PASS",
+  "scope": "Immutable original source preservation, protected platform import receipts and exact-byte browser downloads",
+  "checks": {
+    "php_unit_tests": {
+      "status": "PASS",
+      "tests": 1163,
+      "assertions": 5166
+    },
+    "phpstan_level_8": "PASS",
+    "spec_check": "PASS",
+    "browser_unit_tests": {
+      "status": "PASS",
+      "tests": 37
+    },
+    "browser_tests": {
+      "status": "PASS",
+      "tests": 16,
+      "includes": "WCAG AA scan and binary download"
+    },
+    "browser_format": "PASS",
+    "mermaid_rendering": {
+      "status": "PASS",
+      "diagrams": 8
+    },
+    "postgres_mcp_import": "ci-import-smoke.json",
+    "native_compilation_from_imported_originals": "ci-import-engine-smoke.json",
+    "existing_examples": "ci-engine-examples-smoke.json",
+    "postgres_migration_cache": "ci-storage-smoke.json"
+  },
+  "negative_cases": [
+    "Forged actors, timestamps, approval fields and unsupported source claims",
+    "Path traversal and invalid base64",
+    "Unsafe XML and conflicting type declarations",
+    "Original overwrite/delete",
+    "Cross-tenant and cross-project receipt access",
+    "Receipt failure and idempotent recovery",
+    "External Git tampering",
+    "Import subjects cannot become governance approvals",
+    "Binary text-tool rejection and corrupt browser envelope"
+  ],
+  "hosted_external_tool_round_trip": "NOT_EXECUTED",
+  "source_claim_assurance": "CALLER_DECLARED",
+  "clinical_approval": false
+}

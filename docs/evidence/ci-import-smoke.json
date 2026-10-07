@@ -1,0 +1,13 @@
+{
+  "recorded_at": "2026-09-27T10:22:04Z",
+  "status": "PASS",
+  "writes": true,
+  "checks": [
+    "Actual MCP classification preserves source hash; proprietary format is declared, not converted or certified",
+    "Traversal, malformed byte envelopes and unknown declarations rejected; unsafe XML flagged without entity expansion",
+    "Text/BOM/CRLF, binary and unsafe originals preserved exactly; protected receipts are idempotent and separate from model governance",
+    "Original overwrite and import-as-approval rejected through actual MCP"
+  ],
+  "clinical_approval": false,
+  "external_tool_round_trip": "NOT_EXECUTED"
+}

@@ -1,0 +1,60 @@
+{
+  "recorded_at": "2026-09-27T08:06:48.483811+00:00",
+  "status": "PASS",
+  "profile": "ADL2_AOM2_BMM and OPT2_FLAT_AOM_BMM; AQL_SYNTAX",
+  "checks": {
+    "phpunit": {
+      "status": "PASS",
+      "result": "OK (1127 tests, 4788 assertions)"
+    },
+    "phpstan": {
+      "status": "PASS",
+      "result": "[OK] No errors"
+    },
+    "traceability": {
+      "status": "PASS",
+      "result": "spec-check: OK"
+    },
+    "java": {
+      "status": "PASS",
+      "result": "Tests run: 12, Failures: 0, Errors: 0, Skipped: 0"
+    },
+    "browser": {
+      "status": "PASS",
+      "result": "15 passed"
+    },
+    "node": {
+      "status": "PASS",
+      "result": "# pass 36"
+    },
+    "format": {
+      "status": "PASS",
+      "result": "All matched files use Prettier code style!"
+    },
+    "composer_audit": {
+      "status": "PASS",
+      "result": "No security vulnerability advisories found."
+    },
+    "node_audit": {
+      "status": "PASS",
+      "result": "found 0 vulnerabilities"
+    },
+    "real_engine_mcp": {
+      "status": "PASS",
+      "result": "PASS Native AQL grammar"
+    }
+  },
+  "diagrams": {
+    "status": "PASS",
+    "parsed_and_rendered": 7
+  },
+  "engine_contract": "ci-engine-smoke.json",
+  "dependency_audit": "ci-engine-dependencies-smoke.json",
+  "fixtures": "Synthetic non-clinical sources only. English/German terms, nested archetypes, binding URI and annotations preserved.",
+  "limits": [
+    "No legacy OET-to-OPT 1.4 compilation",
+    "No Designer live round-trip acceptance",
+    "No clinical release qualification or external terminology validation",
+    "Live deployment acceptance recorded separately after delivery"
+  ]
+}

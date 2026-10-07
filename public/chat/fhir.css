@@ -1,0 +1,163 @@
+.fhir-panel {
+    max-width: 1440px;
+}
+.fhir-toolbar,
+.fhir-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 0.75rem;
+    margin: 1rem 0;
+}
+.fhir-panel label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-weight: 600;
+    font-size: 0.88rem;
+    margin: 0.7rem 0;
+    min-width: 0;
+}
+.fhir-panel input,
+.fhir-panel select,
+.fhir-panel textarea {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    border: 1px solid var(--border, #cad5df);
+    border-radius: 6px;
+    padding: 0.65rem 0.75rem;
+    background: var(--surface, #fff);
+    color: var(--text, #172b4d);
+    font: inherit;
+    font-weight: 400;
+}
+.fhir-panel textarea {
+    resize: vertical;
+}
+.fhir-panel fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+}
+.fhir-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0 1rem;
+}
+.fhir-card {
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, #d9e2ec);
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin: 1.25rem 0;
+    min-width: 0;
+}
+.fhir-card h2 {
+    margin: 0 0 0.85rem;
+    font-size: 1.15rem;
+}
+.fhir-card summary {
+    cursor: pointer;
+    padding: 0.35rem 0;
+    font-weight: 600;
+}
+.fhir-source,
+.fhir-output {
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace !important;
+    font-size: 0.8rem !important;
+    line-height: 1.6;
+}
+.fhir-output {
+    background: #f3f6f9;
+    color: #172b4d;
+    padding: 1rem;
+    border-radius: 6px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    overflow: auto;
+    max-height: 34rem;
+    max-width: 100%;
+}
+.fhir-output:empty {
+    display: none;
+}
+.fhir-results {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+    gap: 0.8rem;
+}
+.fhir-result-card {
+    border: 1px solid var(--border, #d9e2ec);
+    border-radius: 6px;
+    padding: 0.85rem;
+    font-size: 0.85rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.fhir-metadata {
+    display: grid;
+    grid-template-columns: minmax(7rem, 1fr) minmax(0, 4fr);
+    gap: 0.5rem 1rem;
+    font-size: 0.85rem;
+}
+.fhir-metadata dt {
+    font-weight: 600;
+}
+.fhir-metadata dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+.fhir-table-scroll {
+    width: 100%;
+    overflow: auto;
+}
+.fhir-table-scroll table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+.fhir-table-scroll th,
+.fhir-table-scroll td {
+    text-align: left;
+    vertical-align: top;
+    padding: 0.6rem;
+    border-bottom: 1px solid #d9e2ec;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+#fhir-confirm-dialog {
+    width: min(52rem, calc(100vw - 2rem));
+    max-height: 90vh;
+    overflow: auto;
+    border: 1px solid #cad5df;
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+#fhir-confirm-dialog::backdrop {
+    background: rgb(12 31 52 / 45%);
+}
+@media (max-width: 900px) {
+    .fhir-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+@media (max-width: 600px) {
+    .fhir-grid {
+        grid-template-columns: 1fr;
+    }
+    .fhir-toolbar > * {
+        width: 100%;
+    }
+    .fhir-card {
+        padding: 0.85rem;
+    }
+    .fhir-metadata {
+        grid-template-columns: 1fr;
+        gap: 0.2rem;
+    }
+    .fhir-metadata dd {
+        margin-bottom: 0.55rem;
+    }
+}

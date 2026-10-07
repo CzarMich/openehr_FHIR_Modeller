@@ -1,0 +1,55 @@
+{
+  "status": "PASS",
+  "recorded_at": "2026-09-27T10:06:42Z",
+  "checks": [
+    {
+      "fixture": "resources/examples/archetypes/openEHR-EHR-ACTION.procedure.v1.adl",
+      "source_sha256": "cf05de1b5db351fa40eb40d2723a2059a41649cfabad8538a84050a41d250919",
+      "opt_sha256": "f163d77955ee2acbf48aa7465c1ee0ea95ec99d499c342e41bc8a141bea4f322",
+      "status": "PASS"
+    },
+    {
+      "fixture": "resources/examples/archetypes/openEHR-EHR-CLUSTER.anatomical_location.v1.adl",
+      "source_sha256": "56847763e5b7510d5013702c8e46337d67e69b66e6575a92de0e843b1020bb19",
+      "opt_sha256": "169d34f784cae2e2909e3219074d07bacb3f455155582c0477aa4a0d878af5b8",
+      "status": "PASS"
+    },
+    {
+      "fixture": "resources/examples/archetypes/openEHR-EHR-COMPOSITION.encounter.v1.adl",
+      "source_sha256": "167e7748fe36f5cd3c15ef66588f85cfbf3154d6560975d49335cb4e5c13b05e",
+      "opt_sha256": "f7b614c683baa4709617dae9e072b267de2373e95cbc00fac396f4bc32266524",
+      "status": "PASS"
+    },
+    {
+      "fixture": "resources/examples/archetypes/openEHR-EHR-EVALUATION.problem_diagnosis.v1.adl",
+      "source_sha256": "4c1a0597ca7569fb466fef28ff1fb1555ccc9a0f81e379997466805e4b40b276",
+      "opt_sha256": "9df4a80067569e8679f8454b9273ba92e8822ffec6451a09ca145c26f38f2542",
+      "status": "PASS"
+    },
+    {
+      "fixture": "resources/examples/archetypes/openEHR-EHR-INSTRUCTION.medication_order.v3.adl",
+      "source_sha256": "b6670c197a1c459230b86f7a8b85e7d0f101fbc947327338f571795a8564e67f",
+      "opt_sha256": "07d14544104e22110c75dee3d523bc51dd19482a4dacea14fb8d84b5f4c96a16",
+      "status": "PASS"
+    },
+    {
+      "fixture": "resources/examples/archetypes/openEHR-EHR-OBSERVATION.blood_pressure.v2.adl",
+      "source_sha256": "6c6f8c8c37e275d1f68376ab2c654c8fc6fd55b5a14e63b4b3c22ea790847103",
+      "opt_sha256": "6d2f1b674665aeb450d0388b132212e40ef1391c9a134fb64b24f5f5a9290d14",
+      "status": "PASS"
+    },
+    {
+      "fixture": "Synthetic OET composing original Encounter and Blood Pressure archetypes",
+      "opt_sha256": "cf5b3906f9f904972e9b9d52f20c72e866b2da2fca2a4ef308021c9ed46d9184",
+      "status": "PASS"
+    },
+    {
+      "fixture": "resources/examples/archetypes/openEHR-EHR-ADMIN_ENTRY.translation_requirements.v1.adl",
+      "status": "EXPECTED_REJECTION",
+      "code": "ENGINE_REQUIRED_SLOT_UNFILLED"
+    }
+  ],
+  "scope": "Existing repository examples and synthetic OET assembly; OPT XML schema/RM profile, not full AOM semantics, Designer interoperability or clinical qualification.",
+  "clinical_approval": false,
+  "repository_writes": false
+}

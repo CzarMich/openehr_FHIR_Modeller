@@ -1,0 +1,68 @@
+{
+  "status": "FAIL",
+  "scope": "read-only configured terminology server acceptance",
+  "timestamp": "2026-09-27T03:18:02+00:00",
+  "checks": [
+    {
+      "check": "capability statement",
+      "status": "PASS",
+      "errors": [],
+      "version_confirmed": false,
+      "warnings": [],
+      "item_count": null
+    },
+    {
+      "check": "code lookup",
+      "status": "FAIL",
+      "errors": [
+        "TERMINOLOGY_HTTP_404"
+      ],
+      "version_confirmed": null,
+      "warnings": [],
+      "item_count": null
+    },
+    {
+      "check": "code-system validation",
+      "status": "FAIL",
+      "errors": [],
+      "version_confirmed": false,
+      "warnings": [],
+      "item_count": null
+    },
+    {
+      "check": "CodeSystem discovery",
+      "status": "NOT_EXECUTED",
+      "errors": [
+        "TERMINOLOGY_HTTP_404"
+      ],
+      "version_confirmed": null,
+      "warnings": [],
+      "item_count": null
+    },
+    {
+      "check": "ValueSet discovery",
+      "status": "NOT_EXECUTED",
+      "errors": [
+        "TERMINOLOGY_HTTP_404"
+      ],
+      "version_confirmed": null,
+      "warnings": [],
+      "item_count": null
+    },
+    {
+      "check": "ConceptMap discovery",
+      "status": "NOT_EXECUTED",
+      "errors": [
+        "TERMINOLOGY_HTTP_404"
+      ],
+      "version_confirmed": null,
+      "warnings": [],
+      "item_count": null
+    }
+  ],
+  "live_translation_executed": false,
+  "live_value_set_executed": false,
+  "test_system": "http://fhir.de/Codesystem/bfarm/icd-10-gm",
+  "test_code": "A04.5",
+  "interpretation": "The configured service principal could not verify this requested dataset/code. This does not establish content availability for other principals."
+}

@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "provider": "github",
+  "repository": "CzarMich/openehr-models",
+  "branch_count_first_page": 2,
+  "checks": [
+    "repository_metadata",
+    "branch_metadata",
+    "draft_review_creation",
+    "existing_review_reuse",
+    "review_revision_read"
+  ],
+  "review_number": 1,
+  "review_url": "https://github.com/CzarMich/openehr-models/pull/1",
+  "timestamp": "2026-09-27T02:18:31+00:00",
+  "cleanup": "draft review closed and disposable branch deleted"
+}

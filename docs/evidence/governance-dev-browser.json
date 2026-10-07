@@ -1,0 +1,14 @@
+{
+  "recorded_at": "2026-09-27T04:27:22.024Z",
+  "environment": "development HTTPS deployment",
+  "identity": "Actual OIDC authorization-code browser session with temporary synthetic reviewer; account removed after test",
+  "checks": [
+    "Sign-in and signed role mapping",
+    "Exact-revision source and validation retrieval through browser backend and protected core",
+    "Explicit decision confirmation",
+    "Human review persisted with immutable audit evidence",
+    "No clinical approval permission or release eligibility"
+  ],
+  "status": "PASS",
+  "clinical_approval": false
+}

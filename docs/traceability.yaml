@@ -1,0 +1,369 @@
+# traceability.yaml — machine-readable REQ → code → test → decision map.
+# One record per requirement; this is an INDEX and carries NO normative prose
+# (that lives in docs/requirements.md). Validated against the working tree by
+# `make spec-check` (src/Sdd/SpecCheck.php). The human-readable rendering is
+# docs/traceability.md; the id set here MUST match it and requirements.md.
+#
+# Fields: id, title, canonical (owning doc), status (draft|stable|deprecated),
+# implementation (planned|partial|landed|deferred), packages[], tests[],
+# adr[] (ADR numbers under docs/decisions/), plans[], verification (free text).
+# Paths may be globs; a glob must match at least one file. status `draft` is
+# binding now — pre-1.0 wording may still change (see sdd-methodology §6).
+requirements:
+  - id: REQ-F1
+    title: CKM archetype/template search & get
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [src/Tools/CkmService.php, src/Apis/CkmClient.php]
+    tests: [tests/Tools/CkmServiceTest.php, tests/Clients/CkmClientTest.php, tests/Tools/CkmServiceUpstreamShapeTest.php]
+    adr: ["0002"]
+
+  - id: REQ-F2
+    title: Guide discovery / retrieval / ADL idioms
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [src/Tools/GuideService.php, src/Resources/Guides.php, src/Helpers/SearchTokenizer.php]
+    tests: [tests/Tools/GuideServiceTest.php, tests/Resources/GuidesTest.php, tests/Tools/SearchEnvelopeTotalTest.php]
+
+  - id: REQ-F3
+    title: Curated examples search & get
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [src/Tools/ExamplesService.php, src/Resources/Examples.php, src/Helpers/SearchTokenizer.php]
+    tests: [tests/Tools/ExamplesServiceTest.php, tests/Resources/ExamplesTest.php, tests/Tools/SearchEnvelopeTotalTest.php]
+
+  - id: REQ-F4
+    title: Terminology resolution
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [src/Tools/TerminologyService.php, src/Resources/Terminologies.php, src/Helpers/TerminologyXmlLoader.php]
+    tests: [tests/Tools/TerminologyServiceTest.php, tests/Resources/TerminologiesTest.php]
+
+  - id: REQ-F5
+    title: Type specification lookup (BMM)
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [src/Tools/TypeSpecificationService.php, src/Resources/TypeSpecifications.php]
+    tests: [tests/Tools/TypeSpecificationServiceTest.php, tests/Resources/TypeSpecificationsTest.php, tests/Resources/SpecDigestsTest.php]
+    adr: ["0005"]
+
+  - id: REQ-F6
+    title: Guided MCP prompts
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [src/Prompts/*.php]
+    tests: [tests/Prompts/*Test.php]
+    adr: ["0003"]
+
+  - id: REQ-F7
+    title: Resource exposure via openehr:// URIs
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [src/Resources/*.php]
+    tests: [tests/Resources/*Test.php]
+
+  - id: REQ-F8
+    title: Argument auto-completion
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [src/CompletionProviders/*.php]
+    tests: [tests/CompletionProviders/*Test.php]
+
+  - id: REQ-F9
+    title: Dual transport (streamable-http / stdio)
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [public/index.php, src/Helpers/CliOptions.php]
+    verification: startup + MCP conformance (tests/conformance-baseline.yml)
+    adr: ["0001"]
+
+  - id: REQ-F10
+    title: Global server instructions
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [resources/server-instructions.md]
+    tests: [tests/Prompts/PromptPolicySeparationTest.php]
+    adr: ["0003"]
+
+  - id: REQ-N1
+    title: Authoritative spec grounding (no guessing)
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [resources/guides/howto/spec-lookup.md]
+    tests: [tests/Content/SpecLookupAndReadmeClaimsTest.php]
+    verification: content review against ground_truth (see .sdd.yaml)
+    adr: ["0005"]
+
+  - id: REQ-N2
+    title: Mirrored tests + mocked external HTTP
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [src/Apis/CkmClient.php]
+    tests: [tests/Tools/CkmServiceTest.php]
+    verification: whole suite — composer test
+    adr: ["0002"]
+
+  - id: REQ-N3
+    title: PSR-12 + PHPStan clean before merge
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [tests/phpstan.neon]
+    verification: composer check:phpstan
+
+  - id: REQ-N4
+    title: Cached discovery / fast startup
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [public/index.php, src/constants.php]
+    tests: [tests/Content/DiscoveryCacheNamespaceTest.php]
+    verification: server startup (cache warm path)
+    adr: ["0001"]
+
+  - id: REQ-N5
+    title: Docker-only, reproducible runtime
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [.docker, Makefile]
+    verification: make / CI targets
+    adr: ["0004"]
+
+  - id: REQ-N6
+    title: MCP conformance over HTTP
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [tests/conformance-baseline.yml, Makefile]
+    verification: make conformance
+
+  - id: REQ-N7
+    title: Concise, AI-facing content economy
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [resources/server-instructions.md]
+    tests: [tests/Prompts/PromptCompositionTest.php]
+    adr: ["0003"]
+
+  - id: REQ-N8
+    title: Machine-checked traceability drift gate
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [src/Sdd/SpecCheck.php, scripts/spec-check.php]
+    tests: [tests/Sdd/SpecCheckTest.php]
+    adr: ["0006"]
+
+  - id: REQ-N9
+    title: Published MCP tool schemas validated in CI
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [src/Tools/CkmService.php, src/Tools/GuideService.php, src/Tools/ExamplesService.php, src/Tools/TerminologyService.php, src/Tools/TypeSpecificationService.php]
+    tests: [tests/Tools/InputSchemaGuardTest.php, tests/Tools/InputSchemaValidationTest.php, tests/Tools/OutputSchemaConformanceTest.php, tests/Helpers/OutputSchemaValidatorTest.php, tests/Tools/SearchEnvelopeTotalTest.php]
+    verification: composer test (the SDK validates tool input but never tool output)
+
+  - id: REQ-N10
+    title: Install docs canonical and externally consumable
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [docs/install.md]
+    tests: [tests/Content/InstallDocContractTest.php]
+    verification: composer test (independent deployment and valid links)
+    adr: ["0007"]
+
+  - id: REQ-F11
+    title: Configurable branding and named CKM sources
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [src/Configuration/*.php, src/Tools/CkmSourcesService.php, src/Apis/CkmArchetypeSource.php]
+    tests: [tests/Enterprise/ConfigurationAndAuthTest.php]
+    adr: ["0008"]
+
+  - id: REQ-F12
+    title: Provider-neutral persistent projects, artifacts and revisions
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [src/Domain/Repository/*.php, src/Integrations/Repository/*.php, src/Integrations/Repository/Hosted/*.php, src/Integrations/Repository/SharePoint/*.php, src/Application/RepositoryService.php, src/Tools/RepositoryTools.php, src/Tools/ProjectService.php]
+    tests: [tests/Enterprise/RepositoryAndGovernanceTest.php, tests/Enterprise/GitRepositoryTest.php, tests/Enterprise/HostedRepositoryTest.php, tests/Enterprise/SharePointRepositoryTest.php, tests/Enterprise/OidcAuthenticationTest.php]
+    adr: ["0008", "0009", "0010", "0011"]
+
+  - id: REQ-F13
+    title: Draft OET generation, bounded validation and structural diff
+    canonical: docs/requirements.md
+    status: draft
+    implementation: partial
+    packages: [src/Domain/Modelling/*.php, src/Validation/*.php, src/Tools/ModelService.php]
+    tests: [tests/Enterprise/ModelValidationTest.php, tests/Enterprise/TemplateAuthoringTest.php]
+    adr: ["0008"]
+
+  - id: REQ-F14
+    title: Explicit terminology, value sets, bindings, provenance and diff
+    canonical: docs/requirements.md
+    status: draft
+    implementation: partial
+    packages: [src/Domain/Terminology/*.php, src/Domain/Terminology/Catalogue/*.php, src/Application/TerminologyCatalogue.php, src/Application/TerminologyBindingPlans.php, src/Validation/XmlLocations.php, src/Integrations/Terminology/*.php, src/Tools/TerminologyBindingService.php, src/Tools/TerminologyCatalogueTools.php, src/Tools/TerminologyBindingTools.php]
+    tests: [tests/Enterprise/TerminologyProviderTest.php, tests/Enterprise/FhirTerminologyContractTest.php, tests/Enterprise/TerminologyCatalogueTest.php, tests/Enterprise/TerminologyBindingPlanTest.php]
+    adr: ["0008", "0012", "0013", "0014"]
+
+  - id: REQ-N11
+    title: Authenticated bounded transport and redacted failures
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [src/Auth/*.php, src/Integrations/Auth/*.php, src/Apis/HttpClientFactory.php, src/Helpers/ToolResult.php]
+    tests: [tests/Enterprise/ConfigurationAndAuthTest.php, tests/Enterprise/OidcAuthenticationTest.php]
+    adr: ["0008", "0009", "0010", "0011"]
+
+  - id: REQ-N12
+    title: Client-neutral deployment and truthful capability documentation
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [docs/MICROSOFT_AGENT_INTEGRATION.md, docs/MCP_CLIENTS.md, Dockerfile, docker-compose.yml, scripts/mcp-smoke.py]
+    tests: [tests/Content/InstallDocContractTest.php]
+    adr: ["0008"]
+
+  - id: REQ-F15
+    title: Authenticated browser chat with private project folders and user help
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [chat/src/*.mjs, public/chat, chat/Dockerfile]
+    tests: [chat/test/security.test.mjs, chat/test/codex.test.mjs, chat/test/providers.test.mjs, chat/test/copilot.test.mjs, chat/test/aql-drafting.test.mjs, chat/test/mcp.test.mjs, chat/test/models.test.mjs, chat/test/choices.test.mjs, chat/test/personal-workspace.test.mjs, chat/test/browser.spec.mjs]
+    verification: npm --prefix chat test and npm --prefix chat run test:browser
+
+  - id: REQ-F16
+    title: Persisted exact-revision governance and independent interactive human approval
+    canonical: docs/requirements.md
+    status: draft
+    implementation: partial
+    packages: [src/Domain/Governance/*.php, src/Integrations/Governance/*.php, src/Application/ModelGovernance.php, src/Rest/ReviewApi.php, src/Tools/GovernanceTools.php]
+    tests: [tests/Enterprise/GovernanceAuditStoreTest.php, tests/Enterprise/ModelGovernanceTest.php, tests/Enterprise/InteractiveReviewAuthenticatorTest.php, tests/Enterprise/ReviewApiTest.php, chat/test/reviews.test.mjs, chat/test/browser.spec.mjs]
+    adr: ["0015"]
+
+  - id: REQ-F17
+    title: Persistent queryable project requirement and evidence graph
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [src/Domain/Traceability/*.php, src/Application/ProjectTraceability.php, src/Application/TraceabilityEvidence.php, src/Integrations/Traceability/*.php, src/Validation/JsonDocument.php, src/Tools/TraceabilityTools.php]
+    tests: [tests/Enterprise/TraceabilityGraphTest.php, tests/Enterprise/ProjectTraceabilityTest.php, tests/Tools/TraceabilityOutputCases.php]
+    adr: ["0016"]
+
+  - id: REQ-F18
+    title: Separate validation stages and exact-revision project quality evidence
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [src/Validation/*.php, src/Domain/Modelling/QualityPipeline.php, src/Application/ProjectQuality.php, src/Tools/QualityTools.php, src/Tools/ModelService.php]
+    tests: [tests/Enterprise/StagedValidationTest.php, tests/Enterprise/ProjectQualityTest.php, tests/Enterprise/ModelValidationTest.php, tests/Tools/EnterpriseOutputCases.php]
+    adr: ["0017"]
+
+  - id: REQ-F19
+    title: Source-bound CKM service authentication and bounded federated discovery
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [src/Apis/CkmClient.php, src/Configuration/CkmAuthentication.php, src/Domain/Knowledge/*.php, src/Integrations/Knowledge/*.php, src/Application/FederatedCkmSearch.php, src/Tools/CkmFederationTools.php]
+    tests: [tests/Enterprise/CkmFederationTest.php, tests/Clients/CkmClientTest.php, tests/Tools/OutputSchemaConformanceTest.php, scripts/ckm-fixture-smoke.py]
+    adr: ["0018"]
+
+  - id: REQ-F20
+    title: Explicit MCP profile and actual transport acceptance
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [src/Mcp/*.php, public/index.php, chat/src/mcp.mjs]
+    tests: [tests/Enterprise/McpProtocolTest.php, scripts/protocol-smoke.py, scripts/test-protocol-container.sh, chat/test/mcp.test.mjs]
+    adr: ["0019"]
+
+  - id: REQ-N13
+    title: PostgreSQL governance and immutable model retrieval caching
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [src/Integrations/Governance/*.php, src/Integrations/Cache/*.php, src/Configuration/StorageConfiguration.php, src/Integrations/Repository/*.php]
+    tests: [tests/Enterprise/StorageConfigurationTest.php, tests/Enterprise/GovernanceAuditStoreTest.php, tests/fixtures/storage/probe.php]
+    adr: ["0021"]
+
+  - id: REQ-F21
+    title: Native openEHR validation and reproducible OPT compilation
+    canonical: docs/requirements.md
+    status: draft
+    implementation: partial
+    packages: [src/Domain/Modelling/OpenEhrEngine.php, src/Application/NativeModels.php, src/Application/TemplateBuilds.php, src/Integrations/Engine/*.php, src/Configuration/EngineConfiguration.php, src/Tools/NativeEngineTools.php, src/Tools/TemplateBuildTools.php, engine/src/main/java]
+    tests: [tests/Enterprise/NativeEngineTest.php, tests/Enterprise/TemplateBuildsTest.php, tests/Enterprise/JsonDocumentTest.php, tests/Tools/NativeEngineOutputCases.php, engine/src/test/java, scripts/test-engine-container.sh, scripts/engine-example-smoke.py]
+    adr: ["0020", "0022"]
+
+  - id: REQ-F22
+    title: Exact source preservation and protected platform import provenance
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [src/Application/ModelImports.php, src/Domain/Modelling/ArtifactTypes.php, src/Domain/Repository/Original*.php, src/Validation/ArtifactTypeInspector.php, src/Tools/ModelImportTools.php]
+    tests: [tests/Enterprise/OriginalRepositoryTest.php, tests/Enterprise/ArtifactTypeInspectorTest.php, tests/Enterprise/ModelImportsTest.php, tests/Tools/ImportOutputCases.php, chat/test/models.test.mjs, chat/test/browser.spec.mjs]
+    adr: ["0023"]
+
+  - id: REQ-F23
+    title: Personal modelling sources, artifact destinations, uploads and chat sharing
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [chat/src/access.mjs, chat/src/checkpoints.mjs, chat/src/auth.mjs, chat/src/identity-store.mjs, chat/src/template-packages.mjs, chat/src/repository-models.mjs, chat/src/project-moves.mjs, chat/src/repository-paths.mjs, chat/src/personal-*.mjs, chat/src/attachments.mjs, chat/src/extract-worker.mjs, chat/src/shares.mjs, chat/src/workspace-tools.mjs, chat/src/server.mjs, chat/src/store.mjs, chat/src/mcp.mjs, chat/src/codex.mjs, chat/src/claude.mjs, public/chat, .docker/Caddyfile]
+    tests: [chat/test/identity-http.test.mjs, chat/test/checkpoints.test.mjs, chat/test/security.test.mjs, chat/test/identity-store.test.mjs, chat/test/template-packages.test.mjs, chat/test/repository-models.test.mjs, chat/test/project-moves.test.mjs, chat/test/personal-workspace.test.mjs, chat/test/browser.spec.mjs, chat/test/mcp.test.mjs, chat/test/codex.test.mjs, chat/test/providers.test.mjs]
+    verification: npm --prefix chat test and npm --prefix chat run test:browser
+
+  - id: REQ-F24
+    title: Private CDR connections and model-aware AQL workspace
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [src/Domain/Cdr/*.php, src/Integrations/Cdr/*.php, src/Application/CdrWorkspace.php, src/Application/AqlWorkbench.php, src/Rest/CdrApi.php, src/Tools/CdrTools.php, chat/src/cdr.mjs, chat/src/repository-models.mjs, chat/src/model-cache.mjs, chat/src/aql-drafting.mjs, chat/src/workspace-tools.mjs, public/chat/aql.js, public/chat/aql.css, engine/src/main/java]
+    tests: [tests/Enterprise/CdrWorkspaceTest.php, tests/Enterprise/CdrAdapterTest.php, tests/Enterprise/CdrApiTest.php, tests/Tools/CdrOutputCases.php, tests/fixtures/cdr/probe.php, scripts/test-cdr-container.sh, chat/test/cdr.test.mjs, chat/test/aql-drafting.test.mjs, chat/test/model-cache.test.mjs, chat/test/repository-models.test.mjs, chat/test/browser.spec.mjs, engine/src/test/java]
+    adr: ["0024"]
+
+  - id: REQ-F26
+    title: Isolated FHIR authoring provider and cross-standard mapping proposals
+    canonical: docs/requirements.md
+    status: draft
+    implementation: partial
+    packages: [src/Domain/Fhir/*.php, src/Domain/Standards/*.php, src/Integrations/Fhir/*.php, src/Application/FhirModelling.php, src/Tools/FhirTools.php, fhir, chat/src/fhir-workspace.mjs, chat/src/fhir-drafts.mjs, public/chat/fhir.js]
+    tests: [tests/Application/FhirModellingTest.php, tests/Domain/Fhir/ProjectConfigurationTest.php, tests/Tools/FhirOutputCases.php, tests/Integrations/Fhir/HttpFhirProviderTest.php, tests/Integrations/Fhir/FhirConnectionsTest.php, fhir/test, chat/test/fhir-drafts.test.mjs, chat/test]
+    adr: ["0026"]
+
+  - id: REQ-F27
+    title: Validated draft handoff to the existing IG publication authority
+    canonical: docs/requirements.md
+    status: draft
+    implementation: partial
+    packages: [src/Integrations/Fhir/FhirConnections.php, src/Application/FhirModelling.php, chat/src/repository-paths.mjs, chat/src/fhir-workspace.mjs]
+    tests: [tests/Application/FhirModellingTest.php, chat/test]
+    adr: ["0026"]
+
+  - id: REQ-F25
+    title: Bounded AI execution and persistent project task state
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [chat/src/task-execution.mjs, chat/src/context-budget.mjs, chat/src/tool-context.mjs, chat/src/provider-tools.mjs, chat/src/providers.mjs, chat/src/codex.mjs, chat/src/claude.mjs, chat/src/copilot.mjs, chat/src/workspace-tools.mjs, chat/src/checkpoints.mjs, chat/src/template-packages.mjs, chat/src/store.mjs, chat/src/server.mjs, chat/src/config.mjs, public/chat]
+    tests: [chat/test/task-execution.test.mjs, chat/test/security.test.mjs, chat/test/providers.test.mjs, chat/test/copilot.test.mjs, chat/test/browser.spec.mjs]
+    adr: ["0025"]
+    verification: npm --prefix chat test and npm --prefix chat run test:browser

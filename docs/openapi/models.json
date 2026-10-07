@@ -1,0 +1,91 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "openEHR Modelling Assistant model API",
+    "version": "1.0.0",
+    "description": "Versioned project and artifact operations over the configured model repository. Writes use optimistic revisions and never imply clinical approval."
+  },
+  "servers": [{ "url": "https://modelling.example.org" }],
+  "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+  "paths": {
+    "/api/v1/projects": {
+      "get": {
+        "operationId": "listModelProjects",
+        "responses": {
+          "200": { "description": "Visible projects and repository capabilities", "content": { "application/json": { "schema": { "type": "object", "required": ["projects", "capabilities"], "properties": { "projects": { "type": "array", "items": { "$ref": "#/components/schemas/Project" } }, "capabilities": { "type": "object" } } } } } },
+          "401": { "$ref": "#/components/responses/Error" },
+          "403": { "$ref": "#/components/responses/Error" }
+        }
+      },
+      "post": {
+        "operationId": "createModelProject",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "additionalProperties": false, "required": ["id", "name"], "properties": { "id": { "type": "string", "maxLength": 100 }, "name": { "type": "string", "minLength": 1, "maxLength": 200 }, "description": { "type": "string", "maxLength": 10000 } } } } } },
+        "responses": {
+          "201": { "description": "Created project" },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "403": { "$ref": "#/components/responses/Error" },
+          "409": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/projects/{project}": {
+      "get": {
+        "operationId": "getModelProject",
+        "parameters": [{ "in": "path", "name": "project", "required": true, "schema": { "type": "string", "pattern": "^[A-Za-z0-9._-]{1,100}$" } }],
+        "responses": { "200": { "description": "Project and artifact summaries" }, "403": { "$ref": "#/components/responses/Error" }, "404": { "$ref": "#/components/responses/Error" } }
+      }
+    },
+    "/api/v1/projects/{project}/archive": {
+      "post": {
+        "operationId": "archiveModelProject",
+        "parameters": [{ "in": "path", "name": "project", "required": true, "schema": { "type": "string", "pattern": "^[A-Za-z0-9._-]{1,100}$" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "additionalProperties": false, "required": ["expectedRevision"], "properties": { "expectedRevision": { "type": "string", "minLength": 1 } } } } } },
+        "responses": { "200": { "description": "Archived project with its new revision" }, "400": { "$ref": "#/components/responses/Error" }, "403": { "$ref": "#/components/responses/Error" }, "404": { "$ref": "#/components/responses/Error" }, "409": { "$ref": "#/components/responses/Error" } }
+      }
+    },
+    "/api/v1/artifacts": {
+      "get": {
+        "operationId": "getModelArtifact",
+        "parameters": [
+          { "in": "query", "name": "project", "required": true, "schema": { "type": "string" } },
+          { "in": "query", "name": "path", "required": true, "schema": { "type": "string" } },
+          { "in": "query", "name": "revision", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Artifact content and exact revision" }, "403": { "$ref": "#/components/responses/Error" }, "404": { "$ref": "#/components/responses/Error" } }
+      },
+      "put": {
+        "operationId": "saveModelArtifact",
+        "parameters": [
+          { "in": "query", "name": "project", "required": true, "schema": { "type": "string" } },
+          { "in": "query", "name": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "additionalProperties": false, "required": ["content"], "properties": { "content": { "type": "string", "maxLength": 2097152 }, "metadata": { "type": "object" }, "expectedRevision": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Saved artifact and new exact revision" }, "400": { "$ref": "#/components/responses/Error" }, "403": { "$ref": "#/components/responses/Error" }, "409": { "$ref": "#/components/responses/Error" } }
+      }
+    },
+    "/api/v1/artifact-history": {
+      "get": {
+        "operationId": "getModelArtifactHistory",
+        "parameters": [
+          { "in": "query", "name": "project", "required": true, "schema": { "type": "string" } },
+          { "in": "query", "name": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Immutable artifact revision history" }, "403": { "$ref": "#/components/responses/Error" }, "404": { "$ref": "#/components/responses/Error" } }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": { "type": "http", "scheme": "bearer" },
+      "ApiKeyAuth": { "type": "apiKey", "in": "header", "name": "X-API-Key" }
+    },
+    "schemas": {
+      "Project": { "type": "object", "required": ["id", "name", "revision", "status"], "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "revision": { "type": "string" }, "status": { "type": "string" } } },
+      "Error": { "type": "object", "required": ["error"], "properties": { "error": { "type": "object", "required": ["code"], "properties": { "code": { "type": "string" } } } } }
+    },
+    "responses": {
+      "Error": { "description": "Structured operation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+    }
+  }
+}

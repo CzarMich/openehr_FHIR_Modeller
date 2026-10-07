@@ -1,0 +1,891 @@
+  <semantic-diff>
+    Implement semantic FHIR artifact comparison.
+
+    Support:
+
+      Profile A vs Profile B;
+      profile version A vs B;
+      local profile vs FHIR core;
+      local profile vs MII;
+      local profile vs another IG;
+      current artifact vs previous Git revision.
+
+    Compare at least:
+
+      cardinalities;
+      datatypes;
+      slicing;
+      terminology bindings;
+      Must Support;
+      extensions;
+      invariants;
+      reference targets;
+      canonical dependencies.
+
+    Prefer semantic differences over raw JSON text differences.
+
+    Where possible classify differences as:
+
+      compatible;
+      potentially breaking;
+      breaking;
+      informational.
+
+    Make semantic diff functionality available through both the application and MCP
+    interfaces where appropriate.
+  </semantic-diff>
+
+  <provenance>
+    Record provenance for generated and modified FHIR artifacts.
+
+    Include where applicable:
+
+      source requirements;
+      author/user/agent;
+      timestamp;
+      FHIR release;
+      base resource;
+      base profile;
+      source IG;
+      source package;
+      source package version;
+      terminology dependencies;
+      repository;
+      branch;
+      commit SHA;
+      validation result;
+      IG build result;
+      publication result.
+
+    AI assistance must never obscure authoritative source lineage.
+
+    Preserve enough information to answer questions such as:
+
+      "Why was this profile created?"
+      "Which profile was it derived from?"
+      "Which version of MII was used?"
+      "Which terminology version was used?"
+      "Which Git commit produced the published IG?"
+      "Was this artifact actually validated?"
+  </provenance>
+
+  <mcp-tools>
+    Expose FHIR functionality through the existing MCP architecture.
+
+    Follow existing project naming conventions.
+
+    Implement capabilities conceptually equivalent to:
+
+      fhir_project_list
+      fhir_project_get
+      fhir_project_create
+      fhir_project_update
+
+      fhir_package_search
+      fhir_package_get
+      fhir_package_install
+      fhir_package_dependencies
+
+      fhir_artifact_search
+      fhir_artifact_get
+      fhir_artifact_create
+      fhir_artifact_update
+      fhir_artifact_validate
+      fhir_artifact_diff
+      fhir_artifact_save
+
+      fhir_profile_discover
+      fhir_profile_generate
+      fhir_profile_validate
+
+      fhir_valueset_search
+      fhir_codesystem_search
+      fhir_conceptmap_search
+      fhir_terminology_validate
+      fhir_terminology_expand
+      fhir_terminology_translate
+
+      fhir_fsh_validate
+      fhir_fsh_compile
+
+      fhir_fhirpath_validate
+      fhir_fhirpath_evaluate
+
+      fhir_ig_build
+      fhir_ig_validate
+      fhir_ig_publish
+
+      fhir_server_test
+      fhir_server_metadata
+      fhir_server_search
+      fhir_server_validate
+
+    Exact tool names may be changed where necessary to follow the existing project's
+    naming conventions.
+
+    Avoid redundant MCP tools where a parameterised general-purpose tool provides a
+    cleaner contract.
+
+    MCP responses must contain structured errors and useful provenance.
+
+    Never expose credentials, access tokens, API keys or authorization headers through
+    MCP responses.
+
+    MCP tools must clearly distinguish:
+
+      generated output;
+      authoritative source material;
+      validator output;
+      agent interpretation.
+  </mcp-tools>
+
+  <agent-behaviour>
+    A request such as:
+
+      "Create a Patient profile."
+
+    must NOT immediately produce an invented StructureDefinition.
+
+    The agent must retrieve project context and determine:
+
+      FHIR release;
+      canonical namespace;
+      jurisdiction;
+      project dependencies;
+      configured knowledge sources;
+      existing profiles;
+      relevant national profiles;
+      relevant international profiles;
+      terminology;
+      modelling requirements.
+
+    It must then perform reuse analysis.
+
+    The final artifact must have traceable reasons for:
+
+      chosen parent;
+      constraints;
+      terminology;
+      extensions;
+      dependencies.
+
+    When important requirements are genuinely absent, the agent may identify explicit
+    assumptions.
+
+    When safe defaults are configured at project level, use them without repeatedly
+    questioning the user.
+
+    The agent must distinguish between:
+
+      "I found this in an authoritative artifact."
+
+      "I inferred this from the requirements."
+
+      "I generated this constraint."
+
+      "This has been validated."
+
+      "This has not yet been validated."
+
+    Never represent inference as authoritative specification content.
+  </agent-behaviour>
+
+  <german-mii-example>
+    The following scenario must work:
+
+      Request:
+
+        "Create a German laboratory result profile for a research project.
+         Use MII as the preferred national modelling source."
+
+      Workflow:
+
+        load project;
+        identify FHIR release;
+        resolve exact MII dependency;
+        search MII laboratory profiles;
+        inspect candidate StructureDefinitions;
+        inspect parent profiles;
+        inspect constraints;
+        inspect terminology;
+        determine direct reuse vs further constraint;
+        generate local FSH only where needed;
+        compile with SUSHI;
+        validate;
+        generate examples;
+        validate examples;
+        save artifacts;
+        record provenance;
+        commit to configured FHIR Git repository;
+        build IG;
+        publish when permitted.
+
+    The resulting profile must reference its authoritative lineage.
+
+    If the applicable MII profile already satisfies the requirement, the agent should
+    recommend reuse rather than generating a redundant local profile.
+
+    If additional project constraints are required, derive appropriately from the
+    relevant profile rather than duplicating its complete definition.
+  </german-mii-example>
+
+  <cross-standard-mapping>
+    Introduce an extensible mapping layer between openEHR and FHIR.
+
+    Do NOT implement naive one-to-one conversion.
+
+    Support explicit mapping relationships conceptually such as:
+
+      openEHR archetype
+        <->
+      FHIR profile
+
+      openEHR template
+        <->
+      one or more FHIR profiles
+
+      openEHR path
+        <->
+      FHIR element path / FHIRPath
+
+      openEHR terminology binding
+        <->
+      FHIR terminology binding
+
+    Mapping artifacts must have:
+
+      source artifact;
+      source artifact version;
+      source path;
+      target artifact;
+      target artifact version;
+      target path;
+      mapping relationship;
+      transformation rule where applicable;
+      terminology mapping where applicable;
+      provenance;
+      author;
+      status;
+      validation information.
+
+    Support mapping relationship semantics such as:
+
+      equivalent;
+      narrower;
+      broader;
+      transformed;
+      conditional;
+      no-direct-equivalent.
+
+    Do not claim semantic equivalence merely because two fields appear to contain
+    similar data.
+
+    Mapping artifacts should be independently versionable.
+
+    Allow mapping artifacts to be stored in a dedicated Git repository if configured.
+  </cross-standard-mapping>
+
+  <openehr-to-fhir-analysis>
+    Add analysis capability allowing an existing openEHR archetype or template to be
+    evaluated against FHIR.
+
+    The workflow should inspect:
+
+      clinical concepts;
+      RM types;
+      paths;
+      cardinalities;
+      occurrences;
+      terminology bindings;
+      units;
+      coded values;
+      context;
+      nested structures;
+      repeating structures;
+      references;
+      composition semantics.
+
+    Then search configured FHIR knowledge sources for potentially corresponding
+    resources and profiles.
+
+    Prefer existing FHIR profiles.
+
+    Identify semantic gaps.
+
+    Example:
+
+      User:
+        "Analyse this neonatal openEHR template and determine what FHIR profiles are
+         required to exchange the represented data."
+
+    Expected process:
+
+      inspect openEHR template;
+      extract semantic requirements;
+      search FHIR core;
+      search configured international IGs;
+      search configured national IGs;
+      search project profiles;
+      search terminology;
+      identify candidate FHIR resources;
+      identify candidate profiles;
+      identify missing semantics;
+      propose mappings;
+      identify extensions only where necessary;
+      optionally generate mapping artifacts;
+      optionally generate new profiles where justified.
+
+    Never claim lossless conversion unless equivalence has actually been established.
+  </openehr-to-fhir-analysis>
+
+  <fhir-to-openehr-analysis>
+    Design the cross-standard layer so reverse analysis is also possible.
+
+    Allow FHIR profiles to be inspected to determine how their semantics could be
+    represented in openEHR models.
+
+    This does not require automatic archetype generation unless the current
+    architecture makes that safe and maintainable.
+
+    The important requirement is that the mapping architecture must not be permanently
+    one-directional.
+  </fhir-to-openehr-analysis>
+
+  <shared-clinical-project>
+    Support the concept of a higher-level clinical modelling project containing
+    multiple standards.
+
+    Example:
+
+      Project:
+        Uganda Maternal and Newborn Health
+
+      Workspaces:
+
+        openEHR:
+          repository = maternal-openehr-models
+
+        FHIR:
+          repository = maternal-fhir-ig
+
+        mappings:
+          repository = maternal-model-mappings
+
+    The project may share:
+
+      requirements;
+      terminology sources;
+      clinical concepts;
+      governance information;
+      documentation.
+
+    However, each standard maintains independent artifact semantics and repository
+    configuration.
+  </shared-clinical-project>
+
+  <ui>
+    Extend the existing user interface without degrading current openEHR workflows.
+
+    Adapt to the current application's navigation and design language rather than
+    blindly replacing the UI.
+
+    Introduce clear distinction between:
+
+      openEHR;
+      FHIR;
+      mappings;
+      connections;
+      terminology.
+
+    A reasonable conceptual navigation is:
+
+      Projects
+
+      Modelling
+        openEHR
+        FHIR
+        Cross-standard mappings
+
+      FHIR
+        Profiles
+        Extensions
+        Terminology
+        Packages
+        Implementation Guides
+        Examples
+        Validation
+
+      Connections
+        openEHR CDR Servers
+        FHIR Runtime Servers
+        Implementation Guide Servers
+        Terminology Servers
+        Git Repositories
+
+      Settings
+
+    Preserve existing openEHR navigation where changing it would unnecessarily disrupt
+    users.
+  </ui>
+
+  <fhir-profile-ui>
+    Provide an interface for inspecting FHIR profiles.
+
+    Display where available:
+
+      name;
+      title;
+      ID;
+      canonical URL;
+      version;
+      FHIR release;
+      status;
+      publisher;
+      jurisdiction;
+      parent profile;
+      base resource;
+      package;
+      package version;
+      differential;
+      snapshot;
+      terminology bindings;
+      extensions;
+      slicing;
+      invariants;
+      Must Support elements;
+      dependencies;
+      examples;
+      provenance;
+      validation status.
+
+    Provide structured views.
+
+    Provide raw FSH/JSON/XML views where useful.
+
+    Clearly distinguish source artifacts from generated artifacts.
+  </fhir-profile-ui>
+
+  <profile-generation-ui>
+    Add an interface for AI-assisted profile generation.
+
+    Allow the user to provide requirements in natural language.
+
+    Before generation, show or make available:
+
+      selected project;
+      FHIR version;
+      canonical namespace;
+      configured knowledge sources;
+      package dependencies;
+      terminology source.
+
+    After analysis, show:
+
+      candidate profiles discovered;
+      recommended parent;
+      reuse decision;
+      new constraints required;
+      extensions required;
+      terminology decisions;
+      warnings.
+
+    Allow generation to proceed through the same backend services exposed to MCP.
+
+    Do not implement separate inconsistent generation logic in the frontend.
+  </profile-generation-ui>
+
+  <knowledge-source-ui>
+    Add configuration for authoritative FHIR sources.
+
+    Example conceptual UI:
+
+      Knowledge Sources
+
+        [x] HL7 FHIR Core
+        [x] International Patient Summary
+        [x] MII
+        [ ] ISiK
+        [ ] WHO
+        [x] Organisation IG
+        [x] Project IG
+
+    Display actual package IDs and versions.
+
+    Allow source priorities to be configured.
+
+    Allow package installation/update to be managed.
+
+    Show dependency conflicts.
+
+    Do not reduce packages to friendly labels that hide the actual technical identity
+    and version.
+  </knowledge-source-ui>
+
+  <package-browser-ui>
+    Provide a package browser.
+
+    Allow users to:
+
+      search installed packages;
+      inspect package metadata;
+      inspect dependencies;
+      browse profiles;
+      browse extensions;
+      browse ValueSets;
+      browse CodeSystems;
+      browse ConceptMaps;
+      inspect canonical URLs;
+      inspect package provenance.
+
+    This package browser should also be usable by the agent through backend services.
+  </package-browser-ui>
+
+  <connections-ui>
+    Extend Settings/Connections.
+
+    Support distinct configurable connection types:
+
+      Git Repository
+
+      openEHR CDR
+
+      FHIR Runtime Server
+
+      FHIR Implementation Guide / Publication Server
+
+      Terminology Server
+
+    Each connection must support an explicit connection test.
+
+    Do not display stored secrets after saving.
+
+    Show safe diagnostics for failures.
+  </connections-ui>
+
+  <connection-testing>
+    Every external connection must provide a deterministic test operation.
+
+    Test as appropriate:
+
+      Git repository authentication/read/write capability;
+
+      terminology endpoint availability and capabilities;
+
+      FHIR runtime endpoint and CapabilityStatement;
+
+      IG server endpoint and supported operations;
+
+      package registry/source connectivity.
+
+    Return actionable diagnostics.
+
+    Never include passwords, tokens or Authorization headers in diagnostics.
+  </connection-testing>
+
+  <git-workflow>
+    Reuse and extend existing Git functionality.
+
+    FHIR artifacts should support:
+
+      repository selection;
+      branch selection;
+      artifact path configuration;
+      status;
+      diff;
+      commit;
+      pull/update;
+      push;
+      provenance capture.
+
+    Where project governance requires review, architecture should support branch and
+    pull-request based workflows.
+
+    Do not make direct pushes to the default branch mandatory.
+
+    Do not assume every organisation uses GitHub.
+
+    Preserve GitLab and filesystem abstraction where currently supported or planned.
+  </git-workflow>
+
+  <fhir-package-layout>
+    Support conventional FHIR IG source layouts without unnecessarily forcing one exact
+    directory structure.
+
+    Recognise common artifacts such as:
+
+      sushi-config.yaml
+      package.json
+      ig.ini
+      input/
+      input/fsh/
+      input/resources/
+      input/pagecontent/
+      generated resources
+
+    Detect project structure where possible.
+
+    Do not destructively reorganise an existing valid IG repository without explicit
+    reason.
+
+    New projects may use a sensible conventional layout.
+  </fhir-package-layout>
+
+  <implementation-guide-generation>
+    Support generation of an Implementation Guide project from configured FHIR
+    artifacts.
+
+    Include where applicable:
+
+      profiles;
+      extensions;
+      ValueSets;
+      CodeSystems;
+      ConceptMaps;
+      examples;
+      dependencies;
+      metadata;
+      navigation;
+      documentation.
+
+    Generated IG configuration must use the project's configured canonical URL,
+    package ID, version and FHIR release.
+
+    Do not invent production canonical domains when none are configured.
+  </implementation-guide-generation>
+
+  <examples>
+    Profile generation should normally include representative example resources.
+
+    Examples should:
+
+      reference the generated profile;
+      use realistic but non-identifiable synthetic data;
+      satisfy required cardinalities;
+      satisfy terminology constraints where possible;
+      satisfy reference constraints;
+      be validated against the target profile.
+
+    Example validation failures must be reported and corrected before claiming
+    successful completion.
+  </examples>
+
+  <canonical-resolution>
+    Implement robust canonical resolution.
+
+    Resolve canonical references against:
+
+      current project;
+      installed packages;
+      configured dependencies;
+      FHIR core;
+      terminology resources.
+
+    Detect:
+
+      unresolved canonicals;
+      ambiguous versions;
+      incompatible FHIR versions;
+      missing dependencies.
+
+    Avoid silently resolving a canonical to an arbitrary version.
+  </canonical-resolution>
+
+  <dependency-graph>
+    Build or expose a dependency graph for FHIR artifacts.
+
+    Relationships may include:
+
+      profile derives from profile;
+      profile uses extension;
+      profile binds ValueSet;
+      ValueSet includes CodeSystem;
+      IG depends on package;
+      example conforms to profile;
+      ConceptMap maps terminology systems.
+
+    Use this graph for:
+
+      impact analysis;
+      deletion protection;
+      version upgrade analysis;
+      semantic diff;
+      publication checks.
+  </dependency-graph>
+
+  <impact-analysis>
+    Before changing an existing FHIR artifact, support analysis of downstream impact.
+
+    Example:
+
+      changing a ValueSet should identify profiles that bind it;
+
+      changing an extension should identify profiles using it;
+
+      changing a base profile should identify derived profiles;
+
+      changing package versions should identify affected artifacts.
+
+    Expose useful impact information through the UI and MCP where practical.
+  </impact-analysis>
+
+  <versioning>
+    Preserve FHIR artifact version semantics independently from Git history.
+
+    Git commit history does not replace FHIR artifact version metadata.
+
+    Track where appropriate:
+
+      resource version;
+      package version;
+      canonical;
+      package dependency version;
+      Git revision.
+
+    Do not conflate these concepts.
+  </versioning>
+
+  <governance-status>
+    Support lifecycle status where appropriate.
+
+    Examples:
+
+      draft;
+      active;
+      retired;
+      unknown;
+
+    and optional project governance states such as:
+
+      proposed;
+      in-review;
+      approved;
+      published.
+
+    Keep project workflow status separate from FHIR resource status where necessary.
+  </governance-status>
+
+  <security>
+    Treat all external endpoints and downloaded packages as untrusted.
+
+    Implement appropriate controls including:
+
+      secrets outside source control;
+      authorization header redaction;
+      SSRF protection;
+      URL validation;
+      network timeouts;
+      response-size limits;
+      package download limits;
+      archive validation;
+      path traversal protection;
+      safe archive extraction;
+      dependency integrity checks where available;
+      no arbitrary package code execution;
+      least-privilege credentials;
+      safe logging.
+
+    Never commit credentials to Git.
+
+    Never expose credentials through MCP.
+
+    Never write secrets into generated IGs.
+
+    Avoid logging complete request headers when authentication information may be
+    present.
+  </security>
+
+  <audit>
+    Audit important modelling and publication operations.
+
+    Include:
+
+      artifact generation;
+      artifact modification;
+      validation;
+      package installation;
+      dependency updates;
+      repository writes;
+      commits;
+      pushes;
+      IG builds;
+      IG publications;
+      runtime FHIR writes;
+      terminology changes;
+      configuration changes.
+
+    Include actor, timestamp, action and outcome where possible.
+
+    Never audit raw credentials.
+  </audit>
+
+  <error-handling>
+    Use structured errors.
+
+    Distinguish failures such as:
+
+      package not found;
+      package version conflict;
+      unsupported FHIR version;
+      unresolved canonical;
+      SUSHI failure;
+      validator failure;
+      terminology failure;
+      Git failure;
+      IG build failure;
+      IG publication failure;
+      runtime server failure;
+      authentication failure.
+
+    Preserve underlying diagnostic details where safe.
+
+    Do not reduce all failures to generic "generation failed" messages.
+  </error-handling>
+
+  <observability>
+    Add appropriate structured logging and diagnostics for FHIR workflows.
+
+    Correlate multi-step operations where possible.
+
+    Example:
+
+      profile generation
+        ->
+      dependency resolution
+        ->
+      SUSHI
+        ->
+      validation
+        ->
+      Git
+        ->
+      IG build
+
+    should be traceable as one logical operation.
+
+    Never include secrets in logs.
+  </observability>
+
+  <testing>
+    Add comprehensive automated tests for the FHIR subsystem.
+
+    Include unit tests for:
+
+      FHIR project configuration;
+      FHIR release isolation;
+      package parsing;
+      package installation;
+      dependency resolution;
+      canonical resolution;
+      artifact parsing;
+      profile discovery;
+      profile reuse ranking;
+      profile generation orchestration;
+      terminology bindings;
+      semantic diff;
+      provenance;
+      mapping artifacts;
+      connection configuration.
+
+    Include integration tests for:
+
+      FSH -> S

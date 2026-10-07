@@ -1,0 +1,58 @@
+{
+  "recorded_at": "2026-09-27T05:58:36.659537+00:00",
+  "package": "@modelcontextprotocol/conformance",
+  "version": "0.1.16",
+  "status": "PASS",
+  "scenarios": [
+    {
+      "name": "server-initialize",
+      "passed": 1,
+      "failed": 0,
+      "warnings": 0
+    },
+    {
+      "name": "logging-set-level",
+      "passed": 1,
+      "failed": 0,
+      "warnings": 0
+    },
+    {
+      "name": "ping",
+      "passed": 1,
+      "failed": 0,
+      "warnings": 0
+    },
+    {
+      "name": "tools-list",
+      "passed": 1,
+      "failed": 0,
+      "warnings": 0
+    },
+    {
+      "name": "resources-list",
+      "passed": 1,
+      "failed": 0,
+      "warnings": 0
+    },
+    {
+      "name": "prompts-list",
+      "passed": 1,
+      "failed": 0,
+      "warnings": 0
+    },
+    {
+      "name": "server-sse-multiple-streams",
+      "passed": 1,
+      "failed": 0,
+      "warnings": 0
+    },
+    {
+      "name": "dns-rebinding-protection",
+      "passed": 2,
+      "failed": 0,
+      "warnings": 0
+    }
+  ],
+  "expected_failures": [],
+  "scope": "Applicable generic scenarios only; product tools/resources/prompts tested separately"
+}

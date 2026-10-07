@@ -1,0 +1,34 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "check": "OIDC discovery, JWKS signature verification and MCP initialization",
+      "status": "PASS"
+    },
+    {
+      "check": "Authenticated readers can discover tools and read their repository",
+      "status": "PASS"
+    },
+    {
+      "check": "Reader cannot create models despite deployment write enablement",
+      "status": "PASS"
+    },
+    {
+      "check": "Authorised draft writes, persistence and stale-revision rejection",
+      "status": "PASS"
+    },
+    {
+      "check": "Different signed tenants cannot list or read each other's models",
+      "status": "PASS"
+    },
+    {
+      "check": "Cross-principal MCP session reuse rejected",
+      "status": "PASS"
+    },
+    {
+      "check": "Malformed and forged credentials rejected over HTTP",
+      "status": "PASS"
+    }
+  ],
+  "issuer_kind": "fixture"
+}

@@ -1,0 +1,79 @@
+{
+    "status": "PASS",
+    "scope": "read-only configured terminology server acceptance",
+    "timestamp": "2026-09-27T03:13:57+00:00",
+    "checks": [
+        {
+            "check": "capability statement",
+            "status": "PASS",
+            "errors": [],
+            "version_confirmed": false,
+            "warnings": [],
+            "item_count": null
+        },
+        {
+            "check": "code lookup",
+            "status": "PASS",
+            "errors": [],
+            "version_confirmed": false,
+            "warnings": [],
+            "item_count": null
+        },
+        {
+            "check": "code-system validation",
+            "status": "PASS",
+            "errors": [],
+            "version_confirmed": false,
+            "warnings": [],
+            "item_count": null
+        },
+        {
+            "check": "CodeSystem discovery",
+            "status": "NOT_EXECUTED",
+            "errors": [
+                "TERMINOLOGY_HTTP_404"
+            ],
+            "version_confirmed": null,
+            "warnings": [],
+            "item_count": null
+        },
+        {
+            "check": "ValueSet discovery",
+            "status": "NOT_EXECUTED",
+            "errors": [
+                "TERMINOLOGY_HTTP_404"
+            ],
+            "version_confirmed": null,
+            "warnings": [],
+            "item_count": null
+        },
+        {
+            "check": "ConceptMap discovery",
+            "status": "NOT_EXECUTED",
+            "errors": [
+                "TERMINOLOGY_HTTP_404"
+            ],
+            "version_confirmed": null,
+            "warnings": [],
+            "item_count": null
+        },
+        {
+            "check": "value-set expansion",
+            "status": "PASS",
+            "errors": [],
+            "version_confirmed": false,
+            "warnings": [],
+            "item_count": null
+        },
+        {
+            "check": "returned expansion member validation",
+            "status": "PASS",
+            "errors": [],
+            "version_confirmed": false,
+            "warnings": [],
+            "item_count": null
+        }
+    ],
+    "live_translation_executed": false,
+    "live_value_set_executed": true
+}

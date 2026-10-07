@@ -1,0 +1,35 @@
+archetype (adl_version=1.4)
+    openEHR-EHR-CLUSTER.reference_fixture.v1
+concept
+    [at0000]
+language
+    original_language = <[ISO_639-1::en]>
+description
+    lifecycle_state = <"unmanaged">
+    details = <["en"] = <language = <[ISO_639-1::en]> purpose = <"Synthetic reference fixture.">>>
+definition
+    CLUSTER[at0000] matches {
+        items cardinality matches {1..*; unordered} matches {
+            CLUSTER[at0001] occurrences matches {0..2} matches {
+                items cardinality matches {1..*; unordered} matches {
+                    ELEMENT[at0002] occurrences matches {0..1} matches {
+                        value matches { DV_TEXT matches { value matches {"Synthetic value"} } }
+                    }
+                }
+            }
+            CLUSTER[at0003] matches {
+                items cardinality matches {1..*; unordered} matches {
+                    use_node ELEMENT /items[at0001]/items[at0002]
+                }
+            }
+            use_node CLUSTER[at0004] occurrences matches {0..1} /items[at0001]
+        }
+    }
+ontology
+    term_definitions = <["en"] = <items = <
+        ["at0000"] = <text = <"Reference fixture"> description = <"Synthetic only">>
+        ["at0001"] = <text = <"Original cluster"> description = <"Synthetic only">>
+        ["at0002"] = <text = <"Original element"> description = <"Synthetic only">>
+        ["at0003"] = <text = <"Other cluster"> description = <"Synthetic only">>
+        ["at0004"] = <text = <"Reused cluster"> description = <"Synthetic only">>
+    >>>

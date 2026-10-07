@@ -1,0 +1,36 @@
+# Optional private FHIR computation provider. No public FHIR endpoint is created.
+services:
+  app:
+    environment:
+      FHIR_ENGINE_URL: http://fhir:8094
+      FHIR_ENGINE_KEY_FILE: /run/secrets/fhir-engine-key
+      FHIR_REPOSITORY_PATH: /data/models/fhir-workspaces
+      FHIR_AUDIT_PATH: /data/governance/fhir.sqlite
+    secrets:
+      - fhir-engine-key
+  fhir:
+    image: openehr-fhir-engine:dev
+    build:
+      context: .
+      dockerfile: fhir/Dockerfile
+    environment:
+      FHIR_ENGINE_TOKEN_FILE: /run/secrets/fhir-engine-key
+      FHIR_DATA_DIR: /data/fhir
+    secrets:
+      - fhir-engine-key
+    volumes:
+      - fhir-data:/data/fhir
+    tmpfs:
+      - /tmp:mode=1777,size=512m
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 3g
+    cpus: 2
+    pids_limit: 256
+    restart: unless-stopped
+secrets:
+  fhir-engine-key:
+    file: ./.secrets/fhir-engine-key
+volumes:
+  fhir-data:

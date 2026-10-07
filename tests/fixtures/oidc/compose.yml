@@ -1,0 +1,69 @@
+services:
+  issuer:
+    image: node:22.22.1-bookworm-slim
+    user: '${OIDC_TEST_UID:-1000}:${OIDC_TEST_GID:-1000}'
+    command: [node, /fixture/server.mjs]
+    volumes:
+      - ${OIDC_TEST_ROOT:?}:/fixture-data
+      - ${OIDC_TEST_REPO:?}/tests/fixtures/oidc/server.mjs:/fixture/server.mjs:ro
+    networks:
+      default:
+        aliases: [oidc-fixture]
+    healthcheck:
+      test: [CMD, node, -e, "require('node:fs').accessSync('/fixture-data/tokens.json')"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+  app:
+    image: openehr-modelling-assistant:oidc-test
+    build:
+      context: ${OIDC_TEST_REPO:?}
+      target: production
+    environment:
+      APP_ENV: testing
+      AUTH_MODE: oidc
+      OIDC_ISSUER: https://oidc-fixture:8443
+      OIDC_AUDIENCE: modelling-api-test
+      OIDC_REQUIRED_SCOPES: modelling.read
+      OIDC_TENANT_CLAIM: tenant
+      OIDC_ALLOWED_TENANTS: one,two
+      MODEL_REPOSITORY_PROVIDER: filesystem
+      MODEL_REPOSITORY_WRITE_ENABLED: 'true'
+      HTTP_CA_BUNDLE: /run/fixture-ca.crt
+      MCP_ALLOWED_HOSTS: localhost,127.0.0.1,app,ingress
+    volumes:
+      - models:/data/models
+      - ${OIDC_TEST_ROOT:?}/tls.crt:/run/fixture-ca.crt:ro
+    tmpfs: ['/tmp:mode=1777,size=64m']
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      issuer:
+        condition: service_healthy
+  ingress:
+    image: openehr-modelling-ingress:oidc-test
+    build:
+      context: ${OIDC_TEST_REPO:?}
+      target: ingress
+    user: '1000:1000'
+    volumes:
+      - ${OIDC_TEST_REPO:?}/.docker/Caddyfile:/etc/caddy/Caddyfile:ro
+    ports: ['127.0.0.1::8343']
+    environment:
+      XDG_CONFIG_HOME: /tmp/caddy
+      XDG_DATA_HOME: /tmp/caddy
+    tmpfs: ['/tmp:mode=1777,size=16m']
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:8343/ready]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+volumes:
+  models:

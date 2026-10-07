@@ -1,0 +1,78 @@
+# Production storage overlay; database and cache have no published host ports.
+services:
+  app:
+    environment:
+      GOVERNANCE_DATABASE_DRIVER: postgres
+      GOVERNANCE_POSTGRES_DSN: pgsql:host=governance-db;port=5432;dbname=modelling;sslmode=disable
+      GOVERNANCE_POSTGRES_USER: modelling_app
+      GOVERNANCE_POSTGRES_PASSWORD_FILE: /run/secrets/governance-password
+      MODEL_CACHE_DRIVER: redis
+      MODEL_CACHE_URL: redis://cache:6379/0
+      MODEL_CACHE_PASSWORD_FILE: /run/secrets/cache-password
+      MODEL_CACHE_SIGNING_KEY_FILE: /run/secrets/cache-signing-key
+    secrets: [governance-password, cache-password, cache-signing-key]
+    networks: [default, storage]
+    depends_on:
+      governance-db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+  governance-db:
+    image: postgres:16-alpine@sha256:44c4ee9810eff91f7eab4d822642e01115b1a9eccce4bcbdde7604752d68eac6
+    environment:
+      POSTGRES_DB: modelling
+      POSTGRES_USER: modelling_owner
+      POSTGRES_PASSWORD_FILE: /run/secrets/governance-owner-password
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    secrets: [governance-password, governance-owner-password]
+    volumes:
+      - governance-postgres:/var/lib/postgresql/data
+      - ./deploy/postgres/010-roles.sh:/docker-entrypoint-initdb.d/010-roles.sh:ro
+      - ./deploy/postgres/001-governance.sql:/docker-entrypoint-initdb.d/020-governance.sql:ro
+    networks: [storage]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U modelling_owner -d modelling"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    mem_limit: 512m
+    pids_limit: 128
+    restart: unless-stopped
+  cache:
+    image: valkey/valkey:8-alpine@sha256:a038175878d66b9d274fbf8be73c0305e93798b83917647f167e18cef3c71eec
+    user: valkey
+    command:
+      - sh
+      - -ec
+      - |
+        umask 077
+        printf 'bind 0.0.0.0\nprotected-mode yes\nrequirepass %s\nmaxmemory 128mb\nmaxmemory-policy allkeys-lru\nsave ""\nappendonly no\n' "$$(cat /run/secrets/cache-password)" > /tmp/valkey.conf
+        exec valkey-server /tmp/valkey.conf
+    secrets: [cache-password]
+    networks: [storage]
+    tmpfs: ['/data:mode=1777,size=16m', '/tmp:mode=1777,size=16m']
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 192m
+    pids_limit: 64
+    healthcheck:
+      test: [CMD-SHELL, 'REDISCLI_AUTH=$$(cat /run/secrets/cache-password) valkey-cli ping | grep -q PONG']
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
+secrets:
+  governance-password:
+    file: ${MODELLING_STORAGE_SECRET_DIR:?Set the private storage secret directory}/governance-password
+  governance-owner-password:
+    file: ${MODELLING_STORAGE_SECRET_DIR:?Set the private storage secret directory}/governance-owner-password
+  cache-password:
+    file: ${MODELLING_STORAGE_SECRET_DIR:?Set the private storage secret directory}/cache-password
+  cache-signing-key:
+    file: ${MODELLING_STORAGE_SECRET_DIR:?Set the private storage secret directory}/cache-signing-key
+networks:
+  storage:
+    internal: true
+volumes:
+  governance-postgres:

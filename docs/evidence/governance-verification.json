@@ -1,0 +1,38 @@
+{
+  "recorded_at": "2026-09-27T04:24:22.204937+00:00",
+  "scope": "Persisted exact-revision governance, interactive human review and provider-independent browser packaging",
+  "phpunit": {
+    "tests": 948,
+    "assertions": 3881,
+    "status": "PASS"
+  },
+  "static_analysis": "PHPStan level 8 PASS",
+  "traceability": "PASS",
+  "production_container_build": "PASS",
+  "provider_independent_browser_container": "PASS: review enabled without provider executable or account; unauthenticated access rejected",
+  "node_tests": {
+    "tests": 27,
+    "status": "PASS"
+  },
+  "browser_tests": {
+    "tests": 9,
+    "status": "PASS"
+  },
+  "repository_contracts": [
+    "filesystem",
+    "git",
+    "sharepoint isolated HTTPS fixture"
+  ],
+  "http_acceptance": "Real production core; synthetic signed interactive identity; source inspection, review, rejected approval, replay, roles, tenant and restart persistence",
+  "openapi_response_contracts": "PASS: real application list/read/transition results validated against published response schemas",
+  "mermaid_diagrams": {
+    "rendered": 5,
+    "status": "PASS"
+  },
+  "dependency_audit": "PASS",
+  "real_clinical_approval": false,
+  "qualified_validator_positive_lifecycle": "unit fixture only; not implemented runtime engine evidence",
+  "qualified_engine": "NOT_IMPLEMENTED; real approval/publication fail closed",
+  "server_browser_acceptance": "External identity client configuration pending valid administration credential; core governance configured",
+  "development_browser_acceptance": "PASS: actual OIDC sign-in, signed roles, exact source, synthetic human review and blocked clinical approval; temporary identity removed"
+}

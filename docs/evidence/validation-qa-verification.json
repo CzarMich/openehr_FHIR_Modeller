@@ -1,0 +1,74 @@
+{
+  "recorded_at": "2026-09-27T05:09:00.534027+00:00",
+  "scope": "Separated document-validation stages, bounded simplified-data profiles and exact-revision project QA",
+  "phpunit": {
+    "tests": 1067,
+    "assertions": 4503,
+    "status": "PASS"
+  },
+  "static_analysis": "PHPStan level 8 PASS",
+  "software_spec_traceability": "PASS",
+  "production_container_build": "PASS",
+  "node_tests": {
+    "tests": 27,
+    "status": "PASS"
+  },
+  "browser_tests": {
+    "tests": 10,
+    "status": "PASS"
+  },
+  "published_simplified_examples": {
+    "examples": 7,
+    "status": "PASS"
+  },
+  "mermaid_diagrams": {
+    "rendered": 5,
+    "status": "PASS"
+  },
+  "independent_mcp_acceptance": [
+    "filesystem",
+    "git",
+    "sharepoint isolated HTTPS fixture"
+  ],
+  "public_tools": 62,
+  "dependency_audit": "PASS",
+  "security_and_negative_coverage": [
+    "DTD/entity/schema-hint rejection",
+    "duplicate JSON keys including escaped aliases",
+    "malformed field/array/raw-value shapes",
+    "finite numeric representation and overflow-safe decimal intervals",
+    "bounded input and findings",
+    "forged or cross-tenant evidence",
+    "exact-source audit matching, including separate binding validation",
+    "stale revisions and missing provenance/traceability"
+  ],
+  "qualified_engine": "NOT_IMPLEMENTED: native ADL/AQL/AOM/RM, inherited paths, dependencies and complete conformance remain the engine phase",
+  "release_eligible": false,
+  "clinical_approval": false,
+  "live_sharepoint_acceptance": "External credentials required; isolated storage and HTTP contracts passed",
+  "follow_up_verification": {
+    "recorded_at": "2026-09-28",
+    "status": "PASS",
+    "scope": [
+      "OET typed-root/placement and archetype-class structural checks",
+      "Unique explicit-placement move reporting in bounded XML model diff",
+      "Direct-entry and explicit parent-first nested OET generation with exact retrieved dependencies and optional native compile check",
+      "Saved compiler build evidence verification against exact source/output/dependency revisions across filesystem, Git and SharePoint fixtures",
+      "Finite closed ADL 1.4 DV_TEXT existing-name narrowing with an allowed assumed value"
+    ],
+    "phpunit": {"tests": 1190, "assertions": 5289, "status": "PASS"},
+    "phpstan": "PASS",
+    "spec_check": "PASS",
+    "node_tests": {"tests": 38, "status": "PASS"},
+    "chat_format": "PASS",
+    "legacy_engine_tests": {"tests": 15, "status": "PASS"},
+    "engine_container_integration": "PASS",
+    "release_eligible": false,
+    "clinical_approval": false,
+    "remaining_limits": [
+      "Complete legacy AOM/OET semantics and external Designer round-trip are not established",
+      "Inherited path and dependency semantic compatibility checks remain NOT_EXECUTED",
+      "Terminology membership, CDR execution, clinical validation and release qualification remain separate gates"
+    ]
+  }
+}

@@ -1,0 +1,98 @@
+[
+  {
+    "environment": "vps",
+    "check": "service metadata",
+    "http_status": 200,
+    "resourceType": "CapabilityStatement",
+    "pass": true
+  },
+  {
+    "environment": "vps",
+    "check": "invalid service key",
+    "http_status": 401,
+    "resourceType": null,
+    "pass": true
+  },
+  {
+    "environment": "vps",
+    "check": "standard validation GET",
+    "http_status": 200,
+    "resourceType": "Parameters",
+    "pass": true
+  },
+  {
+    "environment": "vps",
+    "check": "standard validation POST",
+    "http_status": 200,
+    "resourceType": "Parameters",
+    "pass": true
+  },
+  {
+    "environment": "vps",
+    "check": "browser ICD lookup",
+    "http_status": 200,
+    "resourceType": "Parameters",
+    "pass": true
+  },
+  {
+    "environment": "vps",
+    "check": "forged identity rejected",
+    "http_status": 401,
+    "resourceType": null,
+    "pass": true
+  },
+  {
+    "environment": "vps",
+    "check": "Swagger security schemes",
+    "http_status": 200,
+    "pass": true
+  },
+  {
+    "environment": "development",
+    "check": "service metadata",
+    "http_status": 200,
+    "resourceType": "CapabilityStatement",
+    "pass": true
+  },
+  {
+    "environment": "development",
+    "check": "invalid service key",
+    "http_status": 401,
+    "resourceType": null,
+    "pass": true
+  },
+  {
+    "environment": "development",
+    "check": "standard validation GET",
+    "http_status": 200,
+    "resourceType": "Parameters",
+    "pass": true
+  },
+  {
+    "environment": "development",
+    "check": "standard validation POST",
+    "http_status": 200,
+    "resourceType": "Parameters",
+    "pass": true
+  },
+  {
+    "environment": "development",
+    "check": "browser ICD lookup",
+    "http_status": 200,
+    "resourceType": "Parameters",
+    "pass": true
+  },
+  {
+    "environment": "development",
+    "check": "forged identity rejected",
+    "http_status": 302,
+    "resourceType": null,
+    "pass": true
+  },
+  {
+    "environment": "development",
+    "check": "Swagger security schemes",
+    "http_status": 200,
+    "pass": true
+  }
+]

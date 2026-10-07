@@ -1,0 +1,26 @@
+archetype (adl_version=1.4)
+    openEHR-EHR-COMPOSITION.engine_fixture.v1
+concept
+    [at0000]
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <["de"] = <language = <[ISO_639-1::de]> author = <["name"] = <"Synthetic fixture">>>>
+description
+    lifecycle_state = <"unmanaged">
+    details = <["en"] = <language = <[ISO_639-1::en]> purpose = <"Synthetic non-clinical legacy compiler fixture.">>>
+definition
+    COMPOSITION[at0000] matches { content cardinality matches {0..*; unordered} matches { allow_archetype CONTENT_ITEM[at0001] occurrences matches {0..*} matches { include archetype_id/value matches {/openEHR-EHR-.*/} } } }
+ontology
+    term_definitions = <
+        ["en"] = <items = <
+            ["at0000"] = <text = <"Fixture"> description = <"Synthetic cluster">>
+            ["at0001"] = <text = <"Text element"> description = <"Synthetic value">>
+        >>
+        ["de"] = <items = <
+            ["at0000"] = <text = <"Testgruppe"> description = <"Synthetische Gruppe">>
+            ["at0001"] = <text = <"Textelement"> description = <"Synthetischer Wert">>
+        >>
+    >
+    term_bindings = <
+        ["fixture"] = <items = <["at0001"] = <[fixture::EXAMPLE]>>>
+    >

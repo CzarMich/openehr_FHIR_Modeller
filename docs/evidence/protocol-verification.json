@@ -1,0 +1,40 @@
+{
+  "recorded_at": "2026-09-27T05:58:36.659537+00:00",
+  "status": "PASS",
+  "scope": "Advertised MCP profile and SDK upgrade regression; not universal protocol certification or clinical-model conformance",
+  "sdk": "mcp/sdk v0.8.1",
+  "phpunit": {
+    "tests": 1099,
+    "assertions": 4661,
+    "status": "PASS"
+  },
+  "static_analysis": "PHPStan level 8 PASS",
+  "software_spec_traceability": "PASS",
+  "production_container_build": "PASS",
+  "node_tests": {
+    "tests": 30,
+    "status": "PASS"
+  },
+  "browser_tests": {
+    "tests": 10,
+    "status": "PASS"
+  },
+  "mermaid_diagrams": {
+    "rendered": 5,
+    "status": "PASS"
+  },
+  "dependency_audit": "PASS",
+  "http": "protocol-http-smoke.json",
+  "stdio": "protocol-stdio-smoke.json",
+  "official": "protocol-official.json",
+  "adapter_regressions": [
+    "protocol-git-smoke.json",
+    "protocol-oidc-smoke.json",
+    "protocol-sharepoint-smoke.json",
+    "protocol-governance-smoke.json",
+    "protocol-terminology-smoke.json",
+    "protocol-ckm-smoke.json",
+    "protocol-terminology-contract-smoke.json"
+  ],
+  "clinical_approval": false
+}
