@@ -239,6 +239,14 @@ function selectSource(file, representation = "imported") {
     });
     sourceChanged();
 }
+function exactSource() {
+    const displayed = $("fhir-source").value;
+    // A textarea normalizes line endings. Retain retrieved original bytes until
+    // the editor actually changes, including imported XML and authored FSH.
+    return typeof artifact?.content === "string" && artifact.content.replace(/\r\n?/g, "\n") === displayed
+        ? artifact.content
+        : displayed;
+}
 function content() {
     if (!$("fhir-source").value.trim()) throw new Error("Load or enter an artifact source first.");
     return $("fhir-format").value === "json"
@@ -542,7 +550,10 @@ $("fhir-artifact-select").onchange = () =>
         }
     });
 $("fhir-source").oninput = sourceChanged;
-$("fhir-format").onchange = sourceChanged;
+$("fhir-format").onchange = () => {
+    if ($("fhir-format").value === "xml") $("fhir-representation").value = "imported";
+    sourceChanged();
+};
 $("fhir-validation-profile").oninput = sourceChanged;
 $("fhir-inspect").onclick = () =>
     run(async () => {
@@ -643,7 +654,7 @@ $("fhir-save").onclick = () =>
     run(async () => {
         const path = $("fhir-artifact-path").value;
         if (!path) throw new Error("Enter the repository source path before saving.");
-        const savedContent = $("fhir-source").value,
+        const savedContent = exactSource(),
             savedFormat = $("fhir-format").value;
         const result = await invoke("fhir_artifact", "save", {
             path,
@@ -680,7 +691,7 @@ $("fhir-git").onclick = () => {
 $("fhir-download").onclick = () => {
     if (!$("fhir-source").value) return;
     const link = element("a"),
-        url = URL.createObjectURL(new Blob([$("fhir-source").value], { type: "text/plain" }));
+        url = URL.createObjectURL(new Blob([exactSource()], { type: "text/plain" }));
     link.href = url;
     link.download = $("fhir-artifact-path").value.split("/").at(-1) || "fhir-source.txt";
     link.click();
