@@ -24,6 +24,7 @@ import { repositoryFolder } from "./repository-paths.mjs";
 import { ProjectMoves, recordArtifact } from "./project-moves.mjs";
 import { WorkspaceTools, PERSONAL_WRITE } from "./workspace-tools.mjs";
 import { CHOICE_TOOL, choiceQuestion, choiceAnswer, choiceMessage } from "./choices.mjs";
+import { TaskOrchestrator, TaskLedger, executionScope } from "./task-execution.mjs";
 
 const publicDir = fileURLToPath(new URL("../../public/chat/", import.meta.url));
 const json = (res, status, data) => {
@@ -101,6 +102,7 @@ export function createApplication(
     shares.prune();
     TemplatePackages.prune(config);
     Checkpoints.prune(config);
+    TaskLedger.prune(config);
     const modelCache = new ModelCache(config);
     try {
         modelCache.prune();
@@ -113,6 +115,7 @@ export function createApplication(
             shares.prune();
             TemplatePackages.prune(config);
             Checkpoints.prune(config);
+            TaskLedger.prune(config);
             modelCache.prune();
         } catch {
             console.error('{"event":"chat_retention_failed"}');
@@ -750,7 +753,14 @@ export function createApplication(
             if (path === "/chat/api/projects") {
                 if (req.method === "GET") return json(res, 200, { projects: store.projects(identity) });
                 if (req.method === "POST") {
-                    const input = await body(req, ["name", "repository", "folder"]);
+                    const input = await body(req, [
+                        "name",
+                        "repository",
+                        "folder",
+                        "instructions",
+                        "standards",
+                        "expectedRevision",
+                    ]);
                     checkMoving();
                     if (
                         input.repository !== undefined &&
@@ -778,7 +788,14 @@ export function createApplication(
                         );
                 };
                 if (req.method === "PUT") {
-                    const input = await body(req, ["name", "repository", "folder"]);
+                    const input = await body(req, [
+                        "name",
+                        "repository",
+                        "folder",
+                        "instructions",
+                        "standards",
+                        "expectedRevision",
+                    ]);
                     checkMoving();
                     checkPendingMoves();
                     if (
@@ -936,7 +953,11 @@ export function createApplication(
                 }
             }
             if (action === "drafts" && attachmentId && req.method === "GET") {
-                const draft = new Checkpoints(config, identity, id).getDraft(attachmentId);
+                const archive =
+                    conversation.project || conversation.stateScope
+                        ? new TaskLedger(config, identity, executionScope(conversation))
+                        : null;
+                const draft = new Checkpoints(config, identity, id, archive).getDraft(attachmentId);
                 const filename =
                     draft.name
                         .split("/")
@@ -1001,6 +1022,18 @@ export function createApplication(
                 if (conversation.run?.status === "running" && !active.has(key)) {
                     conversation.run.status = "interrupted";
                     conversation.run.reason = "SERVER_RESTART";
+                    if (conversation.taskId) {
+                        const ledger = new TaskLedger(config, identity, executionScope(conversation));
+                        const task = ledger.get(conversation.taskId);
+                        if (task?.status === "running") {
+                            task.status = "failed";
+                            task.failure = "SERVER_RESTART";
+                            task.session.status = "failed";
+                            task.finishedAt = new Date().toISOString();
+                            ledger.put(task.id, task);
+                        }
+                        if (conversation.execution) conversation.execution.status = "failed";
+                    }
                     const reply = conversation.messages.find((message) => message.id === conversation.run.messageId);
                     if (reply) {
                         reply.error = true;
@@ -1016,7 +1049,14 @@ export function createApplication(
                     ...conversation,
                     running: !!turn,
                     pending: turn?.pending || null,
-                    recovery: new Checkpoints(config, identity, id).summary(),
+                    recovery: new Checkpoints(
+                        config,
+                        identity,
+                        id,
+                        conversation.project || conversation.stateScope
+                            ? new TaskLedger(config, identity, executionScope(conversation))
+                            : null,
+                    ).summary(),
                 });
             }
             if (!action && req.method === "DELETE") {
@@ -1026,6 +1066,7 @@ export function createApplication(
                 store.delete(identity, id);
                 new TemplatePackages(config, identity, id).delete();
                 new Checkpoints(config, identity, id).delete();
+                new TaskLedger(config, identity, id).delete();
                 return json(res, 200, { success: true });
             }
             if (action === "stop" && req.method === "POST") {
@@ -1056,7 +1097,13 @@ export function createApplication(
                 typeof input.content !== "string" ||
                 !input.content.trim() ||
                 input.content.length > 8000 ||
-                Object.keys(input).some((k) => !["content", "repository", "folder"].includes(k)) ||
+                Object.keys(input).some(
+                    (k) => !["content", "repository", "folder", "sessionMode", "taskType", "completeTask"].includes(k),
+                ) ||
+                (input.sessionMode !== undefined && !["auto", "fresh", "independent"].includes(input.sessionMode)) ||
+                (input.taskType !== undefined &&
+                    (typeof input.taskType !== "string" || !/^[A-Z][A-Z0-9_]{1,63}$/.test(input.taskType))) ||
+                (input.completeTask !== undefined && typeof input.completeTask !== "boolean") ||
                 (Object.hasOwn(input, "repository") &&
                     input.repository !== null &&
                     typeof input.repository !== "string")
@@ -1148,7 +1195,7 @@ export function createApplication(
                 if (!res.destroyed) res.write(": keepalive\n\n");
             }, 15000);
             heartbeat.unref();
-            let mcp;
+            let mcp, execution;
             let content = "",
                 toolCount = 0,
                 toolActivity = reply.tools;
@@ -1163,6 +1210,7 @@ export function createApplication(
             try {
                 emit({ type: "status", text: "Connecting to modelling tools…" });
                 mcp = mcpFactory(controller.signal);
+                execution = new TaskOrchestrator(config, store, identity, conversation);
                 const workspace = new WorkspaceTools(
                     mcp,
                     connections,
@@ -1172,16 +1220,31 @@ export function createApplication(
                     controller.signal,
                     config.allowWrites,
                     config.cdrEnabled ? { client: cdr, session } : null,
+                    execution,
+                );
+                const messages = execution.prepare(
+                    conversation.messages.filter((message) => message !== reply),
+                    { ...workspace.metadata(), repositoryState: await workspace.repositoryState() },
+                    input,
+                    {
+                        identity,
+                        credentialIdentity: turn.credentialIdentity,
+                        providerBoundary: provider.sessionBoundary?.(identity, turn.provider),
+                        access,
+                    },
                 );
                 const tools = await workspace.tools(),
                     names = new Set(tools.map((t) => t.name));
+                checkpoint();
                 const result = await provider.run({
                     identity,
                     provider: turn.provider,
-                    messages: workspace.context(conversation.messages.filter((message) => message !== reply)),
+                    messages,
                     images: attachments.images(identity, conversation),
                     tools,
                     signal: controller.signal,
+                    onUsage: (usage) => execution.usage(usage),
+                    onContextLimit: () => controller.abort("CONTEXT_LIMIT"),
                     onEvent: (event) => {
                         if (event.type === "delta") content += event.text;
                         emit(event);
@@ -1213,6 +1276,13 @@ export function createApplication(
                                         resumeBudget();
                                         try {
                                             if (!value.cancelled) {
+                                                execution.task.clarifications ||= [];
+                                                execution.task.clarifications.push({
+                                                    question: value.question,
+                                                    selected: value.selected,
+                                                    text: value.text,
+                                                });
+                                                execution.persist();
                                                 conversation.messages.splice(conversation.messages.indexOf(reply), 0, {
                                                     role: "user",
                                                     content: choiceMessage(value),
@@ -1277,6 +1347,8 @@ export function createApplication(
                                 if (!approved || controller.signal.aborted) throw new Error("Change was not confirmed");
                             }
                             const result = await workspace.call(name, args);
+                            execution.task.drafts = workspace.checkpoints.summary().drafts;
+                            execution.capture(name, args, result, workspace.lastCheckpoint);
                             trace.status =
                                 result?.isError || result?.structuredContent?.success === false
                                     ? "failed"
@@ -1299,31 +1371,44 @@ export function createApplication(
                             return result;
                         } catch (error) {
                             trace.status = "failed";
+                            execution.capture(name, args, { isError: true });
                             emit({ type: "tool", ...trace });
                             throw error;
                         }
                     }),
                 });
                 if (!content) content = result || "No response was returned. Please try again.";
+                execution.finish("completed", input);
                 conversation.run.status = "completed";
                 checkpoint();
                 emit({ type: "done", conversationId: id });
-            } catch {
+            } catch (error) {
                 const stopped = controller.signal.aborted;
-                const reason = stopped ? controller.signal.reason : "PROVIDER_OR_TOOL_ERROR";
+                const reason = stopped
+                    ? controller.signal.reason
+                    : error?.code === "CONTEXT_INPUT_LIMIT"
+                      ? "CONTEXT_INPUT_LIMIT"
+                      : error?.code === "CONTEXT_LIMIT" || error === "CONTEXT_LIMIT"
+                        ? "CONTEXT_LIMIT"
+                        : "PROVIDER_OR_TOOL_ERROR";
                 const message =
-                    reason === "TIME_LIMIT"
-                        ? "This response reached its time limit. Continue from saved progress to reuse retained drafts and completed modelling evidence."
-                        : reason === "TOOL_LIMIT"
-                          ? "This response reached its tool limit. Continue from saved progress to reuse completed work."
-                          : reason === "USER_STOP"
-                            ? "Response stopped. Continue from saved progress when ready."
-                            : "The assistant was interrupted. Continue from saved progress to reuse retained drafts and completed modelling evidence.";
+                    reason === "CONTEXT_INPUT_LIMIT"
+                        ? "The current instructions and attachments exceed the input budget. Shorten the instructions, remove unneeded images, or ask your administrator to increase the context budget."
+                        : reason === "CONTEXT_LIMIT"
+                          ? "This task reached its context budget. Continue from saved progress to start a fresh session with retained project state."
+                          : reason === "TIME_LIMIT"
+                            ? "This response reached its time limit. Continue from saved progress to reuse retained drafts and completed modelling evidence."
+                            : reason === "TOOL_LIMIT"
+                              ? "This response reached its tool limit. Continue from saved progress to reuse completed work."
+                              : reason === "USER_STOP"
+                                ? "Response stopped. Continue from saved progress when ready."
+                                : "The assistant was interrupted. Continue from saved progress to reuse retained drafts and completed modelling evidence.";
                 content = content ? content + "\n\n" + message : message;
                 reply.error = true;
                 for (const tool of toolActivity) if (tool.status === "running") tool.status = "interrupted";
                 conversation.run.status = "interrupted";
                 conversation.run.reason = typeof reason === "string" ? reason : "INTERRUPTED";
+                execution?.finish(reason === "USER_STOP" ? "cancelled" : "failed", { reason: conversation.run.reason });
                 checkpoint();
                 emit({ type: "error", message });
                 console.error(

@@ -1,4 +1,4 @@
-# ADR-0025: FHIR authoring and the existing IG boundary
+# ADR-0026: FHIR authoring and the existing IG boundary
 
 Status: Accepted
 

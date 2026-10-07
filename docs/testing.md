@@ -4,6 +4,8 @@ Run offline unit, schema and regression checks with `make ci`. Run `npm --prefix
 
 Personal workspace tests exercise real PDF/spreadsheet/text extraction, exact original downloads, cross-user denial, source deduplication, encrypted tokens, network-address refusal, revision-conditional Git writes and snapshot revocation. Browser scenarios add private connections, select a destination, upload evidence and view/revoke sharing links. Git/CKM contracts use mocked responses; live account acceptance requires separately provisioned personal credentials.
 
+Mammoth's command-line `argparse` dependency is overridden to 2.0.1, which preserves its legacy API while removing the `sprintf-js` dependency affected by [GHSA-hp3w-g68c-fv3c](https://github.com/advisories/GHSA-hp3w-g68c-fv3c). Verify `npm audit --prefix chat`, the DOCX extraction fixture, `node chat/node_modules/mammoth/bin/mammoth --help`, and CLI conversion of `chat/test/fixtures/source.docx` when updating this override. The library extraction API remains unchanged; argparse's bundled Python-2.0 notice is retained.
+
 Run the independent protocol client against a running container:
 
 ```bash

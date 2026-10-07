@@ -291,6 +291,17 @@
                         <p id="chat-project-folder-hint">
                             For personal repositories. Leave empty when creating a project to use its name.
                         </p>
+                        <label for="chat-project-instructions">Project instructions</label>
+                        <textarea
+                            id="chat-project-instructions"
+                            maxlength="4000"
+                            rows="3"
+                            placeholder="Requirements, target standards and decision-document paths. Do not enter credentials."
+                        ></textarea>
+                        <p>
+                            These instructions persist across conversations. Artefacts and approved decisions remain in
+                            your repository.
+                        </p>
                         <p id="chat-project-error" role="alert"></p>
                         <div>
                             <button id="save-chat-project" type="submit">Create project</button>
@@ -1038,6 +1049,12 @@
                                 </button>
                             </div>
                             <p id="upload-status" class="upload-status" role="status" aria-live="polite"></p>
+                            <label for="task-context-mode">Context for next message</label>
+                            <select id="task-context-mode">
+                                <option value="auto">Continue this task</option>
+                                <option value="fresh">Start a fresh task</option>
+                                <option value="independent">Independent review</option>
+                            </select>
                         </form>
                         <p class="disclaimer">
                             Add files with +, drop files here, or paste an image. PNG, JPG, PDF, spreadsheets and more

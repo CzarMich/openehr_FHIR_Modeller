@@ -1604,6 +1604,19 @@ test("stopped response offers a working continue control", async ({ page }) => {
     await expect(page.locator(".message.user").last()).toContainText("retained drafts");
 });
 
+test("independent review selection reaches the task API and resets after the accepted message", async ({ page }) => {
+    await login(page);
+    await page.getByLabel("Context for next message").selectOption("independent");
+    const request = page.waitForRequest(
+        (request) => request.method() === "POST" && request.url().endsWith("/messages"),
+    );
+    await send(page, "Review this template independently");
+    expect((await request).postDataJSON().sessionMode).toBe("independent");
+    await expect(page.locator(".message.assistant").last()).toContainText("default");
+    await expect(page.getByLabel("Context for next message")).toHaveValue("auto");
+    expect(browserErrors).toEqual([]);
+});
+
 test("session renewal follows user activity rather than an idle open tab", async ({ page }) => {
     await page.clock.install();
     await login(page);

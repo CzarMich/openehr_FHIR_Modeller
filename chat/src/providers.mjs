@@ -6,6 +6,7 @@ import { ProviderStore } from "./provider-store.mjs";
 import { CodexProvider } from "./codex.mjs";
 import { ClaudeProvider } from "./claude.mjs";
 import { CopilotAccounts } from "./copilot-auth.mjs";
+import { executionContext } from "./tool-context.mjs";
 
 export class Providers {
     constructor(
@@ -71,6 +72,10 @@ export class Providers {
         identity = this.credentialIdentity(identity, provider);
         if (!["codex", "claude", "copilot"].includes(provider) || !this.store?.get(identity, provider))
             throw Object.assign(new Error("Connect your provider account before sending a message."), { status: 409 });
+    }
+    sessionBoundary(identity, provider) {
+        const principal = this.credentialIdentity(identity, provider);
+        return { principal, credentialRevision: this.store?.get(principal, provider)?.revision || null };
     }
     connectClaude(identity, apiKey) {
         if (typeof apiKey !== "string" || !/^sk-ant-[A-Za-z0-9_-]{20,500}$/.test(apiKey))
@@ -149,6 +154,7 @@ export class Providers {
     }
     async run({ identity, provider, ...options }) {
         this.assertConnected(identity, provider);
+        if (options.messages && options.tools) options = executionContext(this.config, options);
         identity = this.credentialIdentity(identity, provider);
         const record = this.store.get(identity, provider);
         if (provider === "claude") return this.claude(record.credential).run(options);

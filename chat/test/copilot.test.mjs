@@ -8,6 +8,7 @@ import { copilotSession, CopilotProvider } from "../src/copilot.mjs";
 import { copilotSettings, CopilotAccounts, microsoftAuth } from "../src/copilot-auth.mjs";
 import { ProviderStore } from "../src/provider-store.mjs";
 import { Providers } from "../src/providers.mjs";
+import { executionContext } from "../src/tool-context.mjs";
 
 const settings = {
     tenantId: "11111111-1111-1111-1111-111111111111",
@@ -147,19 +148,27 @@ test("Copilot receives bounded history and prepared images, while AQL can use an
     const c = client([[{ type: "message", text: "Done" }]]);
     await copilotSession(
         c,
-        args({
-            instructions: "Isolated model-only AQL instructions",
-            images: [{ name: "source.png", mimeType: "image/jpeg", data: "cHJlcGFyZWQ=" }],
-            messages: [
-                { role: "user", content: "old-private-canary" },
-                { role: "user", content: "x".repeat(60010) },
-            ],
-        }),
+        executionContext(
+            {},
+            args({
+                instructions: "Isolated model-only AQL instructions",
+                images: [{ name: "source.png", mimeType: "image/jpeg", data: "cHJlcGFyZWQ=" }],
+                messages: [
+                    { role: "user", content: "old-private-canary" },
+                    { role: "assistant", content: "x".repeat(60010) },
+                    { role: "user", content: "Draft using selected paths" },
+                ],
+            }),
+        ),
     );
     assert.doesNotMatch(c.sent[0].text, /old-private-canary/);
     assert.match(c.sent[0].text, /Isolated model-only AQL instructions/);
     assert.equal(c.sent[0].attachments[0].contentUrl, "data:image/jpeg;base64,cHJlcGFyZWQ=");
     assert(c.sent[0].text.length < 65000);
+    await assert.rejects(
+        copilotSession(client([]), args({ messages: [{ role: "user", content: "x".repeat(60010) }] })),
+        { code: "CONTEXT_INPUT_LIMIT" },
+    );
 });
 
 test("Copilot handles cancellation and unsupported cards explicitly", async () => {
@@ -198,13 +207,16 @@ test("real Microsoft SDK streams through the private worker and propagates nativ
         (data) => new Worker(new URL("./fake-copilot-worker.mjs", import.meta.url), { workerData: data }),
     );
     const output = await provider.run(
-        args({
-            onEvent: (e) => events.push(e),
-            callTool: async (name, input) => {
-                calls.push({ name, input });
-                return { fixture: "verified" };
-            },
-        }),
+        executionContext(
+            {},
+            args({
+                onEvent: (e) => events.push(e),
+                callTool: async (name, input) => {
+                    calls.push({ name, input });
+                    return { fixture: "verified" };
+                },
+            }),
+        ),
     );
     assert.equal(output, "Verified SDK response");
     assert.deepEqual(calls, [{ name: "ckm_sources", input: {} }]);

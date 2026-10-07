@@ -87,7 +87,8 @@ export class TemplatePackages {
             if (statSync(path).mtimeMs < Date.now() - (config.retentionDays || 30) * 86400000) unlinkSync(path);
         }
     }
-    constructor(config, identity, conversation) {
+    constructor(config, identity, conversation, archive = null) {
+        this.archive = archive;
         this.identity = identity + "\0" + conversation;
         this.store = config?.providerEncryptionKey
             ? new ProviderStore(join(config.dataDir, "template-packages"), config.providerEncryptionKey, ["packages"])
@@ -104,6 +105,11 @@ export class TemplatePackages {
         this.store?.delete(this.identity, "packages");
         this.memory = [];
     }
+    entry(content) {
+        return (
+            this.entries().find((item) => item.hash === hash(content)) || this.archive?.get(hash(content), "package")
+        );
+    }
     capture(name, args, response) {
         const result = modelResult(response);
         if (!result) return;
@@ -113,11 +119,8 @@ export class TemplatePackages {
         const inputs = generated ? result.dependencies : args.dependencies;
         if (typeof content !== "string" || !inputs?.length) return;
         const exact = dependencies(inputs);
-        const previous =
-            !generated &&
-            this.entries().find(
-                (item) => item.hash === hash(content) && JSON.stringify(item.dependencies) === JSON.stringify(exact),
-            );
+        const retained = !generated && this.entry(content);
+        const previous = retained && JSON.stringify(retained.dependencies) === JSON.stringify(exact) ? retained : null;
         const entry = {
             ...(previous || {}),
             hash: hash(content),
@@ -127,12 +130,13 @@ export class TemplatePackages {
             expires: Date.now() + this.ttl,
         };
         const entries = [entry, ...this.entries().filter((item) => item.hash !== entry.hash)].slice(0, 16);
+        this.archive?.put(entry.hash, entry, "package");
         while (entries.length > 1 && Buffer.byteLength(JSON.stringify(entries)) > 16 * 1024 * 1024) entries.pop();
         if (this.store) this.store.set(this.identity, "packages", entries);
         else this.memory = entries;
     }
     async files(args, folder, mcp, currentArchetypes) {
-        const cached = this.entries().find((item) => item.hash === hash(args.content));
+        const cached = this.entry(args.content);
         let inputs = dependencies(args.dependencies || cached?.dependencies);
         const current = currentArchetypes ? await currentArchetypes(inputs.map((item) => item.identifier)) : new Map();
         const provenance = { ...cached?.provenance };

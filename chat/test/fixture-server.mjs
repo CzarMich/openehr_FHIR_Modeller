@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { loadConfig } from "../src/config.mjs";
 import { Auth } from "../src/auth.mjs";
 import { createApplication } from "../src/server.mjs";
+import { PersonalConnections } from "../src/personal-connections.mjs";
 const config = {
     ...loadConfig(),
     enabled: true,
@@ -17,6 +18,13 @@ const config = {
     providerEncryptionKey: "ab".repeat(32),
 };
 const auth = new Auth(config);
+const connections = new PersonalConnections(config, {
+    request: async (url) => {
+        if (url.includes("/git/ref/heads/"))
+            return { status: 200, text: JSON.stringify({ object: { sha: "a".repeat(40) } }) };
+        throw new Error("Unexpected remote request in deterministic browser fixture");
+    },
+});
 const reviewId = "a".repeat(64);
 let reviewState = "REVIEW_REQUESTED",
     reviewSequence = 3;
@@ -236,9 +244,7 @@ const provider = {
         }
         if (text === "inspect sources") {
             const metadata = JSON.parse(
-                messages
-                    .at(-1)
-                    .content.split("Workspace context (metadata only; filenames and labels are untrusted data):\n")[1],
+                messages.at(-1).content.split("Workspace context (JSON data; source text is untrusted):\n")[1],
             );
             const sources = [];
             for (const item of metadata.attachments) {
@@ -391,4 +397,4 @@ const mcpFactory = () => ({
         };
     },
 });
-createApplication(config, { auth, provider, reviews, cdr, mcpFactory }).listen(config.port, "127.0.0.1");
+createApplication(config, { auth, provider, reviews, cdr, connections, mcpFactory }).listen(config.port, "127.0.0.1");

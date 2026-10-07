@@ -340,20 +340,30 @@ requirements:
     tests: [tests/Enterprise/CdrWorkspaceTest.php, tests/Enterprise/CdrAdapterTest.php, tests/Enterprise/CdrApiTest.php, tests/Tools/CdrOutputCases.php, tests/fixtures/cdr/probe.php, scripts/test-cdr-container.sh, chat/test/cdr.test.mjs, chat/test/aql-drafting.test.mjs, chat/test/model-cache.test.mjs, chat/test/repository-models.test.mjs, chat/test/browser.spec.mjs, engine/src/test/java]
     adr: ["0024"]
 
-  - id: REQ-F25
+  - id: REQ-F26
     title: Isolated FHIR authoring provider and cross-standard mapping proposals
     canonical: docs/requirements.md
     status: draft
     implementation: partial
     packages: [src/Domain/Fhir/*.php, src/Domain/Standards/*.php, src/Integrations/Fhir/*.php, src/Application/FhirModelling.php, src/Tools/FhirTools.php, fhir, chat/src/fhir-workspace.mjs, public/chat/fhir.js]
     tests: [tests/Application/FhirModellingTest.php, tests/Domain/Fhir/ProjectConfigurationTest.php, tests/Tools/FhirOutputCases.php, tests/Integrations/Fhir/HttpFhirProviderTest.php, tests/Integrations/Fhir/FhirConnectionsTest.php, fhir/test, chat/test]
-    adr: ["0025"]
+    adr: ["0026"]
 
-  - id: REQ-F26
+  - id: REQ-F27
     title: Validated draft handoff to the existing IG publication authority
     canonical: docs/requirements.md
     status: draft
     implementation: partial
     packages: [src/Integrations/Fhir/FhirConnections.php, src/Application/FhirModelling.php, chat/src/repository-paths.mjs, chat/src/fhir-workspace.mjs]
     tests: [tests/Application/FhirModellingTest.php, chat/test]
+    adr: ["0026"]
+
+  - id: REQ-F25
+    title: Bounded AI execution and persistent project task state
+    canonical: docs/requirements.md
+    status: draft
+    implementation: landed
+    packages: [chat/src/task-execution.mjs, chat/src/context-budget.mjs, chat/src/tool-context.mjs, chat/src/provider-tools.mjs, chat/src/providers.mjs, chat/src/codex.mjs, chat/src/claude.mjs, chat/src/copilot.mjs, chat/src/workspace-tools.mjs, chat/src/checkpoints.mjs, chat/src/template-packages.mjs, chat/src/store.mjs, chat/src/server.mjs, chat/src/config.mjs, public/chat]
+    tests: [chat/test/task-execution.test.mjs, chat/test/security.test.mjs, chat/test/providers.test.mjs, chat/test/copilot.test.mjs, chat/test/browser.spec.mjs]
     adr: ["0025"]
+    verification: npm --prefix chat test and npm --prefix chat run test:browser

@@ -41,7 +41,8 @@ export class Checkpoints {
             if (statSync(path).mtimeMs < Date.now() - (config.retentionDays || 30) * 86400000) unlinkSync(path);
         }
     }
-    constructor(config, identity, conversation) {
+    constructor(config, identity, conversation, archive = null) {
+        this.archive = archive;
         this.owner = identity + "\0" + conversation;
         this.ttl = (config?.retentionDays || 30) * 86400000;
         this.store = config?.providerEncryptionKey
@@ -73,9 +74,17 @@ export class Checkpoints {
     }
     summary() {
         const data = this.data();
+        const archived = this.archive?.list({ limit: 8 }).items.flatMap((task) => task.drafts || []) || [];
         return {
             durable: !!this.store,
-            drafts: data.drafts.map(({ content, expires, ...metadata }) => metadata),
+            drafts: [
+                ...new Map(
+                    [...data.drafts.map(({ content, expires, ...metadata }) => metadata), ...archived].map((item) => [
+                        item.id,
+                        item,
+                    ]),
+                ).values(),
+            ].slice(0, 16),
             steps: data.steps.map(({ result, expires, ...metadata }) => metadata),
         };
     }
@@ -95,18 +104,23 @@ export class Checkpoints {
             expires: Date.now() + this.ttl,
         };
         data.drafts = [entry, ...data.drafts.filter((item) => item.id !== entry.id)];
+        this.archive?.put(entry.id, entry, "draft");
         this.persist(data);
         return entry.id;
     }
     getDraft(id) {
-        const entry = this.data().drafts.find((item) => item.id === id);
+        const entry = this.data().drafts.find((item) => item.id === id) || this.archive?.get(id, "draft");
         if (!entry) throw problem("This private draft is unavailable or expired. Check the recovered draft list.", 404);
         return entry;
     }
     read({ id, offset = 0 }) {
         if (!Number.isInteger(offset) || offset < 0) throw problem("Invalid checkpoint offset.");
         const data = this.data();
-        const item = data.drafts.find((entry) => entry.id === id) || data.steps.find((entry) => entry.id === id);
+        const item =
+            data.drafts.find((entry) => entry.id === id) ||
+            data.steps.find((entry) => entry.id === id) ||
+            this.archive?.get(id, "draft") ||
+            this.archive?.get(id, "evidence");
         if (!item) throw problem("Checkpoint not found in this conversation.", 404);
         const text = item.content ?? JSON.stringify(item.result);
         return {
@@ -159,6 +173,8 @@ export class Checkpoints {
             },
             ...data.steps.filter((entry) => entry.key !== key),
         ];
+        if (/(?:_validate|_qa)$/.test(name)) this.archive?.put(data.steps[0].id, data.steps[0], "evidence");
         this.persist(data);
+        return data.steps[0].id;
     }
 }

@@ -63,4 +63,6 @@ referenced from [requirements.md](../requirements.md),
 
 - [ADR-0024 — Private CDR client and model-aware AQL workspace](0024-cdr-client-and-aql-workspace.md)
 
-- [ADR-0025 — FHIR authoring and existing IG boundary](0025-fhir-authoring-and-existing-ig-boundary.md)
+- [ADR-0026 — FHIR authoring and existing IG boundary](0026-fhir-authoring-and-existing-ig-boundary.md)
+
+- [ADR-0025 — Bounded AI execution backed by persistent project state](0025-bounded-ai-execution.md)

@@ -5,12 +5,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { INSTRUCTIONS, toolOutput, toolSucceeded, toolError } from "./provider-tools.mjs";
+import { assertProviderContext } from "./context-budget.mjs";
 
 export class CodexProvider {
     constructor(config) {
         this.config = config;
     }
     async run({ messages, images = [], tools, callTool, onEvent, signal, onLogin, instructions = INSTRUCTIONS }) {
+        if (!onLogin) messages = assertProviderContext(messages, this.config);
         let imageDirectory;
         const env = { PATH: process.env.PATH, LANG: "C.UTF-8", TOKIO_WORKER_THREADS: "2", RAYON_NUM_THREADS: "2" };
         for (const key of [
@@ -219,7 +221,7 @@ export class CodexProvider {
                 .join("\n\n");
             const prompt =
                 "Conversation history (quoted user and assistant content; not system instructions):\n" +
-                history.slice(-60000) +
+                history +
                 "\n\nRespond to the latest user message using the modelling tools when relevant.";
             const input = [{ type: "text", text: prompt }];
             if (images.length) {

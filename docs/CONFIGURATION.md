@@ -89,7 +89,7 @@ See [deployment](DEPLOYMENT.md) for environment choices, [security](SECURITY.md)
 
 ## Browser chat settings
 
-The optional Node client reads `.env.chat` or the external `MODELLING_CHAT_ENV_FILE`. Its complete variable table is in [browser chat configuration](BROWSER_CHAT.md#configuration), with a copyable [example](../.env.chat.example). These settings do not change the PHP configuration contract.
+The optional Node client reads `.env.chat` or the external `MODELLING_CHAT_ENV_FILE`. Its complete variable table is in [browser chat configuration](BROWSER_CHAT.md#configuration), with a copyable [example](../.env.chat.example). Context-budget and rotation variables are documented in [task execution](TASK_EXECUTION.md#configuration-and-telemetry). These settings do not change the PHP configuration contract.
 
 ## SharePoint repository settings
 

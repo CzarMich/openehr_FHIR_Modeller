@@ -65,6 +65,7 @@ When adding or changing guidance on archetypes, templates, or clinical modelling
 - `resources/`: guides, examples, BMM JSON, terminology, prompt bodies, `server-instructions.md`.
 - `tests/`: PHPUnit tests (mirroring `src/`) and the PHPUnit/PHPStan configs.
 - `chat/`: optional browser service, personal Claude/Codex provider connections, identity and chat tests. `public/chat/`: browser UI.
+- Browser task context, session rotation, private project handoffs and token-budget rules: [`docs/TASK_EXECUTION.md`](docs/TASK_EXECUTION.md). Extend existing repository/traceability authority; do not treat transcripts or AI handoffs as approved decisions.
 - `Dockerfile`: PHP and ingress images. `.docker/`: development Compose overlay and `Caddyfile`. `.github/workflows/`: `pr-validation.yml`, `release.yml`.
 
 ## Development
@@ -127,5 +128,5 @@ Git engineering artefacts target `CzarMich/fhir_ig`; modeller code targets
 `CzarMich/openehr_FHIR_Modeller`. Deploy only Dev until explicitly promoted.
 Use exact FHIR release/package versions and authoritative HL7/package source
 content. Compilation, validator results and clinical approval are separate.
-See `docs/FHIR_DEV.md` and ADR-0025. Never add generated patient records from a
+See `docs/FHIR_DEV.md` and ADR-0026. Never add generated patient records from a
 runtime server to model context or an artefact repository.

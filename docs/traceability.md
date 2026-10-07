@@ -101,6 +101,8 @@ REQ-F24 connects private CDR configuration, read-only execution, exact-template 
 
 Repository-first designer source selection and deliberate CKM upgrades are covered under REQ-F23 by `TemplateAuthoringTest` and `chat/test/template-packages.test.mjs`; see [Artefact versions](ARTEFACT_VERSIONING.md).
 
-REQ-F25 and REQ-F26 connect FHIR provider operations, versioned authoring, mapping,
+REQ-F26 and REQ-F27 connect FHIR provider operations, versioned authoring, mapping,
 Git workspaces and the existing IG adapter to PHP invariants, Node semantic/security
-tests and browser journeys. See ADR-0025 and [Dev verification](FHIR_DEV.md).
+tests and browser journeys. See ADR-0026 and [Dev verification](FHIR_DEV.md).
+
+REQ-F25 maps bounded provider context, session rotation, persistent project task/draft state and independent review to `task-execution`, `context-budget` and `tool-context`, their unit/HTTP/browser tests and [ADR-0025](decisions/0025-bounded-ai-execution.md).

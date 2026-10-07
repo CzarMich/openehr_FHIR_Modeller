@@ -298,11 +298,8 @@ test("selecting a personal repository disables enterprise writes and cannot publ
         }),
         /selected repository/,
     );
-    assert.match(workspace.context([{ role: "user", content: "Make a model" }])[0].content, /draft\/renal/);
-    assert.doesNotMatch(
-        JSON.stringify(workspace.context([{ role: "user", content: "Make a model" }])),
-        /private-test-token/,
-    );
+    assert.match(JSON.stringify(workspace.metadata()), /draft\/renal/);
+    assert.doesNotMatch(JSON.stringify(workspace.metadata()), /private-test-token/);
 });
 
 async function httpFixture(t, run, requestRemote, callModel) {

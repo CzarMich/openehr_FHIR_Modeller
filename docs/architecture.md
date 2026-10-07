@@ -46,7 +46,7 @@ REQ-F24: `CdrWorkspace` orchestrates actor-scoped encrypted connection/query met
 
 `IdentityStore` retains the original bootstrap owner, enforces MFA-gated self-registration and explicit shared-connection grants, and persists bounded failed-login counters. Recovery codes are stored as hashes; code recovery rotates password/MFA, clears lockout and revokes sessions atomically. `access.mjs` resolves current native grants from the store. Shared provider/repository credentials occupy an encrypted non-user namespace; request routes check management rights separately from usage. Providers prefer personal credentials; shared fallback requires current usage authority. Conversations, uploads and checkpoints keep their original identity scopes. Permission revocation cancels the user's active turns and AQL drafts.
 
-### FHIR authoring provider and existing IG adapter (REQ-F25, REQ-F26)
+### FHIR authoring provider and existing IG adapter (REQ-F26, REQ-F27)
 
 `StandardsProvider` isolates standards-specific operations. `OpenEhrStandardsProvider`
 wraps existing behaviour without rewriting the openEHR engine. `HttpFhirProvider`
@@ -61,4 +61,8 @@ It uses the existing DNS-pinned bounded HTTP transport. The IG adapter maps to a
 project upload, health, status and exact Git commit import endpoints. It never
 promotes a draft to a publication. The existing IG platform keeps its reviewed,
 validated publication lifecycle. `fhir_ig` stores engineering artefacts, while
-`openehr_FHIR_Modeller` stores application code. See [ADR-0025](decisions/0025-fhir-authoring-and-existing-ig-boundary.md).
+`openehr_FHIR_Modeller` stores application code. See [ADR-0026](decisions/0026-fhir-authoring-and-existing-ig-boundary.md).
+
+### Bounded AI execution (REQ-F25)
+
+`TaskOrchestrator` reconstructs task context from current project settings, repository identity/revision, selected artefact metadata and relevant persisted handoffs. `ContextBuilder` budgets priority classes and complete recent turns. `SessionManager` bounds logical context affinity while the existing provider adapters continue creating disposable native runtimes. `executionContext` provides demand-driven tool schemas, duplicate-free paged results and shared budget accounting without bypassing existing tool dispatch or write confirmation. `TaskLedger` extends encrypted browser persistence with separate task records and project draft/package archives; Git, traceability, deterministic validation and human governance remain authoritative. Independent review omits generator history and its retrieval tools. See [Task execution](TASK_EXECUTION.md) and [ADR-0025](decisions/0025-bounded-ai-execution.md).

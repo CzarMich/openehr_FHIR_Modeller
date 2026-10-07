@@ -4,8 +4,24 @@ FHIR modelling is a distinct standards module. Begin with fhir_project get and c
 
 The FHIR Git repository is engineering source and review history. The existing IG server alone owns publication and distribution; fhir_ig is its adapter, not a new public catalogue. Runtime FHIR servers are operational targets, distinct from IG and terminology servers. Never automatically publish or deploy as a consequence of generation or Git commit. Call only supported adapter operations and report confirmed server evidence. Credentials stay in protected connections identified by ID. For external Git saves, check personal_connections and match the selected repository URL and branch to the FHIR project before using personal_repository_get and personal_repository_save with standard=FHIR. Retain conventional input/fsh, input/resources and input/examples paths; a workspace artifact save is not an external Git commit. Mapping saves use standard=mappings and may have an independent selected repository. Cross-standard analysis uses retrieved openEHR/FHIR semantics, explicit source/target revisions and paths, relationship and transformation rules, provenance, validation and unresolved gaps. Keep proposals provisional; never claim equivalence or lossless conversion merely from matching names, similar types or a generated mapping.`;
 
+export function compactToolResult(result) {
+    if (!result || !Object.hasOwn(result, "structuredContent") || !Array.isArray(result.content)) return result;
+    // MCP commonly supplies the same JSON in both representations. Remove only
+    // exact duplicate text blocks; preserve distinct warnings and non-text data.
+    const content = result.content.filter((block) => {
+        if (block.type !== "text") return true;
+        try {
+            return JSON.stringify(JSON.parse(block.text)) !== JSON.stringify(result.structuredContent);
+        } catch {
+            return true;
+        }
+    });
+    const { content: original, ...rest } = result;
+    return content.length ? { ...rest, content } : rest;
+}
+
 export function toolOutput(result) {
-    const text = JSON.stringify(result);
+    const text = JSON.stringify(compactToolResult(result));
     return text.length > 160000 ? JSON.stringify({ truncated: true, excerpt: text.slice(0, 155000) }) : text;
 }
 

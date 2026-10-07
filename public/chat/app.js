@@ -134,6 +134,7 @@ function controls() {
         .querySelectorAll(".conversation-row button, .project-actions button")
         .forEach((button) => (button.disabled = busy));
     $("message").disabled = !ready || running;
+    $("task-context-mode").disabled = !ready || running;
     $("send").disabled = !ready || !connected || busy || unsavedRepository || !$("message").value.trim();
     $("new-chat").disabled = !ready || busy;
     $("new-project").disabled = !ready || busy;
@@ -342,6 +343,7 @@ function editProject(project = null) {
     editingProject = project;
     $("chat-project-dialog-title").textContent = project ? "Project settings" : "Create chat project";
     $("chat-project-input").value = project?.name || "";
+    $("chat-project-instructions").value = project?.instructions || "";
     $("save-chat-project").textContent = project ? "Save project" : "Create project";
     $("chat-project-repository").replaceChildren(new Option("Enterprise repository", ""));
     for (const connection of personalConnections.filter((item) => item.kind !== "ckm"))
@@ -368,6 +370,8 @@ $("chat-project-form").onsubmit = (event) => {
             method: editingProject ? "PUT" : "POST",
             data: {
                 name: $("chat-project-input").value,
+                instructions: $("chat-project-instructions").value,
+                expectedRevision: editingProject?.revision || null,
                 repository: $("chat-project-repository").value || null,
                 ...(editingProject || $("chat-project-folder").value ? { folder: $("chat-project-folder").value } : {}),
             },
@@ -916,6 +920,7 @@ async function send(text) {
             headers: { "Content-Type": "application/json", "X-CSRF-Token": session.csrf },
             body: JSON.stringify({
                 content: text,
+                sessionMode: $("task-context-mode").value,
                 repository: current.repository || null,
                 folder: current.folder || "",
             }),
@@ -926,6 +931,7 @@ async function send(text) {
             $("message").value = text;
             await responseJson(response);
         }
+        $("task-context-mode").value = "auto";
         const reader = response.body.getReader(),
             decoder = new TextDecoder();
         let buffer = "";

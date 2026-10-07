@@ -1,6 +1,11 @@
 import { resolve } from "node:path";
 
 export function loadConfig(env = process.env) {
+    const boundedInteger = (name, fallback, minimum, maximum) => {
+        const value = Number(env[name] ?? fallback);
+        if (!Number.isSafeInteger(value) || value < minimum || value > maximum) throw new Error("Invalid " + name);
+        return value;
+    };
     const enabled = env.CHAT_ENABLED === "true";
     const publicUrl = new URL(env.CHAT_PUBLIC_URL || "http://localhost:8350");
     if (publicUrl.username || publicUrl.password || publicUrl.pathname !== "/" || publicUrl.search || publicUrl.hash)
@@ -53,7 +58,20 @@ export function loadConfig(env = process.env) {
         sessionSeconds: 3600,
         retentionDays: 30,
         maxConcurrentTurns: 3,
+        contextBudget: {
+            input: boundedInteger("CHAT_CONTEXT_INPUT_TOKENS", 12000, 4000, 64000),
+            history: boundedInteger("CHAT_CONTEXT_HISTORY_TOKENS", 2000, 0, 16000),
+            result: boundedInteger("CHAT_TOOL_RESULT_TOKENS", 4000, 500, 16000),
+            session: boundedInteger("CHAT_CONTEXT_SESSION_TOKENS", 48000, 24000, 256000),
+            turns: boundedInteger("CHAT_SESSION_MAX_TURNS", 8, 1, 40),
+            idleMs: boundedInteger("CHAT_SESSION_IDLE_SECONDS", 1800, 60, 86400) * 1000,
+        },
     };
+    if (
+        config.contextBudget.input + 8192 >= config.contextBudget.session ||
+        config.contextBudget.history > config.contextBudget.input
+    )
+        throw new Error("Invalid chat context budget relationship");
     const oidcConfigured = Boolean(config.issuer || config.clientId || config.clientSecret);
     if (oidcConfigured && (!config.issuer.startsWith("https://") || !config.clientId || !config.clientSecret))
         throw new Error("Configure all OIDC client settings");

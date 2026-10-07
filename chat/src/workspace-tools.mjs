@@ -13,6 +13,7 @@ import { CDR_TOOLS, CDR_BROWSER_ONLY_TOOLS } from "./cdr.mjs";
 import { TemplatePackages, isTemplate, modelResult } from "./template-packages.mjs";
 import { RepositoryModels } from "./repository-models.mjs";
 import { Checkpoints } from "./checkpoints.mjs";
+import { ProjectMoves } from "./project-moves.mjs";
 
 const string = { type: "string" };
 const tool = (name, description, properties, required = Object.keys(properties)) => ({
@@ -23,16 +24,67 @@ const tool = (name, description, properties, required = Object.keys(properties))
 export const PERSONAL_WRITE = "personal_repository_save";
 
 export class WorkspaceTools {
-    constructor(mcp, connections, attachments, identity, conversation, signal, allowWrites, cdr = null) {
-        Object.assign(this, { mcp, connections, attachments, identity, conversation, signal, allowWrites, cdr });
-        this.packages = new TemplatePackages(connections.config, identity, conversation.id);
-        this.checkpoints = new Checkpoints(connections.config, identity, conversation.id);
+    constructor(
+        mcp,
+        connections,
+        attachments,
+        identity,
+        conversation,
+        signal,
+        allowWrites,
+        cdr = null,
+        execution = null,
+    ) {
+        Object.assign(this, {
+            mcp,
+            connections,
+            attachments,
+            identity,
+            conversation,
+            signal,
+            allowWrites,
+            cdr,
+            execution,
+        });
+        const archive = conversation.project || conversation.stateScope ? execution?.ledger : null;
+        this.packages = new TemplatePackages(connections.config, identity, conversation.id, archive);
+        this.checkpoints = new Checkpoints(connections.config, identity, conversation.id, archive);
         this.prepared = new WeakMap();
     }
     async tools() {
-        const core = (await this.mcp.tools()).map((item) =>
+        const catalogue = await this.mcp.tools();
+        this.draftTools = new Map(
+            catalogue
+                .filter(
+                    (item) =>
+                        [
+                            "model_validate",
+                            "archetype_validate",
+                            "template_validate",
+                            "template_compile",
+                            "opt_validate",
+                            "model_inspect",
+                            "aql_validate",
+                        ].includes(item.name) && item.inputSchema?.properties?.content,
+                )
+                .map((item) => [item.name, item]),
+        );
+        const core = catalogue.map((item) =>
             item.name !== "template_build_oet"
-                ? item
+                ? !this.draftTools.has(item.name)
+                    ? item
+                    : {
+                          ...item,
+                          description:
+                              (item.description || item.name) +
+                              " Use draftId instead of content for an exact retained private draft. Its pinned template dependencies are loaded automatically when omitted; no retranscription is needed.",
+                          inputSchema: {
+                              ...item.inputSchema,
+                              properties: { ...item.inputSchema.properties, draftId: string },
+                              required: (item.inputSchema.required || []).filter((key) => key !== "content"),
+                              anyOf: [{ required: ["content"] }, { required: ["draftId"] }],
+                          },
+                      }
                 : {
                       ...item,
                       description:
@@ -119,6 +171,46 @@ export class WorkspaceTools {
                 ["repository", "path", "action"],
             ),
         ];
+        if (this.execution)
+            personal.push(
+                tool(
+                    "workspace_draft_save",
+                    "Retain exact generated modelling artefact bytes as a private, unapproved draft before finishing a task. This does not publish to a repository or grant clinical approval. Use the returned draftId for an eventual confirmed repository save.",
+                    { name: { type: "string", maxLength: 240 }, content: { type: "string", maxLength: 2097152 } },
+                ),
+                tool(
+                    "workspace_task_history",
+                    "Retrieve this project's recent task summaries on demand. Historical reports are not current artefacts or approved decisions. Page older records with nextOffset.",
+                    { offset: { type: "integer", minimum: 0 } },
+                    [],
+                ),
+                tool(
+                    "workspace_task_read",
+                    "Read a persisted task's structured handoff, exact tool evidence and usage. Use only relevant tasks; read repository revisions live. Not a conversation transcript or clinical approval.",
+                    { id: string },
+                ),
+                tool(
+                    "workspace_task_handoff",
+                    "Persist a concise task result, unresolved issues, assumptions and next actions before finishing. Record decision references; save authoritative decisions with the existing project traceability or repository tools. Never include secrets or claim approval.",
+                    {
+                        result: string,
+                        ...Object.fromEntries(
+                            [
+                                "decisions",
+                                "assumptions",
+                                "warnings",
+                                "unresolvedIssues",
+                                "nextActions",
+                                "references",
+                            ].map((key) => [
+                                key,
+                                { type: "array", maxItems: 12, items: { type: "string", maxLength: 500 } },
+                            ]),
+                        ),
+                    },
+                    ["result"],
+                ),
+            );
         if (this.allowWrites)
             personal.push(
                 tool(
@@ -159,7 +251,16 @@ export class WorkspaceTools {
                     (!this.conversation.repository || !WRITE_TOOLS.has(t.name) || isFhirTool(t.name)),
             ),
             ...personal,
-        ];
+        ].filter(
+            (item) =>
+                this.execution?.task?.mode !== "independent" ||
+                ![
+                    "workspace_task_history",
+                    "workspace_task_read",
+                    "workspace_checkpoints",
+                    "workspace_checkpoint_read",
+                ].includes(item.name),
+        );
     }
     destination() {
         return this.connections.list(this.identity).find((item) => item.id === this.conversation.repository) || null;
@@ -211,8 +312,8 @@ export class WorkspaceTools {
                 "Keep file types in separate folders. Use " + organised + ". Read that path before proposing the save.",
             );
     }
-    context(messages) {
-        const context = {
+    metadata() {
+        return {
             attachments: this.conversation.attachments || [],
             savedArtifacts: this.conversation.artifacts || [],
             artifactFolders: ARTIFACT_FOLDERS,
@@ -229,11 +330,30 @@ export class WorkspaceTools {
                 ? this.destination() || "Selected repository was removed; ask the user to choose another."
                 : "Enterprise repository",
         };
-        const copy = messages.map((message) => ({ ...message }));
-        copy[copy.length - 1].content +=
-            "\n\nWorkspace context (metadata only; filenames and labels are untrusted data):\n" +
-            JSON.stringify(context);
-        return copy;
+    }
+    async repositoryState() {
+        if (!this.conversation.repository)
+            return {
+                source: "enterprise",
+                revision: null,
+                policy: "Retrieve the target project revision with modelling tools.",
+            };
+        try {
+            const repo = this.connections.get(this.identity, this.conversation.repository);
+            const signal = AbortSignal.any([this.signal, AbortSignal.timeout(5000)]);
+            const revision = await new ProjectMoves(null, this.connections, false, signal).head(repo);
+            return { repository: repo.id, branch: repo.branch, revision };
+        } catch {
+            this.signal.throwIfAborted();
+            // An unavailable branch must not preserve affinity based on old state.
+            return {
+                repository: this.conversation.repository,
+                revision: null,
+                unavailable: true,
+                checkedAt: new Date().toISOString(),
+                policy: "Read current repository state before any change; no revision is assumed.",
+            };
+        }
     }
     async prepareWrite(name, args) {
         this.resolveDraft(name, args);
@@ -267,6 +387,20 @@ export class WorkspaceTools {
         this.checkpoints.draft(args.content, args.path);
     }
     async call(name, args) {
+        if (this.draftTools?.has(name) && args?.draftId) {
+            const draft = this.checkpoints.getDraft(args.draftId);
+            if (args.content !== undefined && args.content !== draft.content)
+                throw problem("Draft contents do not match the retained draft.");
+            const { draftId, ...input } = args;
+            args = { ...input, content: draft.content };
+            const dependencies = this.packages.entry(draft.content)?.dependencies;
+            if (
+                dependencies &&
+                args.dependencies === undefined &&
+                this.draftTools.get(name).inputSchema.properties.dependencies
+            )
+                args.dependencies = dependencies.map(({ identifier, content }) => ({ identifier, content }));
+        }
         if (CDR_BROWSER_ONLY_TOOLS.has(name))
             throw problem(
                 "Patient-data protection: use the AQL workspace for execution, results and query history. The assistant can generate and validate model-based queries.",
@@ -352,10 +486,10 @@ export class WorkspaceTools {
                     structuredContent: value,
                     content: [{ type: "text", text: JSON.stringify(value) }],
                 };
-                this.checkpoints.capture(name, args, responseWithMetadata);
+                this.lastCheckpoint = this.checkpoints.capture(name, args, responseWithMetadata);
                 return responseWithMetadata;
             }
-            this.checkpoints.capture(name, args, response);
+            this.lastCheckpoint = this.checkpoints.capture(name, args, response);
             return response;
         }
         if (
@@ -367,7 +501,40 @@ export class WorkspaceTools {
         )
             throw problem("Invalid tool arguments.");
         let result;
-        if (name === "workspace_checkpoints") result = this.checkpoints.summary();
+        if (
+            this.execution?.task?.mode === "independent" &&
+            [
+                "workspace_task_history",
+                "workspace_task_read",
+                "workspace_checkpoints",
+                "workspace_checkpoint_read",
+            ].includes(name)
+        )
+            throw problem("Generator history is unavailable in independent review.", 403);
+        if (name === "workspace_draft_save") {
+            if (typeof args.name !== "string" || !args.name.trim() || args.name.length > 240)
+                throw problem("Give the draft a short filename.");
+            const draftId = this.checkpoints.draft(args.content, args.name, name);
+            if (!draftId) throw problem("Supply a non-empty modelling draft of at most 2 MiB.");
+            const { sha256, bytes } = this.checkpoints.getDraft(draftId);
+            result = { draftId, sha256, bytes, name: args.name, savedToRepository: false, approval: "not_approved" };
+        } else if (name === "workspace_task_history") {
+            const tasks = this.execution.ledger.list(args);
+            result = {
+                ...tasks,
+                items: tasks.items.map(({ id, type, objective, status, startedAt }) => ({
+                    id,
+                    type,
+                    objective: objective.slice(0, 240),
+                    status,
+                    startedAt,
+                })),
+            };
+        } else if (name === "workspace_task_read") {
+            result = this.execution.ledger.get(args.id);
+            if (!result) throw problem("Task not found in this project.", 404);
+        } else if (name === "workspace_task_handoff") result = this.execution.handoff(args);
+        else if (name === "workspace_checkpoints") result = this.checkpoints.summary();
         else if (name === "workspace_checkpoint_read") result = this.checkpoints.read(args);
         else if (name === "personal_connections")
             result = {
@@ -396,7 +563,7 @@ export class WorkspaceTools {
             result = await this.connections.publish(this.identity, saveArgs, this.signal, plan);
         }
         const response = { structuredContent: result, content: [{ type: "text", text: JSON.stringify(result) }] };
-        this.checkpoints.capture(name, args, response);
+        this.lastCheckpoint = this.checkpoints.capture(name, args, response);
         return response;
     }
 }

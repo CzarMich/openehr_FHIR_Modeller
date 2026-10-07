@@ -14,6 +14,7 @@ import {
 import { join } from "node:path";
 
 import { repositoryFolder, projectFolder } from "./repository-paths.mjs";
+import { safeMetadata } from "./task-execution.mjs";
 
 export class Store {
     constructor(directory, retentionDays = 30) {
@@ -109,6 +110,37 @@ export class Store {
                 status: 429,
             });
         const project = id ? projects.find((item) => item.id === id) : { id: randomUUID() };
+        if (
+            Object.hasOwn(destination, "expectedRevision") &&
+            destination.expectedRevision !== (project.revision || null)
+        )
+            throw Object.assign(new Error("Project settings changed. Reload before saving."), { status: 409 });
+        if (destination.instructions !== undefined) {
+            if (typeof destination.instructions !== "string" || destination.instructions.length > 4000)
+                throw Object.assign(new Error("Project instructions must be at most 4,000 characters."), {
+                    status: 400,
+                });
+            project.instructions = safeMetadata(destination.instructions);
+        }
+        if (destination.standards !== undefined) {
+            const standards = destination.standards;
+            if (
+                !standards ||
+                typeof standards !== "object" ||
+                Array.isArray(standards) ||
+                Object.entries(standards).some(
+                    ([key, value]) =>
+                        !["openehr", "fhir", "implementationGuide", "terminology"].includes(key) ||
+                        typeof value !== "string" ||
+                        value.length > 200,
+                )
+            )
+                throw Object.assign(new Error("Use short standard/version identifiers without credentials."), {
+                    status: 400,
+                });
+            project.standards = safeMetadata(standards);
+        }
+        project.revision = randomUUID();
         project.name = name.trim();
         project.repository =
             destination.repository !== undefined
@@ -127,6 +159,7 @@ export class Store {
         this.project(identity, id);
         for (const item of this.list(identity).filter((item) => item.project === id)) {
             const conversation = this.get(identity, item.id);
+            conversation.stateScope = id;
             conversation.project = null;
             this.save(identity, conversation);
         }

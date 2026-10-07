@@ -11,6 +11,7 @@ import { Auth, equal } from "../src/auth.mjs";
 import { Store } from "../src/store.mjs";
 import { createApplication } from "../src/server.mjs";
 import { McpClient } from "../src/mcp.mjs";
+import { executionContext } from "../src/tool-context.mjs";
 
 async function fixture(t, { provider, mcp, reviews, cdr, reviewOnly = false } = {}) {
     const directory = mkdtempSync(join(tmpdir(), "modelling-chat-"));
@@ -323,12 +324,91 @@ test("actual tool execution streams an answer and persists it for the owning use
     assert.equal(second.status, 400);
 });
 
-test("write confirmation binds the user, conversation, call and exact arguments", async (t) => {
+test("independent HTTP tasks exclude generator context and history tools and persist lifecycle metadata", async (t) => {
+    const seen = [];
+    const f = await fixture(t, {
+        provider: {
+            run: async ({ messages, tools, callTool }) => {
+                seen.push({ messages, tools });
+                if (seen.length === 2)
+                    await assert.rejects(callTool("workspace_task_read", { id: "previous" }), /unavailable/);
+                return "generator-private-canary";
+            },
+        },
+    });
+    const chat = await (await f.request("/chat/api/conversations", { method: "POST" })).json();
+    const base = "/chat/api/conversations/" + chat.id;
+    for (const data of [
+        { content: "Create a template" },
+        { content: "Review the template", sessionMode: "independent" },
+    ]) {
+        const response = await f.request(base + "/messages", { method: "POST", data });
+        assert.match(await response.text(), /"type":"done"/);
+    }
+    assert.equal(seen[1].messages.length, 1);
+    assert.doesNotMatch(
+        JSON.stringify(seen[1]),
+        /generator-private-canary|workspace_checkpoint_read|workspace_task_history/,
+    );
+    const saved = await (await f.request(base)).json();
+    assert.equal(saved.execution.generation, 2);
+    assert.equal(saved.execution.rotationReason, "independent_validation");
+    assert.equal(saved.execution.usage.historyMessages, 0);
+    assert.equal(
+        (await f.request(base + "/messages", { method: "POST", data: { content: "next", sessionMode: "invalid" } }))
+            .status,
+        400,
+    );
+});
+
+test("generated draft tools survive deleting a conversation and remain private in another project chat", async (t) => {
+    let draftId;
+    const f = await fixture(t, {
+        provider: {
+            run: async ({ callTool }) => {
+                const saved = await callTool("workspace_draft_save", {
+                    name: "fixture.adl",
+                    content: "synthetic draft bytes",
+                });
+                draftId = saved.structuredContent.draftId;
+                assert.equal(saved.structuredContent.savedToRepository, false);
+                await callTool("workspace_task_handoff", {
+                    result: "Draft retained",
+                    unresolvedIssues: ["Requires deterministic validation"],
+                });
+                return "Private draft retained.";
+            },
+        },
+    });
+    f.config.providerEncryptionKey = "ab".repeat(32);
+    const project = f.store.saveProject("issuer\nalice", "Long-lived project");
+    const create = async () =>
+        (await f.request("/chat/api/conversations", { method: "POST", data: { project: project.id } })).json();
+    const first = await create();
+    const response = await f.request("/chat/api/conversations/" + first.id + "/messages", {
+        method: "POST",
+        data: { content: "Create an archetype draft" },
+    });
+    assert.match(await response.text(), /"type":"done"/);
+    await f.request("/chat/api/conversations/" + first.id, { method: "DELETE" });
+    const second = await create();
+    const base = "/chat/api/conversations/" + second.id;
+    const state = await (await f.request(base)).json();
+    assert.equal(state.recovery.drafts[0].id, draftId);
+    assert.equal(await (await f.request(base + "/drafts/" + draftId)).text(), "synthetic draft bytes");
+    assert.equal((await f.request(base + "/drafts/" + draftId, { user: "bob" })).status, 404);
+    assert.equal(f.calls.length, 0);
+});
+
+test("discovered tool writes bind confirmation to the user, conversation, call and exact arguments", async (t) => {
     const args = { projectId: "default", path: "archetypes/example.adl", content: "draft", expectedRevision: "abc" };
     const f = await fixture(t, {
         provider: {
-            run: async ({ callTool, onEvent }) => {
-                await callTool("model_artifact_save", args);
+            run: async (options) => {
+                const { callTool, onEvent } = executionContext({}, options);
+                const schema = await callTool("workspace_tools", { name: "model_artifact_save" });
+                assert.equal(schema.name, "model_artifact_save");
+                await callTool("workspace_call", { name: "model_artifact_save", argumentsJson: JSON.stringify(args) });
                 onEvent({ type: "delta", text: "Saved after confirmation" });
                 return "Saved after confirmation";
             },

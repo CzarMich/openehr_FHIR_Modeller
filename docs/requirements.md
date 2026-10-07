@@ -90,11 +90,13 @@ Native ADL 2/OPT 2 compilation and AQL syntax parsing are available through the 
 
 | ID | Requirement | Implementation |
 |---|---|---|
-| **REQ-F25** | Provide an isolated FHIR R4/R4B/R5 authoring provider with exact package dependencies, authoritative reuse discovery, typed FSH generation, real SUSHI/validator evidence, FHIRPath, semantic comparison, synthetic examples and versioned cross-standard mapping proposals. Preserve openEHR behaviour and separate clinical approval from computation. | `FhirModelling`, `FhirTools`, private `fhir/` service; Dev verification described in FHIR_DEV.md |
-| **REQ-F26** | Prepare locally validated conformance artefacts and connect to the existing IG platform using its actual authenticated API and exact-commit Git import contract. Git is engineering source; the existing IG platform alone owns publication/distribution. Preserve actor, source, revision, digest, tool and validation evidence; never expose connection credentials as model configuration. | `FhirConnections`, private ledger, browser Git adapter; production promotion requires explicit user direction |
+| **REQ-F26** | Provide an isolated FHIR R4/R4B/R5 authoring provider with exact package dependencies, authoritative reuse discovery, typed FSH generation, real SUSHI/validator evidence, FHIRPath, semantic comparison, synthetic examples and versioned cross-standard mapping proposals. Preserve openEHR behaviour and separate clinical approval from computation. | `FhirModelling`, `FhirTools`, private `fhir/` service; Dev verification described in FHIR_DEV.md |
+| **REQ-F27** | Prepare locally validated conformance artefacts and connect to the existing IG platform using its actual authenticated API and exact-commit Git import contract. Git is engineering source; the existing IG platform alone owns publication/distribution. Preserve actor, source, revision, digest, tool and validation evidence; never expose connection credentials as model configuration. | `FhirConnections`, private ledger, browser Git adapter; production promotion requires explicit user direction |
 
 The source task is retained in [the implementation plan](plans/fhir-modelling/README.md).
 Authoritative clinical choices cannot be inferred from tool success. Runtime
 patient reads are outside the MCP boundary. FHIR workspace access follows the
 configured MCP principal/project permissions; a shared service credential creates
 a shared workspace, not per-browser-user isolation.
+
+| **REQ-F25** | Execute browser AI tasks with configurable context budgets, selective tool/source retrieval, bounded session affinity and independent-review isolation; persist project task handoffs, exact drafts, dependency packages and usage/evidence outside chat history while preserving repository/decision authority, identity boundaries and revision-conditional writes. | [Task execution](TASK_EXECUTION.md), browser task orchestrator and provider adapters |

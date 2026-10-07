@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { INSTRUCTIONS, toolOutput, toolSucceeded, toolError } from "./provider-tools.mjs";
+import { assertProviderContext } from "./context-budget.mjs";
 
 export class ClaudeProvider {
     constructor(
@@ -16,16 +17,9 @@ export class ClaudeProvider {
         this.config = config;
         this.client = client;
     }
-    async run({ messages, images = [], tools, callTool, onEvent, signal, instructions = INSTRUCTIONS }) {
-        let remaining = 60000,
-            text = "";
-        const history = [];
-        for (const message of messages.toReversed()) {
-            if (remaining <= 0) break;
-            const content = message.content.slice(-remaining);
-            history.unshift({ role: message.role, content });
-            remaining -= content.length;
-        }
+    async run({ messages, images = [], tools, callTool, onEvent, onUsage, signal, instructions = INSTRUCTIONS }) {
+        let text = "";
+        const history = assertProviderContext(messages, this.config);
         while (history[0]?.role === "assistant") history.shift();
         if (images.length) {
             const latest = history.at(-1);
@@ -65,6 +59,16 @@ export class ClaudeProvider {
                     }
                 }
                 const message = await stream.finalMessage();
+                if (message.usage)
+                    onUsage?.({
+                        inputTokens: message.usage.input_tokens,
+                        outputTokens: message.usage.output_tokens,
+                        cachedInputTokens: message.usage.cache_read_input_tokens,
+                        contextTokens:
+                            (message.usage.input_tokens || 0) +
+                            (message.usage.cache_read_input_tokens || 0) +
+                            (message.usage.cache_creation_input_tokens || 0),
+                    });
                 if (message.stop_reason === "end_turn") return text;
                 if (message.stop_reason !== "tool_use") throw new Error("Claude response was incomplete");
                 const calls = message.content.filter((block) => block.type === "tool_use");
