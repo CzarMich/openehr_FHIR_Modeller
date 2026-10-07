@@ -1,0 +1,120 @@
+name: openehr-fhir-modeller
+services:
+  app:
+    image: ${APP_IMAGE:?A pinned app image is required}
+    user: "1000:1000"
+    env_file: /opt/hygeoniq/projects/openehr-fhir-modeller/config/runtime.env
+    environment:
+      APP_ENV: development
+      MCP_ALLOWED_HOSTS: localhost,127.0.0.1,[::1],ingress,app,dev-openehr-fhir-modeller.sandbox.hygeoniq.com
+      PRODUCT_URL: https://dev-openehr-fhir-modeller.sandbox.hygeoniq.com
+      MODEL_REPOSITORY_PATH: /data/models/openehr
+      FHIR_ENGINE_URL: http://fhir:8094
+      FHIR_ENGINE_KEY_FILE: /run/secrets/fhir-engine-key
+      FHIR_REPOSITORY_PATH: /data/models/fhir-workspaces
+      FHIR_AUDIT_PATH: /data/governance/fhir.sqlite
+      FHIR_CONNECTIONS_FILE: /run/secrets/fhir-connections.json
+      FHIR_ALLOWED_HOSTS: ig-dev-api
+      FHIR_ALLOW_HTTP: "true"
+    volumes:
+      - models:/data/models
+      - governance:/data/governance
+      - cdr-data:/data/cdr
+      - /opt/hygeoniq/projects/openehr-fhir-modeller/config/secrets/fhir-engine-key:/run/secrets/fhir-engine-key:ro
+      - /opt/hygeoniq/projects/openehr-fhir-modeller/config/secrets/fhir-connections.json:/run/secrets/fhir-connections.json:ro
+      - /opt/hygeoniq/projects/openehr-fhir-modeller/config/secrets/ig-dev-login.json:/run/secrets/ig-dev-login.json:ro
+    networks: [default, ig-dev]
+    labels:
+      org.opencontainers.image.revision: ${REVISION:?A revision is required}
+    tmpfs: [/tmp:mode=1777,size=64m]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 512m
+    restart: unless-stopped
+  chat:
+    image: ${CHAT_IMAGE:?A pinned chat image is required}
+    user: "1000:1000"
+    env_file: /opt/hygeoniq/projects/openehr-fhir-modeller/config/chat.env
+    environment:
+      CHAT_PUBLIC_URL: https://dev-openehr-fhir-modeller.sandbox.hygeoniq.com
+      CHAT_MCP_URL: http://ingress:8343/mcp
+      CHAT_DATA_DIR: /data/chat
+      NODE_EXTRA_CA_CERTS: /run/secrets/dev-ca.crt
+    volumes:
+      - chat-data:/data/chat
+      - /usr/local/share/ca-certificates/hygeoniq-development-ca.crt:/run/secrets/dev-ca.crt:ro
+    extra_hosts:
+      - dev-auth.sandbox.hygeoniq.com:192.168.178.20
+      - dev-openehr-fhir-modeller.sandbox.hygeoniq.com:192.168.178.20
+    labels:
+      org.opencontainers.image.revision: ${REVISION:?A revision is required}
+    tmpfs: [/tmp:mode=1777,size=64m]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 512
+    mem_limit: 1536m
+    restart: unless-stopped
+  ingress:
+    image: ${INGRESS_IMAGE:?A pinned ingress image is required}
+    user: "1000:1000"
+    ports: ["127.0.0.1:18350:8343"]
+    environment:
+      XDG_CONFIG_HOME: /tmp/caddy
+      XDG_DATA_HOME: /tmp/caddy
+    networks: [default, proxy]
+    labels:
+      org.opencontainers.image.revision: ${REVISION:?A revision is required}
+      traefik.enable: "true"
+      traefik.docker.network: hygeoniq-proxy
+      traefik.http.routers.openehr-fhir-modeller-dev.rule: Host(`dev-openehr-fhir-modeller.sandbox.hygeoniq.com`)
+      traefik.http.routers.openehr-fhir-modeller-dev.entrypoints: websecure
+      traefik.http.routers.openehr-fhir-modeller-dev.tls: "true"
+      traefik.http.services.openehr-fhir-modeller-dev.loadbalancer.server.port: "8343"
+    depends_on:
+      app: {condition: service_healthy}
+      chat: {condition: service_healthy}
+      fhir: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:8343/ready]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    tmpfs: [/tmp:mode=1777,size=16m]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 128m
+    restart: unless-stopped
+  fhir:
+    image: ${FHIR_IMAGE:?A pinned FHIR image is required}
+    user: "10001:10001"
+    environment:
+      FHIR_ENGINE_TOKEN_FILE: /run/secrets/fhir-engine-key
+      FHIR_DATA_DIR: /data/fhir
+    volumes:
+      - fhir-data:/data/fhir
+      - /opt/hygeoniq/projects/openehr-fhir-modeller/config/secrets/fhir-engine-key:/run/secrets/fhir-engine-key:ro
+    labels:
+      org.opencontainers.image.revision: ${REVISION:?A revision is required}
+    tmpfs: [/tmp:mode=1777,size=512m]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 3g
+    cpus: 2
+    pids_limit: 256
+    restart: unless-stopped
+volumes:
+  models: {external: true, name: openehr-fhir-modeller_models}
+  governance: {external: true, name: openehr-fhir-modeller_governance}
+  chat-data: {external: true, name: openehr-fhir-modeller_chat-data}
+  cdr-data: {external: true, name: openehr-fhir-modeller_cdr-data}
+  fhir-data: {external: true, name: openehr-fhir-modeller_fhir-data}
+networks:
+  default: {external: true, name: openehr-fhir-modeller_default}
+  proxy: {external: true, name: hygeoniq-proxy}
+  ig-dev: {external: true, name: hyq-fhir-ig-dev_default}

@@ -130,3 +130,11 @@ Use exact FHIR release/package versions and authoritative HL7/package source
 content. Compilation, validator results and clinical approval are separate.
 See `docs/FHIR_DEV.md` and ADR-0026. Never add generated patient records from a
 runtime server to model context or an artefact repository.
+
+Shared Dev delivery runs through `.github/workflows/deploy-dev.yml` after exact
+main validation; see [`docs/FHIR_DEV_DELIVERY.md`](docs/FHIR_DEV_DELIVERY.md).
+Build images on GitHub-hosted runners and deploy digests on the marked local Dev
+host. Preserve existing project volumes, UID1000 app data and identity issuers.
+Deployment orchestration uses host Bash/Python scripts under `scripts/`; its
+offline boundary checks must pass before changing this delivery path. Never
+restore the inherited VPS workflow or build application images on shared Dev.

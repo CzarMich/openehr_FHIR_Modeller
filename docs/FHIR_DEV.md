@@ -1,5 +1,9 @@
 # FHIR development deployment
 
+The shared Dev deployment uses [GitHub delivery with pinned images](FHIR_DEV_DELIVERY.md)
+at `https://dev-openehr-fhir-modeller.sandbox.hygeoniq.com/`. The local build
+commands below are for isolated development and testing, not shared Dev delivery.
+
 The application fork is `CzarMich/openehr_FHIR_Modeller`. Engineering artefacts go
 to `CzarMich/fhir_ig`. The existing IG platform is `CzarMich/hyq_fhir` and remains
 the sole publication/distribution authority. All changes in this delivery target Dev.

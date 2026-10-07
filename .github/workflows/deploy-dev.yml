@@ -1,0 +1,168 @@
+name: Deploy FHIR Modeller Dev
+
+on:
+  workflow_run:
+    workflows: [PR validation]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: fhir-modeller-dev-delivery
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    if: github.repository == 'CzarMich/openehr_FHIR_Modeller'
+    runs-on: ubuntu-24.04
+    outputs:
+      eligible: ${{ steps.check.outputs.eligible }}
+      revision: ${{ steps.check.outputs.revision }}
+    steps:
+      - name: Select the validated current main revision
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.setOutput('eligible', 'false');
+            const run = context.payload.workflow_run;
+            if (run && (run.conclusion !== 'success' || run.event !== 'push' || run.head_branch !== 'main' || run.head_repository.full_name !== context.payload.repository.full_name)) return;
+            if (!run && context.ref !== 'refs/heads/main') return;
+            const revision = run?.head_sha || context.sha;
+            if (!/^[0-9a-f]{40}$/.test(revision)) throw new Error('Invalid revision');
+            const main = await github.rest.git.getRef({...context.repo, ref: 'heads/main'});
+            if (main.data.object.sha !== revision) { core.notice('A newer main revision exists; this older delivery is skipped.'); return; }
+            const checks = await github.rest.actions.listWorkflowRuns({...context.repo, workflow_id: 'pr-validation.yml', branch: 'main', event: 'push', head_sha: revision, per_page: 100});
+            if (!checks.data.workflow_runs.some(r => r.head_sha === revision && r.status === 'completed' && r.conclusion === 'success')) throw new Error('Current main has no successful exact-revision validation');
+            core.setOutput('revision', revision);
+            core.setOutput('eligible', 'true');
+
+  build:
+    needs: gate
+    if: needs.gate.outputs.eligible == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - component: app
+            dockerfile: Dockerfile
+            target: fhir-dev
+          - component: chat
+            dockerfile: chat/Dockerfile
+            target: chat
+          - component: ingress
+            dockerfile: Dockerfile
+            target: fhir-dev-ingress
+          - component: fhir
+            dockerfile: fhir/Dockerfile
+            target: ''
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gate.outputs.revision }}
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and publish the validated image
+        id: image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          target: ${{ matrix.target }}
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/czarmich/openehr-fhir-modeller-${{ matrix.component }}:sha-${{ needs.gate.outputs.revision }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/CzarMich/openehr_FHIR_Modeller
+            org.opencontainers.image.revision=${{ needs.gate.outputs.revision }}
+            org.opencontainers.image.licenses=MIT
+          cache-from: type=gha,scope=fhir-dev-${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=fhir-dev-${{ matrix.component }}
+      - name: Record the immutable image reference
+        env:
+          COMPONENT: ${{ matrix.component }}
+          REVISION: ${{ needs.gate.outputs.revision }}
+          DIGEST: ${{ steps.image.outputs.digest }}
+        run: |
+          mkdir -p image-manifest
+          jq -n --arg service "$COMPONENT" --arg revision "$REVISION" \
+            --arg image "ghcr.io/czarmich/openehr-fhir-modeller-$COMPONENT@$DIGEST" \
+            '{service:$service,revision:$revision,image:$image}' > "image-manifest/$COMPONENT.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fhir-dev-image-${{ matrix.component }}-${{ needs.gate.outputs.revision }}
+          path: image-manifest/*.json
+          retention-days: 14
+
+  deploy:
+    needs: [gate, build]
+    if: needs.gate.outputs.eligible == 'true'
+    runs-on: [self-hosted, Linux, X64, hyq-dev, fhir-modeller-dev]
+    environment: development
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+      packages: read
+    steps:
+      - name: Recheck main freshness after the hosted builds
+        id: current
+        uses: actions/github-script@v7
+        env:
+          VALIDATED_REVISION: ${{ needs.gate.outputs.revision }}
+        with:
+          script: |
+            const main = await github.rest.git.getRef({...context.repo, ref: 'heads/main'});
+            const eligible = main.data.object.sha === process.env.VALIDATED_REVISION;
+            core.setOutput('eligible', String(eligible));
+            if (!eligible) core.notice('Main advanced while images were building; this delivery is skipped.');
+      - uses: actions/checkout@v4
+        if: steps.current.outputs.eligible == 'true'
+        with:
+          ref: ${{ needs.gate.outputs.revision }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        if: steps.current.outputs.eligible == 'true'
+        with:
+          pattern: fhir-dev-image-*-${{ needs.gate.outputs.revision }}
+          path: ${{ runner.temp }}/fhir-dev-images
+          merge-multiple: true
+      - name: Isolate registry login configuration
+        if: steps.current.outputs.eligible == 'true'
+        run: |
+          install -d -m 700 "$RUNNER_TEMP/fhir-modeller-docker"
+          printf 'DOCKER_CONFIG=%s\n' "$RUNNER_TEMP/fhir-modeller-docker" >> "$GITHUB_ENV"
+      - uses: docker/login-action@v3
+        if: steps.current.outputs.eligible == 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Deploy pinned images on the marked local Dev host
+        if: steps.current.outputs.eligible == 'true'
+        env:
+          REVISION: ${{ needs.gate.outputs.revision }}
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/deploy-fhir-dev.sh "$REVISION" "$RUNNER_TEMP/fhir-dev-images"
+      - name: Preserve deployment verification
+        if: always() && steps.current.outputs.eligible == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fhir-dev-deployment-${{ needs.gate.outputs.revision }}
+          path: /opt/hygeoniq/projects/openehr-fhir-modeller/deployment/releases/${{ needs.gate.outputs.revision }}/evidence/
+          if-no-files-found: warn
+          retention-days: 30

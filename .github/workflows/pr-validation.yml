@@ -10,6 +10,14 @@ permissions:
   contents: read
 
 jobs:
+  dev-delivery-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify immutable Dev deployment boundaries
+        run: |
+          bash -n scripts/deploy-fhir-dev.sh
+          python3 scripts/test-fhir-dev-delivery.py
   fhir-engine:
     runs-on: ubuntu-24.04
     timeout-minutes: 30

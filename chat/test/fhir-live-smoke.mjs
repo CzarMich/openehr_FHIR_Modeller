@@ -10,18 +10,27 @@ const accountFile = process.env.FHIR_DEV_ACCOUNT_FILE;
 if (!accountFile) throw new Error("Set FHIR_DEV_ACCOUNT_FILE to the private Dev account JSON file.");
 const account = JSON.parse(await readFile(accountFile, "utf8"));
 const origin = process.env.FHIR_DEV_ORIGIN || account.origin || "http://localhost:18350";
-if (!/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin))
-    throw new Error("Live acceptance is restricted to explicitly isolated loopback Dev deployments.");
+const httpsDevOrigin = "https://dev-openehr-fhir-modeller.sandbox.hygeoniq.com";
+const httpsDev = origin === httpsDevOrigin;
+if (!httpsDev && !/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin))
+    throw new Error("Live acceptance is restricted to loopback or the named local HTTPS Dev deployment.");
 const out = resolve(process.env.FHIR_BROWSER_EVIDENCE_DIR || "test-results/fhir-live");
 await mkdir(out, { recursive: true });
 const evidence = {
     environment: "development",
+    origin,
+    targetAddress: httpsDev ? "192.168.178.20" : "loopback",
     synthetic: true,
     mockedApis: false,
     startedAt: new Date().toISOString(),
     checks: [],
 };
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({
+    headless: true,
+    // Pin the LAN Dev host: the public wildcard DNS must never send these
+    // synthetic-account credentials to a different deployment. TLS still verifies.
+    args: httpsDev ? ["--host-resolver-rules=MAP dev-openehr-fhir-modeller.sandbox.hygeoniq.com 192.168.178.20"] : [],
+});
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 page.setDefaultTimeout(30000);
 let signedIn = false;
@@ -82,6 +91,18 @@ try {
         await expect(page.locator("#fhir-new-project")).toBeEnabled();
         signedIn = true;
     });
+    if (httpsDev)
+        await check("HTTPS origin uses a private secure host-only session cookie", async () => {
+            const cookie = (await page.context().cookies(origin)).find(
+                (item) => item.name === "__Host-ModellingSession",
+            );
+            assert.ok(cookie);
+            assert.equal(cookie.secure, true);
+            assert.equal(cookie.httpOnly, true);
+            assert.equal(cookie.path, "/");
+            assert.equal(cookie.domain, new URL(origin).hostname);
+            assert.equal(cookie.sameSite, "Lax");
+        });
     const projectId = "browser-dev-" + Date.now().toString(36);
     evidence.projectId = projectId;
     await check("confirmed independent FHIR project with artifact Git destination", async () => {
