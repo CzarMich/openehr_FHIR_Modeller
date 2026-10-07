@@ -62,3 +62,5 @@ referenced from [requirements.md](../requirements.md),
 - [ADR-0023 — Immutable originals and protected import receipts](0023-immutable-originals-and-import-receipts.md)
 
 - [ADR-0024 — Private CDR client and model-aware AQL workspace](0024-cdr-client-and-aql-workspace.md)
+
+- [ADR-0025 — FHIR authoring and existing IG boundary](0025-fhir-authoring-and-existing-ig-boundary.md)

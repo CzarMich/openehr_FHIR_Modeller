@@ -67,3 +67,8 @@ chat/playwright-report/
 
 # Local private deployment credentials
 /.secrets/
+/fhir/node_modules/
+/fhir/.data/
+/fhir/tools/
+/fhir/acceptance-results.json
+/fhir/acceptance-export/

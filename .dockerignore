@@ -17,3 +17,7 @@ chat/playwright-report
 
 .secrets
 engine/target
+fhir/.data
+fhir/tools
+fhir/acceptance-results.json
+fhir/acceptance-export

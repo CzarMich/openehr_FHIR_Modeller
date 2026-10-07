@@ -85,3 +85,16 @@ Native ADL 2/OPT 2 compilation and AQL syntax parsing are available through the 
 | **REQ-F23** | Provide profile-private CKMs without duplicating enterprise sources, personal GitHub/GitLab artifact destinations with persistent profile/project folder defaults, separate folders for every supported artefact type, default stable-path artefact versioning with hash detection, repository-first designer sources for template authoring and deliberate CKM upgrades, current/history/exact-version references, unchanged-save reuse and confirmed revision-conditional saves with exact archetype dependency packages for templates and previewed moves of a chat’s saved artefacts into its project folder, bounded source-file extraction and PNG/JPG interpretation with composer attachment previews for modelling, private recoverable draft/evidence checkpoints and resumable browser progress across interruptions without replaying unconfirmed writes, activity-based session continuity, and revocable read-only chat snapshots for authenticated workspace users. | Browser personal connections, attachment tools and snapshot sharing; limits in [browser chat](BROWSER_CHAT.md) |
 
 | **REQ-F24** | Provide a separate AQL workspace with native syntax and exact-template path validation, model-derived queries, automatic revision-pinned template dependency loading, exact-path completion and assistant query drafting directly into the query editor from loaded artefacts, bounded encrypted revision-aware archetype caching, profile-private encrypted CDR connections, standard read-only Query API execution, cancellation, bounded results, user-and-environment-scoped saved queries/history and remote template inspection while prohibiting AI query execution, result access and reads of potentially identifying query-library contents; results are not persisted. | [CDR workspace](CDR_WORKSPACE.md), provider-neutral CDR adapter and controlled MCP tools |
+
+## FHIR modelling extension
+
+| ID | Requirement | Implementation |
+|---|---|---|
+| **REQ-F25** | Provide an isolated FHIR R4/R4B/R5 authoring provider with exact package dependencies, authoritative reuse discovery, typed FSH generation, real SUSHI/validator evidence, FHIRPath, semantic comparison, synthetic examples and versioned cross-standard mapping proposals. Preserve openEHR behaviour and separate clinical approval from computation. | `FhirModelling`, `FhirTools`, private `fhir/` service; Dev verification described in FHIR_DEV.md |
+| **REQ-F26** | Prepare locally validated conformance artefacts and connect to the existing IG platform using its actual authenticated API and exact-commit Git import contract. Git is engineering source; the existing IG platform alone owns publication/distribution. Preserve actor, source, revision, digest, tool and validation evidence; never expose connection credentials as model configuration. | `FhirConnections`, private ledger, browser Git adapter; production promotion requires explicit user direction |
+
+The source task is retained in [the implementation plan](plans/fhir-modelling/README.md).
+Authoritative clinical choices cannot be inferred from tool success. Runtime
+patient reads are outside the MCP boundary. FHIR workspace access follows the
+configured MCP principal/project permissions; a shared service credential creates
+a shared workspace, not per-browser-user isolation.

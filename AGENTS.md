@@ -116,3 +116,16 @@ Feature branches off `main` plus pull requests (naming in [`CONTRIBUTING.md`](CO
 ## Learned Workspace Facts
 
 - Repo tooling that can be implemented in PHP should live as classes in `src/` with CLI entrypoints (e.g. `scripts/*.php`) and `composer.json` script entries; update AGENTS.md and related docs when changing such tooling.
+
+## FHIR fork boundary
+
+This repository is the openEHR and FHIR Modeller fork. Original openEHR behaviour
+remains available. FHIR implementation is under `fhir/`, `src/Domain/Fhir`,
+`src/Integrations/Fhir`, `src/Application/FhirModelling.php` and `FhirTools`.
+Keep publication/distribution in the existing HYQ-FHIR-Governance-Platform.
+Git engineering artefacts target `CzarMich/fhir_ig`; modeller code targets
+`CzarMich/openehr_FHIR_Modeller`. Deploy only Dev until explicitly promoted.
+Use exact FHIR release/package versions and authoritative HL7/package source
+content. Compilation, validator results and clinical approval are separate.
+See `docs/FHIR_DEV.md` and ADR-0025. Never add generated patient records from a
+runtime server to model context or an artefact repository.

@@ -1,6 +1,13 @@
-import { WRITE_TOOLS } from "./mcp.mjs";
+import { WRITE_TOOLS, isWriteTool } from "./mcp.mjs";
+import { isFhirTool, validateFhirCall } from "./fhir-workspace.mjs";
 import { problem } from "./personal-http.mjs";
-import { requireFolderPath, artifactPath, ARTIFACT_FOLDERS } from "./repository-paths.mjs";
+import {
+    requireFolderPath,
+    artifactPath,
+    ARTIFACT_FOLDERS,
+    FHIR_ARTIFACT_FOLDERS,
+    fhirArtifactPath,
+} from "./repository-paths.mjs";
 import { CHOICE_TOOL } from "./choices.mjs";
 import { CDR_TOOLS, CDR_BROWSER_ONLY_TOOLS } from "./cdr.mjs";
 import { TemplatePackages, isTemplate, modelResult } from "./template-packages.mjs";
@@ -116,9 +123,10 @@ export class WorkspaceTools {
             personal.push(
                 tool(
                     PERSONAL_WRITE,
-                    "Commit a draft artifact to this conversation's selected personal repository and branch after exact-change browser confirmation. Check personal_connections for the active destination and readiness. The repository must be selected in the UI. Use its full repository-relative path within the selected folder; missing directories are created with the file. Use the artifactFolders map in workspace context for every file type, including queries, data, documentation and configuration. Saved artefact metadata contains current paths after moves; use those when linking models and evidence. A separate folder-creation tool is unnecessary. Use personal_repository_get first; supply its revision, or null for a new file. Update the same logical filename by default; do not add a hash, timestamp or revision suffix. Changed bytes create a new Git revision; identical bytes are reused. Older versions remain readable through personal_repository_history and personal_repository_get with ref. Template packages pin their exact archetype versions. Keep supplied openEHR identifiers; file revisions do not imply a semantic version change. Include source provenance in artifacts. Use model validation tools before proposing the save. This does not record enterprise governance or clinical approval.",
+                    "Commit a draft artifact to this conversation's selected personal repository and branch after exact-change browser confirmation. Check personal_connections for the active destination and readiness. The repository must be selected in the UI. Use its full repository-relative path within the selected folder; missing directories are created with the file. For openEHR use artifactFolders. For FHIR set standard=FHIR and retain conventional input/fsh, input/resources, input/examples, fsh-generated/resources, validation and provenance paths from fhirArtifactFolders. Use standard=mappings for a separately selected mapping repository. Match the selected private repository and branch to the standard project before saving. Saved artefact metadata contains current paths after moves; use those when linking models and evidence. A separate folder-creation tool is unnecessary. Use personal_repository_get first; supply its revision, or null for a new file. Update the same logical filename by default; do not add a hash, timestamp or revision suffix. Changed bytes create a new Git revision; identical bytes are reused. Older versions remain readable through personal_repository_history and personal_repository_get with ref. Template packages pin their exact archetype versions. Keep supplied openEHR identifiers; file revisions do not imply a semantic version change. Include source provenance in artifacts. Use model validation tools before proposing the save. This does not record enterprise governance or clinical approval.",
                     {
                         repository: string,
+                        standard: { type: "string", enum: ["openEHR", "FHIR", "mappings"] },
                         path: string,
                         content: string,
                         draftId: string,
@@ -148,7 +156,7 @@ export class WorkspaceTools {
                 (t) =>
                     !CDR_BROWSER_ONLY_TOOLS.has(t.name) &&
                     (!CDR_TOOLS.has(t.name) || this.cdr) &&
-                    (!this.conversation.repository || !WRITE_TOOLS.has(t.name)),
+                    (!this.conversation.repository || !WRITE_TOOLS.has(t.name) || isFhirTool(t.name)),
             ),
             ...personal,
         ];
@@ -178,6 +186,12 @@ export class WorkspaceTools {
         };
     }
     checkWrite(name, args) {
+        if (isFhirTool(name)) {
+            validateFhirCall(name, args);
+            if (isWriteTool(name, args) && !this.allowWrites)
+                throw problem("FHIR changes are disabled by this installation.", 403);
+            return;
+        }
         if (name !== PERSONAL_WRITE) {
             if (this.conversation.repository && WRITE_TOOLS.has(name))
                 throw problem("Enterprise writes are unavailable while a personal repository is selected.", 403);
@@ -189,7 +203,9 @@ export class WorkspaceTools {
             throw problem("Use this conversation's selected repository.", 403);
         this.connections.validatePath(args.path);
         requireFolderPath(args.path, this.conversation.folder || "");
-        const organised = artifactPath(args.path, this.conversation.folder || "");
+        const organised = ["FHIR", "mappings"].includes(args.standard)
+            ? fhirArtifactPath(args.path, this.conversation.folder || "", args.standard)
+            : artifactPath(args.path, this.conversation.folder || "");
         if (organised !== args.path)
             throw problem(
                 "Keep file types in separate folders. Use " + organised + ". Read that path before proposing the save.",
@@ -200,6 +216,13 @@ export class WorkspaceTools {
             attachments: this.conversation.attachments || [],
             savedArtifacts: this.conversation.artifacts || [],
             artifactFolders: ARTIFACT_FOLDERS,
+            fhirArtifactFolders: FHIR_ARTIFACT_FOLDERS,
+            modellingDomains: {
+                openEHR: "Existing archetype/template tools and repository configuration",
+                FHIR: "Use fhir_project first; release, exact dependencies and source repository are independent. Git is engineering source, existing IG server is distribution authority, runtime is operational data.",
+                mappings:
+                    "Versioned evidence-based proposals; similar names never establish equivalence or lossless conversion.",
+            },
             personalRepositorySave: this.saveStatus(),
             recovery: this.checkpoints.summary(),
             saveDestination: this.conversation.repository

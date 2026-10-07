@@ -1785,3 +1785,214 @@ test("account overlay keeps the workspace clear and offers owner setup without l
     await expect(page.locator("#bootstrap-password")).toHaveValue("");
     await expect(page.locator("#panel-help")).toBeVisible();
 });
+
+test("FHIR workspace separates modelling, exact source validation and reviewed changes", async ({ page }) => {
+    const requests = [];
+    const project = {
+        id: "fhir-demo",
+        name: "FHIR demonstration",
+        fhirVersion: "4.0.1",
+        canonical: "https://example.test/fhir",
+        packageId: "test.clinical",
+        version: "0.1.0",
+        publisher: "Test",
+        repository: { provider: "github", url: "https://github.com/example/fhir", branch: "review", rootPath: "" },
+        dependencies: [{ id: "hl7.fhir.r4.core", version: "4.0.1" }],
+        sources: [],
+        connections: {},
+    };
+    const resource = {
+        resourceType: "StructureDefinition",
+        id: "clinical-observation",
+        name: "ClinicalObservation",
+        title: '<img src=x onerror="window.fhirInjected=true">',
+        url: "https://example.test/fhir/StructureDefinition/clinical-observation",
+        version: "0.1.0",
+        fhirVersion: "4.0.1",
+        type: "Observation",
+        baseDefinition: "http://hl7.org/fhir/StructureDefinition/Observation",
+        differential: {
+            element: [{ id: "Observation.status", path: "Observation.status", min: 1, max: "1", mustSupport: true }],
+        },
+    };
+    await page.route("**/chat/api/fhir/execute", async (route) => {
+        const input = route.request().postDataJSON();
+        requests.push(input);
+        const { tool, args } = input;
+        let result;
+        if (tool === "fhir_project")
+            result =
+                args.action === "list"
+                    ? { items: [project] }
+                    : { project, revision: "project-revision", artifacts: [] };
+        else if (tool === "fhir_profile")
+            result =
+                args.action === "discover"
+                    ? {
+                          recommendation: "derive",
+                          candidates: [
+                              {
+                                  canonical: resource.baseDefinition,
+                                  packageId: "hl7.fhir.r4.core",
+                                  packageVersion: "4.0.1",
+                                  reason: "Retrieved configured dependency",
+                              },
+                          ],
+                      }
+                    : {
+                          files: [
+                              {
+                                  path: "input/fsh/ClinicalObservation.fsh",
+                                  content: "Profile: ClinicalObservation\nParent: Observation\n* status 1..1 MS",
+                              },
+                          ],
+                          provenance: { parent: resource.baseDefinition },
+                      };
+        else if (tool === "fhir_fsh_compile")
+            result = {
+                success: true,
+                files: [
+                    {
+                        path: "fsh-generated/resources/StructureDefinition-clinical-observation.json",
+                        content: JSON.stringify(resource),
+                    },
+                ],
+                evidence: { tool: "SUSHI", fixture: true },
+            };
+        else if (tool === "fhir_example_generate")
+            result = {
+                resource: {
+                    resourceType: "Observation",
+                    id: "synthetic-example",
+                    status: "final",
+                    meta: { profile: [resource.url] },
+                },
+                files: [
+                    {
+                        path: "input/examples/synthetic-example.json",
+                        content: JSON.stringify({
+                            resourceType: "Observation",
+                            id: "synthetic-example",
+                            status: "final",
+                            meta: { profile: [resource.url] },
+                        }),
+                    },
+                ],
+                gaps: [{ path: "Observation.code", message: "Provide required synthetic code" }],
+                synthetic: true,
+                provenance: { kind: "synthetic-draft" },
+            };
+        else if (tool === "fhir_artifact" && args.action === "inspect")
+            result = { resource, provenance: { packageId: "hl7.fhir.r4.core" } };
+        else if (tool === "fhir_artifact" && args.action === "validate")
+            result = {
+                status: "FAIL",
+                valid: false,
+                diagnostics: [{ severity: "error", message: "Missing required field" }],
+                evidence: { tool: "fixture-validator" },
+            };
+        else if (tool === "fhir_artifact" && args.action === "save") {
+            if (!input.confirmation)
+                return route.fulfill({
+                    json: { confirmationRequired: true, confirmation: "fixture-ticket", tool, args },
+                });
+            result = { path: JSON.parse(args.arguments).path, revision: "saved-revision" };
+        } else result = { items: [] };
+        return route.fulfill({ json: { result } });
+    });
+    await login(page);
+    await page.getByRole("tab", { name: "FHIR modelling", exact: true }).click();
+    await expect(page.locator("#fhir-context")).toContainText("FHIR demonstration · FHIR 4.0.1");
+    await expect(page.locator("#panel-models")).toBeHidden();
+    await page.locator("#fhir-requirement").fill("Require status for a synthetic research observation.");
+    await page.locator("#fhir-profile-id").fill("clinical-observation");
+    await page.locator("#fhir-profile-name").fill("ClinicalObservation");
+    await page.getByRole("button", { name: "Discover reusable profiles", exact: true }).click();
+    await expect(page.locator("#fhir-candidates")).toContainText("hl7.fhir.r4.core");
+    await page.getByRole("button", { name: "Generate draft FSH", exact: true }).click();
+    await expect(page.locator("#fhir-source")).toHaveValue(/Profile: ClinicalObservation/);
+    await page.getByRole("button", { name: "Compile FSH with SUSHI", exact: true }).click();
+    await expect(page.locator("#fhir-validation-state")).toContainText("Generated resources require FHIR validation");
+    await page
+        .locator("#fhir-artifact-select")
+        .selectOption("draft:fsh-generated/resources/StructureDefinition-clinical-observation.json");
+    await expect(page.locator("#fhir-format")).toHaveValue("json");
+    await page.getByRole("button", { name: "Inspect artifact", exact: true }).click();
+    await expect(page.locator("#fhir-artifact-inspector")).toContainText("Observation.status");
+    await expect(page.locator("#fhir-artifact-inspector")).toContainText(resource.title);
+    expect(await page.evaluate(() => window.fhirInjected)).toBeUndefined();
+    await page.getByRole("button", { name: "Validate exact artifact", exact: true }).click();
+    await expect(page.locator("#fhir-validation-state")).toContainText("Validation result: FAIL");
+    await page.locator("#fhir-source").fill(JSON.stringify({ ...resource, description: "Draft revised" }));
+    await expect(page.locator("#fhir-validation-state")).toContainText("Not validated for current editor contents");
+    await page.getByRole("button", { name: "Review draft save", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "Review FHIR change" })).toBeVisible();
+    expect(requests.filter((r) => r.confirmation)).toHaveLength(0);
+    await page.getByRole("button", { name: "Cancel change", exact: true }).click();
+    await expect(page.locator("#fhir-notice")).toContainText("Change cancelled");
+    expect(requests.filter((r) => r.confirmation)).toHaveLength(0);
+    await page.getByRole("button", { name: "Review draft save", exact: true }).click();
+    await page.getByRole("button", { name: "Confirm exact change", exact: true }).click();
+    await expect(page.locator("#fhir-artifact-revision")).toContainText("saved-revision");
+    expect(requests.filter((r) => r.confirmation)).toHaveLength(1);
+    await page.getByText("Synthetic example generation", { exact: true }).click();
+    await page.locator("#fhir-example-values").fill(JSON.stringify({ "Observation.status": "final" }));
+    await page.getByRole("button", { name: "Generate synthetic example", exact: true }).click();
+    await expect(page.locator("#fhir-artifact-path")).toHaveValue("input/examples/synthetic-example.json");
+    await expect(page.locator("#fhir-validation-state")).toContainText("Review reported gaps");
+    await expect(page.locator("#fhir-validation-profile")).toHaveValue(resource.url);
+    await page.getByRole("button", { name: "Validate exact artifact", exact: true }).click();
+    await expect(page.locator("#fhir-validation-state")).toContainText("FAIL");
+    const exampleValidation = requests.filter((r) => r.tool === "fhir_artifact" && r.args.action === "validate").at(-1);
+    expect(JSON.parse(exampleValidation.args.arguments).profiles).toHaveLength(1);
+    expect(JSON.parse(exampleValidation.args.arguments).content.resourceType).toBe("Observation");
+    await page.getByRole("tab", { name: "Cross-standard mappings", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Cross-standard mappings", exact: true })).toBeVisible();
+    await expect(page.locator("#mapping-project")).toHaveValue(project.id);
+    await expect(page.locator("#panel-mappings")).toContainText("matching names do not establish equivalence");
+});
+
+test("FHIR project configuration is explicit, confirmed and usable on a small viewport", async ({ page }) => {
+    let current = null;
+    const writes = [];
+    await page.route("**/chat/api/fhir/execute", async (route) => {
+        const input = route.request().postDataJSON();
+        if (input.args.action === "create") {
+            if (!input.confirmation)
+                return route.fulfill({ json: { confirmationRequired: true, confirmation: "create-ticket", ...input } });
+            writes.push(input);
+            current = { ...JSON.parse(input.args.document), id: input.args.projectId };
+        }
+        await route.fulfill({
+            json: {
+                result:
+                    input.args.action === "list"
+                        ? { items: current ? [current] : [] }
+                        : { project: current, revision: "revision", artifacts: [] },
+            },
+        });
+    });
+    await login(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole("tab", { name: "FHIR modelling", exact: true }).click();
+    await page.getByRole("button", { name: "New FHIR project", exact: true }).click();
+    const form = page.locator("#fhir-project-form");
+    await form.getByLabel("Project identifier", { exact: true }).fill("dev-fhir");
+    await form.getByLabel("Project name", { exact: true }).fill("Development FHIR");
+    await form.getByRole("combobox", { name: "FHIR release", exact: true }).selectOption("4.3.0");
+    await form.getByLabel("Canonical base URL", { exact: true }).fill("https://example.test/dev-fhir");
+    await form.getByLabel("Package ID", { exact: true }).fill("test.development.fhir");
+    await form.getByLabel("Publisher", { exact: true }).fill("Synthetic test publisher");
+    await form.getByLabel("Repository branch", { exact: true }).fill("dev");
+    await form.getByRole("button", { name: "Review project changes", exact: true }).click();
+    await expect(page.locator("#fhir-confirm-request")).toContainText("4.3.0");
+    expect(writes).toHaveLength(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.getByRole("button", { name: "Confirm exact change", exact: true }).click();
+    await expect(page.locator("#fhir-context")).toContainText("Development FHIR · FHIR 4.3.0");
+    expect(writes).toHaveLength(1);
+    expect(current.repository.url).toBe("https://github.com/CzarMich/fhir_ig");
+    expect(current.repository.branch).toBe("dev");
+    expect(current.connections).toEqual({});
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

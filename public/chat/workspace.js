@@ -9,6 +9,8 @@ let session,
 const headings = {
     chat: "Clinical modelling",
     models: "Model repository",
+    fhir: "FHIR modelling",
+    mappings: "Cross-standard mappings",
     aql: "AQL workspace",
     governance: "Model governance",
     accounts: "Accounts and access",

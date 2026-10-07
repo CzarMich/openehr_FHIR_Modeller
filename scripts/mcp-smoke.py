@@ -120,7 +120,7 @@ def main():
     try:
         init = client.rpc("initialize", {"protocolVersion": "2025-11-25", "capabilities": {},
                                           "clientInfo": {"name": "independent-smoke-client", "version": "1.0"}})
-        assert init["serverInfo"]["name"] == os.getenv("MCP_SERVER_NAME", "openehr-modelling-assistant")
+        assert init["serverInfo"]["name"] == os.getenv("MCP_SERVER_NAME", "openehr-fhir-modeller")
         client.rpc("notifications/initialized", notify=True)
         record("initialize", init["serverInfo"])
         tools = client.listing("tools/list", "tools")

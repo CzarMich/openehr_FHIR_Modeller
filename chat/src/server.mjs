@@ -6,7 +6,8 @@ import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import { Auth } from "./auth.mjs";
 import { Store } from "./store.mjs";
-import { McpClient, WRITE_TOOLS } from "./mcp.mjs";
+import { McpClient, isWriteTool } from "./mcp.mjs";
+import { FhirWorkspace, FHIR_REQUEST_TIMEOUT_MS } from "./fhir-workspace.mjs";
 import { Providers } from "./providers.mjs";
 import { ReviewClient } from "./reviews.mjs";
 import { CdrClient, CDR_OPERATIONS } from "./cdr.mjs";
@@ -86,6 +87,7 @@ export function createApplication(
         modelReads = new Map(),
         cdrRequests = new Map();
     const drafts = new Map();
+    const fhirWorkspace = new FhirWorkspace(config);
     const cancelUserWork = (userId) => {
         const affectedIdentity = auth.identityStore?.issuer + "\n" + userId;
         for (const turn of active.values())
@@ -150,6 +152,8 @@ export function createApplication(
                 "/chat/identity.js": ["identity.js", "text/javascript"],
                 "/chat/aql.js": ["aql.js", "text/javascript"],
                 "/chat/aql.css": ["aql.css", "text/css"],
+                "/chat/fhir.js": ["fhir.js", "text/javascript"],
+                "/chat/fhir.css": ["fhir.css", "text/css"],
             };
             if (req.method === "GET" && path === "/chat/reviews") {
                 res.writeHead(302, { Location: "/chat/#governance" });
@@ -539,6 +543,32 @@ export function createApplication(
                     return json(res, 200, await reviews.request(session, "POST", "/api/v1/reviews" + suffix, input));
                 }
                 throw Object.assign(new Error("Not found"), { status: 404 });
+            }
+            if (path === "/chat/api/fhir/execute") {
+                if (req.method !== "POST")
+                    throw Object.assign(new Error("Use a FHIR workspace operation."), { status: 405 });
+                const input = await body(req, ["tool", "args", "confirmation"], "Invalid FHIR operation.", 2097152);
+                const count = modelReads.get(identity) || 0;
+                if (count >= 2 || [...modelReads.values()].reduce((a, b) => a + b, 0) >= 16)
+                    throw Object.assign(new Error("Modelling requests are busy. Retry shortly."), { status: 429 });
+                modelReads.set(identity, count + 1);
+                const controller = new AbortController();
+                const deadline = setTimeout(() => controller.abort(), FHIR_REQUEST_TIMEOUT_MS + 5000);
+                const client = mcpFactory(controller.signal);
+                const cancel = () => {
+                    if (!res.writableEnded) controller.abort();
+                };
+                res.on("close", cancel);
+                try {
+                    return json(res, 200, await fhirWorkspace.execute(client, identity, input));
+                } finally {
+                    clearTimeout(deadline);
+                    res.off("close", cancel);
+                    await client.close?.();
+                    const remaining = (modelReads.get(identity) || 1) - 1;
+                    if (remaining) modelReads.set(identity, remaining);
+                    else modelReads.delete(identity);
+                }
             }
             if (path.startsWith("/chat/api/models/")) {
                 if (req.method !== "GET")
@@ -1210,7 +1240,7 @@ export function createApplication(
                                     content: [{ type: "text", text: JSON.stringify(answer) }],
                                 };
                             }
-                            if (WRITE_TOOLS.has(name) || name === PERSONAL_WRITE) {
+                            if (isWriteTool(name, args) || name === PERSONAL_WRITE) {
                                 workspace.checkWrite(name, args);
                                 const packagePlan = await workspace.prepareWrite(name, args);
                                 pauseBudget();

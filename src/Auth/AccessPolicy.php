@@ -22,6 +22,17 @@ final readonly class AccessPolicy
         }
     }
 
+    /** Project reads alone do not authorize side effects outside repository save methods. */
+    public function assertProjectWrite(string $project): void
+    {
+        $this->assertModelWrite();
+        if ($this->settings->get('PROJECT_RBAC_ENABLED') === 'true'
+            && ($this->principal === null || (!in_array('projects:admin', $this->principal->scopes, true)
+                && !in_array('project:' . $project . ':write', $this->principal->scopes, true)))) {
+            throw new \RuntimeException('PROJECT_PERMISSION_REQUIRED');
+        }
+    }
+
     public function assertHumanGovernanceWrite(): void
     {
         if ($this->settings->get('MODEL_REPOSITORY_WRITE_ENABLED') !== 'true') { throw new \RuntimeException('WRITES_DISABLED'); }

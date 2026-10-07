@@ -1,0 +1,820 @@
+      SUSHI compilation;
+      generated StructureDefinition validation;
+      example -> profile validation;
+      terminology validation;
+      package dependency resolution;
+      Git persistence;
+      IG generation;
+      IG build;
+      terminology server adapter;
+      FHIR runtime adapter;
+      IG publication adapter;
+      cross-standard mapping persistence.
+
+    Mock external systems where required.
+
+    Where actual command-line validation tooling is installed or can safely be installed
+    in the development environment, include end-to-end tests using the real tooling.
+
+    Existing openEHR tests must continue to pass.
+
+    Add regression tests for any openEHR functionality affected by shared architecture
+    refactoring.
+
+    Do not mark tests as passing simply by mocking the core functionality that the test
+    is intended to prove.
+
+    External integrations may be mocked, but internal profile generation, dependency
+    resolution and validation orchestration should be tested with realistic artifacts.
+  </testing>
+
+  <test-fixtures>
+    Add representative FHIR test fixtures.
+
+    Include:
+
+      a minimal FHIR R4 project;
+      a minimal FHIR R4B project;
+      a minimal FHIR R5 project;
+      example StructureDefinitions;
+      example extensions;
+      ValueSets;
+      CodeSystems;
+      ConceptMaps;
+      example resources;
+      package dependency metadata;
+      invalid profiles;
+      invalid examples;
+      conflicting dependencies;
+      unresolved canonical examples.
+
+    Where licensing permits, use publicly distributable package artifacts or download
+    dependencies during controlled test setup rather than copying restricted content
+    into the repository.
+
+    Include fixtures demonstrating derivation from an external profile.
+
+    Include a fixture demonstrating a national-IG-style dependency so that the
+    reuse-first workflow can be tested independently of live network access.
+  </test-fixtures>
+
+  <acceptance-scenario-basic>
+    The feature is not complete until the following scenario works end-to-end:
+
+      1. Create a FHIR R4 project.
+
+      2. Configure:
+           canonical URL;
+           package ID;
+           package version;
+           publisher;
+           Git repository.
+
+      3. Add an external FHIR package dependency.
+
+      4. Resolve and install the dependency.
+
+      5. Browse its StructureDefinitions.
+
+      6. Request a new clinical profile using natural language.
+
+      7. Search existing project artifacts.
+
+      8. Search dependency artifacts.
+
+      9. Perform reuse analysis.
+
+      10. Select the correct base/parent profile.
+
+      11. Generate FSH.
+
+      12. Compile FSH using SUSHI.
+
+      13. Generate the StructureDefinition.
+
+      14. Run deterministic FHIR validation.
+
+      15. Generate at least one example.
+
+      16. Validate the example against the profile.
+
+      17. Save source and generated artifacts.
+
+      18. Record provenance.
+
+      19. Commit artifacts to Git where the configured test repository permits.
+
+      20. Build an Implementation Guide.
+
+      21. Demonstrate publication adapter behaviour.
+
+      22. Demonstrate that the artifact can be discovered again through the platform.
+
+      23. Demonstrate that existing openEHR functionality still operates.
+  </acceptance-scenario-basic>
+
+  <acceptance-scenario-mii>
+    Add an acceptance scenario demonstrating authoritative national IG reuse.
+
+    Scenario:
+
+      project jurisdiction = Germany;
+      FHIR release = compatible configured release;
+      MII package = configured;
+      MII priority = preferred national source.
+
+    Request:
+
+      "Create a laboratory result profile suitable for this German research project."
+
+    Expected result:
+
+      the agent searches MII;
+      identifies relevant candidate artifacts;
+      reports its reuse analysis;
+      does not immediately profile from bare FHIR core;
+      uses the appropriate existing profile when sufficient;
+      derives from it when additional project constraints are necessary;
+      records exact package/version provenance;
+      validates the resulting artifact;
+      generates and validates examples.
+
+    If the installed MII package does not contain an appropriate artifact, the system
+    must report that fact and continue through the configured fallback hierarchy.
+
+    Never pretend that an MII artifact was found when it was not.
+  </acceptance-scenario-mii>
+
+  <acceptance-scenario-cross-standard>
+    Add an acceptance scenario demonstrating openEHR/FHIR analysis.
+
+    Use an existing openEHR archetype or template fixture.
+
+    Request:
+
+      "Determine the FHIR representation required to exchange the clinical information
+       represented by this openEHR model."
+
+    Expected result:
+
+      inspect the openEHR artifact;
+      extract relevant semantic elements;
+      search configured FHIR packages;
+      identify candidate FHIR resources/profiles;
+      identify terminology relationships;
+      identify semantic gaps;
+      produce explicit mapping proposals;
+      persist mappings where requested;
+      avoid claiming automatic lossless equivalence.
+
+    Existing openEHR artifacts must remain unchanged by analysis unless an explicit
+    modification operation is requested.
+  </acceptance-scenario-cross-standard>
+
+  <documentation>
+    Update all relevant project documentation.
+
+    Document:
+
+      multi-standard architecture;
+      standards provider architecture;
+      FHIR project/workspace creation;
+      supported FHIR releases;
+      FHIR artifact types;
+      FSH authoring;
+      SUSHI integration;
+      FHIR package management;
+      dependency resolution;
+      authoritative knowledge sources;
+      MII configuration;
+      ISiK configuration where applicable;
+      terminology integration;
+      Git repository architecture;
+      IG server/publication architecture;
+      runtime FHIR connections;
+      validation;
+      FHIRPath;
+      semantic diff;
+      provenance;
+      cross-standard mappings;
+      MCP tools;
+      UI workflows;
+      security;
+      troubleshooting.
+
+    Include an architecture diagram in Mermaid or another repository-compatible textual
+    format where useful.
+
+    Include an end-to-end tutorial:
+
+      "Create a FHIR profile from authoritative package sources."
+
+    Include an end-to-end tutorial:
+
+      "Use MII as the preferred national modelling source."
+
+    Include an end-to-end tutorial:
+
+      "Publish a validated FHIR Implementation Guide."
+
+    Include an end-to-end tutorial:
+
+      "Analyse an openEHR model against FHIR."
+
+    Clearly explain the difference between:
+
+      Git source repository;
+      FHIR package;
+      Implementation Guide;
+      IG publication server;
+      runtime FHIR server;
+      terminology server.
+  </documentation>
+
+  <readme>
+    Update the primary README so that the platform is no longer described in a way that
+    incorrectly implies it can only work with openEHR.
+
+    Preserve the project's openEHR heritage and capabilities.
+
+    Describe the architecture accurately.
+
+    Do not rename the repository or product automatically unless the current repository
+    already has a configurable branding mechanism.
+
+    The README may describe the system conceptually as a multi-standard clinical
+    modelling/interoperability platform with openEHR and FHIR support.
+
+    Do not perform an unnecessary product rebrand as part of this feature.
+  </readme>
+
+  <configuration-migration>
+    If the current configuration assumes only openEHR:
+
+      introduce backwards-compatible configuration migration;
+
+      preserve existing settings;
+
+      create defaults where safe;
+
+      do not require existing users to manually reconstruct current connections;
+
+      do not delete unknown legacy configuration;
+
+      provide migration tests.
+
+    Existing installations must continue to start after upgrading.
+  </configuration-migration>
+
+  <database-migration>
+    If persistence schema changes are required:
+
+      use the project's established migration mechanism;
+
+      make migrations forward-safe;
+
+      preserve existing openEHR data;
+
+      add indexes for new FHIR lookup patterns where justified;
+
+      avoid destructive migrations;
+
+      test migrations against representative existing data.
+
+    If no database schema change is required, do not introduce one unnecessarily.
+  </database-migration>
+
+  <performance>
+    FHIR packages can contain many artifacts.
+
+    Avoid repeatedly parsing entire package collections for every request.
+
+    Introduce appropriate caching/indexing for:
+
+      package metadata;
+      canonical URLs;
+      resource types;
+      profile names;
+      terminology references;
+      dependencies.
+
+    Cache keys must include package versions.
+
+    Do not allow a cache entry from one FHIR release/package version to contaminate
+    another.
+
+    Provide invalidation when package configuration changes.
+  </performance>
+
+  <package-index>
+    Build a searchable index for installed package artifacts.
+
+    Index useful fields including:
+
+      resourceType;
+      id;
+      url;
+      version;
+      name;
+      title;
+      type;
+      kind;
+      derivation;
+      baseDefinition;
+      status;
+      package ID;
+      package version;
+      FHIR release.
+
+    Support fast discovery by:
+
+      canonical;
+      name;
+      resource type;
+      base resource;
+      parent profile;
+      package;
+      terminology dependency.
+
+    This index should power both UI search and agent/MCP discovery.
+  </package-index>
+
+  <profile-discovery>
+    Implement profile discovery as a first-class capability.
+
+    Given a requirement or FHIR resource type, the system should be able to identify
+    candidate profiles from configured sources.
+
+    Candidate ranking should consider:
+
+      project source priority;
+      jurisdiction;
+      configured package priority;
+      FHIR release compatibility;
+      semantic relevance;
+      existing project usage;
+      inheritance relationship;
+      terminology compatibility.
+
+    The ranking mechanism must be inspectable.
+
+    Do not hide why a candidate was selected.
+  </profile-discovery>
+
+  <reuse-analysis>
+    Return structured reuse analysis.
+
+    Example structure:
+
+      requirement:
+        neonatal body weight
+
+      baseResource:
+        Observation
+
+      candidates:
+        - canonical
+        - package
+        - version
+        - relevance
+        - compatibility
+        - reason
+
+      recommendation:
+        reuse | derive | create | extend
+
+      selectedParent:
+        canonical
+
+      requiredAdditionalConstraints:
+        [...]
+
+      terminology:
+        [...]
+
+      warnings:
+        [...]
+
+    The exact API schema may follow project conventions, but preserve equivalent
+    semantics.
+  </reuse-analysis>
+
+  <profile-generation-engine>
+    Separate profile generation orchestration from language-model prompting.
+
+    The generation engine should receive structured modelling requirements.
+
+    Where possible represent requirements internally as typed constraints such as:
+
+      element path;
+      minimum cardinality;
+      maximum cardinality;
+      datatype;
+      target profile;
+      terminology binding;
+      fixed value;
+      pattern;
+      Must Support;
+      slicing;
+      invariant;
+      extension requirement.
+
+    This enables deterministic checks before producing FSH.
+
+    Do not make free-text prompting the only internal representation of profile
+    requirements.
+  </profile-generation-engine>
+
+  <requirement-extraction>
+    Natural-language requirements may be transformed into structured modelling
+    requirements by the agent.
+
+    Preserve the original requirement text.
+
+    Preserve traceability from each generated constraint back to:
+
+      explicit requirement;
+      inherited authoritative constraint;
+      project policy;
+      terminology source;
+      agent-derived recommendation.
+
+    Where a generated constraint has no authoritative or explicit requirement basis,
+    mark it as agent-derived rather than disguising it as mandated.
+  </requirement-extraction>
+
+  <constraint-traceability>
+    Where practical, maintain traceability at element/constraint level.
+
+    Example:
+
+      Observation.subject 1..1
+
+      source:
+        project requirement REQ-12
+
+      Observation.value[x] only Quantity
+
+      source:
+        selected authoritative profile
+
+      Observation.code binding
+
+      source:
+        configured terminology artifact
+
+    This should support later governance, review and change impact analysis.
+  </constraint-traceability>
+
+  <profile-review>
+    Support review before publication.
+
+    Review should expose:
+
+      generated FSH;
+      generated StructureDefinition;
+      parent profile;
+      added constraints;
+      removed possibilities;
+      terminology changes;
+      extensions;
+      invariants;
+      validation results;
+      examples;
+      provenance;
+      semantic diff against parent.
+
+    Publication must not hide what was changed from the parent profile.
+  </profile-review>
+
+  <publication-governance>
+    Support configurable publication governance.
+
+    Possible project policies:
+
+      manual-review-required;
+      automatic-draft-publication;
+      branch-review-required;
+      explicit-publish-command-required.
+
+    Default to safe behaviour.
+
+    Generation does not automatically imply publication.
+
+    Publication does not automatically imply runtime deployment.
+
+    Runtime deployment does not automatically imply production deployment.
+  </publication-governance>
+
+  <ig-server-adapter>
+    Define an adapter abstraction for IG publication platforms.
+
+    Conceptually support:
+
+      testConnection();
+      inspectCapabilities();
+      createOrSelectProject();
+      uploadBuild();
+      publishVersion();
+      retrievePublicationStatus();
+
+    Exact operations depend on server capability.
+
+    If the user's existing IG server has a documented API available in the repository
+    or configuration, implement a concrete adapter for it.
+
+    If the API cannot be determined from available code/documentation, implement the
+    generic adapter interface and configuration mechanism without inventing an API.
+
+    Do not guess proprietary endpoints.
+  </ig-server-adapter>
+
+  <fhir-runtime-adapter>
+    Implement a generic standards-based FHIR REST adapter.
+
+    Support appropriate operations against:
+
+      /metadata
+      resource read
+      search
+      $validate where supported
+
+    Detect server capabilities before assuming optional operations exist.
+
+    Keep authentication configurable.
+
+    Support common authentication abstractions without hard-coding one provider.
+
+    Do not build vendor-specific behaviour into the generic adapter.
+  </fhir-runtime-adapter>
+
+  <terminology-adapter>
+    Implement terminology functionality through a clean adapter.
+
+    A FHIR terminology server adapter should be capable of using standard FHIR
+    terminology operations where available.
+
+    Keep room for existing non-FHIR terminology integrations.
+
+    Do not make FHIR modelling dependent on one terminology vendor.
+  </terminology-adapter>
+
+  <tooling-discovery>
+    Inspect the repository and development environment for existing:
+
+      Java runtime;
+      Node runtime;
+      package manager;
+      Docker;
+      FHIR Validator;
+      SUSHI;
+      IG Publisher;
+      FHIRPath libraries.
+
+    Prefer established tooling rather than reimplementing standards processors.
+
+    Add reproducible dependency installation/configuration where appropriate.
+
+    Pin important tooling versions where reproducibility requires it.
+
+    Document them.
+  </tooling-discovery>
+
+  <sushi>
+    Integrate SUSHI using a reproducible invocation mechanism.
+
+    Capture:
+
+      command/tool version;
+      input directory;
+      output directory;
+      exit status;
+      stdout;
+      stderr.
+
+    Parse useful diagnostics.
+
+    A failed SUSHI compilation must fail the relevant generation/build stage.
+
+    Do not claim successful StructureDefinition generation if SUSHI failed.
+  </sushi>
+
+  <ig-publisher>
+    Integrate the HL7 FHIR IG Publisher where practical for full IG builds.
+
+    Keep its execution isolated from arbitrary user-controlled command execution.
+
+    Capture:
+
+      publisher version;
+      exit code;
+      diagnostics;
+      output location;
+      build result.
+
+    Support configuration appropriate for the project's supported FHIR releases.
+
+    Do not require an external publication server merely to build an IG locally.
+  </ig-publisher>
+
+  <fhir-validator>
+    Use an established FHIR validator implementation.
+
+    Validation must support project dependencies so that custom profiles, national IGs
+    and terminology references can be resolved.
+
+    Record validator/tool version.
+
+    Capture errors and warnings.
+
+    Validation should be reproducible from the project configuration and package lock
+    state.
+  </fhir-validator>
+
+  <dependency-locking>
+    Introduce reproducible dependency locking where compatible with the selected FHIR
+    toolchain.
+
+    Preserve exact package versions used for builds.
+
+    Avoid uncontrolled "latest" dependencies in production modelling projects.
+
+    If a project explicitly requests latest package discovery, resolve the exact version
+    and persist it before building.
+  </dependency-locking>
+
+  <package-upgrades>
+    Support analysis before upgrading package dependencies.
+
+    When changing:
+
+      MII version;
+      IPS version;
+      FHIR core patch package;
+      organisation IG;
+      other dependencies;
+
+    determine potentially affected local artifacts.
+
+    Provide semantic comparison where practical.
+
+    Do not automatically rewrite all local profiles after a package upgrade without
+    reporting impact.
+  </package-upgrades>
+
+  <terminology-versioning>
+    Terminology dependencies may change independently from profiles.
+
+    Preserve terminology version information where available.
+
+    Detect when a ValueSet or CodeSystem dependency changed between builds.
+
+    Include relevant terminology changes in impact analysis.
+  </terminology-versioning>
+
+  <artifact-storage>
+    Reuse the existing artifact storage model where appropriate.
+
+    Store exact original source artifacts.
+
+    Distinguish:
+
+      authored FSH;
+      imported FHIR JSON;
+      imported FHIR XML;
+      generated JSON;
+      generated XML;
+      examples;
+      build outputs.
+
+    Never silently convert an imported artifact and discard its original representation.
+
+    Preserve source provenance.
+  </artifact-storage>
+
+  <artifact-identification>
+    Use FHIR canonical identity correctly.
+
+    Do not use filenames as the sole identity of FHIR conformance resources.
+
+    Consider:
+
+      resourceType;
+      id;
+      url;
+      version;
+      package.
+
+    Detect duplicate canonicals within incompatible contexts and report them.
+  </artifact-identification>
+
+  <artifact-save-concurrency>
+    Apply the existing stale-write/revision protection mechanism to FHIR artifacts where
+    available.
+
+    If existing artifact APIs use expectedRevision or equivalent optimistic concurrency,
+    preserve that behaviour.
+
+    Do not allow an agent to silently overwrite a newer reviewed artifact with a stale
+    generated version.
+  </artifact-save-concurrency>
+
+  <import-existing-ig>
+    Add capability to import or connect an existing FHIR IG repository.
+
+    Detect configuration.
+
+    Index existing artifacts.
+
+    Resolve dependencies.
+
+    Do not rewrite files simply because the platform imported the repository.
+
+    Allow the agent to inspect and work with established projects rather than requiring
+    every FHIR project to be generated by this application.
+  </import-existing-ig>
+
+  <import-existing-profile>
+    Allow importing standalone StructureDefinitions.
+
+    Determine:
+
+      FHIR version;
+      canonical;
+      baseDefinition;
+      dependencies;
+      package context if known.
+
+    Validate imported artifacts.
+
+    Do not assume imported StructureDefinitions were generated by SUSHI.
+
+    Preserve their original representation.
+  </import-existing-profile>
+
+  <terminology-reuse>
+    Before creating a ValueSet or CodeSystem:
+
+      search current project;
+      search configured organisation terminology;
+      search national sources;
+      search international sources;
+      query configured terminology server where appropriate.
+
+    Apply the same reuse-first philosophy used for profiles.
+
+    Creating a duplicate ValueSet because the requested display name differs is not
+    acceptable.
+  </terminology-reuse>
+
+  <extension-governance>
+    Extensions require explicit justification.
+
+    Before creating a new extension:
+
+      verify that the requirement cannot use a core element;
+      search existing project extensions;
+      search configured package extensions;
+      search national IG extensions;
+      search international IG extensions.
+
+    Record why a new extension was required.
+
+    Generate a canonical URL from configured project namespace.
+
+    Validate extension context.
+  </extension-governance>
+
+  <naming-policy>
+    Introduce configurable naming conventions.
+
+    Support conventions for:
+
+      profile names;
+      profile IDs;
+      extension IDs;
+      canonical URLs;
+      ValueSet IDs;
+      CodeSystem IDs;
+      FSH names;
+      filenames.
+
+    Do not hard-code Uganda, Germany, MII or any organisation name into generic naming
+    logic.
+
+    Project configuration should determine namespaces and prefixes.
+  </naming-policy>
+
+  <quality-rules>
+    Add configurable modelling quality rules.
+
+    Examples:
+
+      require descriptions;
+      require purpose;
+      require examples;
+      require terminology validation;
+      require no unresolved canonicals;
+      require successful validator run;
+      require no ERROR-level diagnostics;
+      optionally fail publication on configured WARNING

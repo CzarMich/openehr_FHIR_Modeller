@@ -1,3 +1,5 @@
+import { FHIR_REQUEST_TIMEOUT_MS, FHIR_ACTIONS, isFhirTool, isFhirWrite, validateFhirCall } from "./fhir-workspace.mjs";
+
 export const WRITE_TOOLS = new Set([
     "model_traceability_save",
     "governance_prepare",
@@ -12,8 +14,10 @@ export const WRITE_TOOLS = new Set([
     "model_review_request",
     "terminology_catalogue_save",
     "terminology_binding_plan_save",
+    ...Object.keys(FHIR_ACTIONS).filter((name) => FHIR_ACTIONS[name].write.length),
 ]);
 export const READ_TOOLS = new Set([
+    ...Object.keys(FHIR_ACTIONS),
     "model_traceability_get",
     "model_traceability_explain",
     "model_traceability_requirement",
@@ -85,6 +89,9 @@ export const READ_TOOLS = new Set([
     "terminology_catalogue_expand",
     "terminology_catalogue_translate",
 ]);
+export function isWriteTool(name, args) {
+    return isFhirTool(name) ? isFhirWrite(name, args) : WRITE_TOOLS.has(name);
+}
 export class McpClient {
     constructor(config, signal) {
         this.config = config;
@@ -104,7 +111,12 @@ export class McpClient {
             method: "POST",
             headers,
             body: JSON.stringify({ jsonrpc: "2.0", ...(notification ? {} : { id }), method, params }),
-            signal: AbortSignal.any([this.signal, AbortSignal.timeout(60000)]),
+            signal: AbortSignal.any([
+                this.signal,
+                AbortSignal.timeout(
+                    method === "tools/call" && isFhirTool(params?.name) ? FHIR_REQUEST_TIMEOUT_MS : 60000,
+                ),
+            ]),
             redirect: "error",
         });
         if (!response.ok) throw new Error("Modelling service unavailable");
@@ -158,7 +170,7 @@ export class McpClient {
             const result = await this.rpc("tools/list", cursor ? { cursor } : {});
             tools.push(...result.tools);
             cursor = result.nextCursor;
-            if (tools.length > 100 || cursors.size >= 100 || (cursor && cursors.has(cursor)))
+            if (tools.length > 200 || cursors.size >= 100 || (cursor && cursors.has(cursor)))
                 throw new Error("Tool catalogue too large or pagination did not advance");
             if (cursor) cursors.add(cursor);
         } while (cursor);
@@ -188,6 +200,10 @@ export class McpClient {
         }
     }
     async call(name, args) {
+        if (isFhirTool(name)) {
+            validateFhirCall(name, args);
+            if (isWriteTool(name, args) && !this.config.allowWrites) throw new Error("Tool writes are disabled");
+        }
         if (!READ_TOOLS.has(name) && !(this.config.allowWrites && WRITE_TOOLS.has(name)))
             throw new Error("Tool is not available");
         await this.tools();

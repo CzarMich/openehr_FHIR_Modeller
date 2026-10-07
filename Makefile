@@ -13,6 +13,7 @@ NC := \033[0m # No Color
 # Configuration
 DOCKER_COMPOSE ?= docker compose --env-file .env -f docker-compose.yml
 DOCKER_COMPOSE_DEV ?= docker compose --env-file .env -f docker-compose.yml -f .docker/docker-compose.dev.yml
+DOCKER_COMPOSE_FHIR_DEV ?= $(DOCKER_COMPOSE_DEV) -f .docker/docker-compose.fhir.yml -f .docker/docker-compose.fhir-dev.yml
 
 ##@ General
 
@@ -73,6 +74,14 @@ spec-check: ## Validate the SDD traceability map against the tree (drift gate)
 
 ci: ## Run CI checks in dev container (spec-check + PHPStan + tests)
 	$(DOCKER_COMPOSE_DEV) run --rm -u 1000:1000 app sh -c "composer check:spec && composer check:phpstan && composer test"
+
+fhir-dev-up: ## Build and start the isolated FHIR Dev stack (configure secrets first; docs/FHIR_DEV.md)
+	@test -s .secrets/fhir-engine-key || (echo 'Prepare .secrets/fhir-engine-key as described in docs/FHIR_DEV.md'; exit 1)
+	$(DOCKER_COMPOSE_FHIR_DEV) up -d --build --wait app chat ingress fhir
+
+fhir-dev-status: ## Inspect the isolated FHIR Dev services and actual readiness
+	$(DOCKER_COMPOSE_FHIR_DEV) ps
+	@curl --fail --silent --show-error http://localhost:18350/ready
 
 ##@ MCP inspector UI
 

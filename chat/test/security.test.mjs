@@ -832,3 +832,41 @@ test("session renewal is authenticated and CSRF protected", async (t) => {
     assert.match(response.headers.get("set-cookie"), /ModellingSession=alice/);
     assert((await response.json()).expires > Date.now());
 });
+
+test("FHIR workspace requires login, CSRF and exact confirmation before calling mutations", async (t) => {
+    const calls = [];
+    const mcp = {
+        tools: async () => [{ name: "fhir_project" }],
+        call: async (name, args) => {
+            calls.push({ name, args });
+            return { structuredContent: { success: true, result: { project: { id: "demo" } } } };
+        },
+    };
+    const { request } = await fixture(t, { mcp });
+    const data = { tool: "fhir_project", args: { action: "create", projectId: "demo", document: '{"name":"Demo"}' } };
+    const path = "/chat/api/fhir/execute";
+    assert.equal((await request(path, { method: "POST", data, user: null })).status, 401);
+    assert.equal((await request(path, { method: "POST", data, csrf: false })).status, 403);
+    assert.equal((await request(path, { method: "POST", data, originHeader: "https://attacker.example" })).status, 403);
+    const previewResponse = await request(path, { method: "POST", data });
+    assert.equal(previewResponse.status, 200);
+    const preview = await previewResponse.json();
+    assert.equal(preview.confirmationRequired, true);
+    assert.equal(calls.length, 0);
+    assert.equal(
+        (await request(path, { method: "POST", user: "bob", data: { ...data, confirmation: preview.confirmation } }))
+            .status,
+        409,
+    );
+    const confirmed = await request(path, { method: "POST", data: { ...data, confirmation: preview.confirmation } });
+    assert.equal(confirmed.status, 200);
+    assert.equal(calls.length, 1);
+    assert.equal(
+        (await request(path, { method: "POST", data: { ...data, confirmation: preview.confirmation } })).status,
+        409,
+    );
+    assert.equal(
+        (await request(path, { method: "POST", data: { tool: "model_artifact_save", args: {} } })).status,
+        404,
+    );
+});

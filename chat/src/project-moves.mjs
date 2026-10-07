@@ -1,6 +1,6 @@
 import { randomUUID, createHash } from "node:crypto";
 import { problem } from "./personal-http.mjs";
-import { artifactPath } from "./repository-paths.mjs";
+import { artifactPath, fhirArtifactPath } from "./repository-paths.mjs";
 
 const sha = (value) => typeof value === "string" && /^[a-f0-9]{40,64}$/.test(value);
 const fingerprint = (chat) => {
@@ -18,6 +18,7 @@ export function recordArtifact(chat, args, receipt = {}) {
         repository: args.repository,
         path: args.path,
         folder: chat.folder || "",
+        ...(["FHIR", "mappings"].includes(args.standard) ? { standard: args.standard } : {}),
         ...(receipt.dependency === true ? { dependency: true } : {}),
         ...(sha(receipt.commit)
             ? { commit: receipt.commit }
@@ -145,8 +146,11 @@ export class ProjectMoves {
                     artifact.folder && artifact.path.startsWith(artifact.folder + "/")
                         ? artifact.path.slice(artifact.folder.length + 1)
                         : artifact.path;
+                const targetPath = (target.folder ? target.folder + "/" : "") + relative;
                 const to = this.connections.validatePath(
-                    artifactPath((target.folder ? target.folder + "/" : "") + relative, target.folder || ""),
+                    ["FHIR", "mappings"].includes(artifact.standard)
+                        ? fhirArtifactPath(targetPath, target.folder || "", artifact.standard)
+                        : artifactPath(targetPath, target.folder || ""),
                 );
                 if (to !== artifact.path)
                     moves.push({

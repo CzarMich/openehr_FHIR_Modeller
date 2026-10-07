@@ -1,4 +1,4 @@
-# openEHR Modelling Assistant
+# openEHR and FHIR Modeller
 
 Independently maintained and developed by Michael Anywar
 
@@ -12,13 +12,30 @@ Connect Claude, Codex or another MCP client to the same `/mcp` endpoint. The opt
 browser workspace brings chat, model browsing and human review together at `/chat/`.
 A CDR and terminology server are optional.
 
+## FHIR authoring extension (Dev)
+
+This fork preserves the openEHR workspace and adds a distinct FHIR workspace for
+R4, R4B and R5 package discovery, reuse analysis, FSH authoring, SUSHI compilation,
+validation, synthetic examples, semantic comparison and explicit mapping proposals.
+The private FHIR engine is optional; see [Dev setup](docs/FHIR_DEV.md) and the
+[FHIR workspace](docs/FHIR_WORKSPACE.md).
+
+Git remains the engineering source. Use `CzarMich/fhir_ig` for FSH, generated
+resources, examples, mappings and validation evidence. The existing
+HYQ-FHIR-Governance-Platform (`CzarMich/hyq_fhir`) imports drafts and owns review,
+publication and distribution. This modeller provides its authenticated adapter;
+it does not host a second public catalogue or IG publishing service.
+
+The new fork has no enabled production deployment path. Keep development changes
+on feature branches until the user has tested and approved production promotion.
+
 ## Start locally
 
 Requires Docker Engine and Docker Compose with `env_file.required` support.
 
 ```sh
-git clone https://github.com/CzarMich/openehr-modelling-assistant.git
-cd openehr-modelling-assistant
+git clone https://github.com/CzarMich/openehr_FHIR_Modeller.git
+cd openehr_FHIR_Modeller
 cp .env.example .env
 docker compose up -d --build
 curl http://127.0.0.1:8343/health

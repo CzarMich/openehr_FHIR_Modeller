@@ -339,3 +339,21 @@ requirements:
     packages: [src/Domain/Cdr/*.php, src/Integrations/Cdr/*.php, src/Application/CdrWorkspace.php, src/Application/AqlWorkbench.php, src/Rest/CdrApi.php, src/Tools/CdrTools.php, chat/src/cdr.mjs, chat/src/repository-models.mjs, chat/src/model-cache.mjs, chat/src/aql-drafting.mjs, chat/src/workspace-tools.mjs, public/chat/aql.js, public/chat/aql.css, engine/src/main/java]
     tests: [tests/Enterprise/CdrWorkspaceTest.php, tests/Enterprise/CdrAdapterTest.php, tests/Enterprise/CdrApiTest.php, tests/Tools/CdrOutputCases.php, tests/fixtures/cdr/probe.php, scripts/test-cdr-container.sh, chat/test/cdr.test.mjs, chat/test/aql-drafting.test.mjs, chat/test/model-cache.test.mjs, chat/test/repository-models.test.mjs, chat/test/browser.spec.mjs, engine/src/test/java]
     adr: ["0024"]
+
+  - id: REQ-F25
+    title: Isolated FHIR authoring provider and cross-standard mapping proposals
+    canonical: docs/requirements.md
+    status: draft
+    implementation: partial
+    packages: [src/Domain/Fhir/*.php, src/Domain/Standards/*.php, src/Integrations/Fhir/*.php, src/Application/FhirModelling.php, src/Tools/FhirTools.php, fhir, chat/src/fhir-workspace.mjs, public/chat/fhir.js]
+    tests: [tests/Application/FhirModellingTest.php, tests/Domain/Fhir/ProjectConfigurationTest.php, tests/Tools/FhirOutputCases.php, tests/Integrations/Fhir/HttpFhirProviderTest.php, tests/Integrations/Fhir/FhirConnectionsTest.php, fhir/test, chat/test]
+    adr: ["0025"]
+
+  - id: REQ-F26
+    title: Validated draft handoff to the existing IG publication authority
+    canonical: docs/requirements.md
+    status: draft
+    implementation: partial
+    packages: [src/Integrations/Fhir/FhirConnections.php, src/Application/FhirModelling.php, chat/src/repository-paths.mjs, chat/src/fhir-workspace.mjs]
+    tests: [tests/Application/FhirModellingTest.php, chat/test]
+    adr: ["0025"]

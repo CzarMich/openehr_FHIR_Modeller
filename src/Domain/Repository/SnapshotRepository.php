@@ -146,7 +146,7 @@ class SnapshotRepository implements ModelRepository, OriginalRepository
     private function artifactPath(string $path): void
     {
         if (OriginalContent::isOriginal($path)) { OriginalContent::assertPath($path); return; }
-        if (strlen($path) > 240 || !preg_match('~^(requirements|archetypes|templates|terminology|aql|tests|validation|decisions|documentation)/[A-Za-z0-9_./-]+$~D', $path)
+        if (strlen($path) > 240 || !preg_match('~^(requirements|archetypes|templates|terminology|aql|tests|validation|decisions|documentation|fhir|mappings)/[A-Za-z0-9_./-]+$~D', $path)
             || str_contains($path, '..') || str_contains($path, '//') || str_ends_with($path, '/')) {
             throw new InvalidArgumentException('INVALID_ARTIFACT_PATH');
         }

@@ -1,0 +1,16 @@
+# Local, isolated Dev overlay. Existing openEHR deployment uses a different project.
+services:
+  app:
+    environment:
+      MODEL_REPOSITORY_PATH: /data/models/openehr
+    volumes:
+      - ./:/app
+      - ./.docker/php/zz-fhir-runtime.ini:/usr/local/etc/php/conf.d/zz-fhir-runtime.ini:ro
+  chat:
+    volumes:
+      - ./chat/src:/app/chat/src:ro
+      - ./public/chat:/app/public/chat:ro
+      - ./chat/entrypoint.mjs:/app/chat/entrypoint.mjs:ro
+  ingress:
+    ports: !override
+      - "127.0.0.1:18350:8343"

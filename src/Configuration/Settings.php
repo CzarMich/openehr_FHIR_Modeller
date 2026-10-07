@@ -10,11 +10,11 @@ use InvalidArgumentException;
 final class Settings
 {
     public const array DEFAULTS = [
-        'APP_ENV' => 'development', 'PRODUCT_NAME' => 'openEHR Modelling Assistant',
-        'PRODUCT_SHORT_NAME' => 'openEHR Modelling Assistant', 'PRODUCT_VENDOR' => 'Michael Anywar',
-        'PRODUCT_DESCRIPTION' => 'AI-assisted openEHR modelling and knowledge services',
+        'APP_ENV' => 'development', 'PRODUCT_NAME' => 'openEHR and FHIR Modeller',
+        'PRODUCT_SHORT_NAME' => 'Clinical Modeller', 'PRODUCT_VENDOR' => 'Michael Anywar',
+        'PRODUCT_DESCRIPTION' => 'openEHR and FHIR authoring, validation and mapping',
         'PRODUCT_URL' => '', 'PRODUCT_SUPPORT_URL' => '', 'PRODUCT_DOCUMENTATION_URL' => '',
-        'PRODUCT_LOGO_URL' => '', 'MCP_SERVER_NAME' => 'openehr-modelling-assistant',
+        'PRODUCT_LOGO_URL' => '', 'MCP_SERVER_NAME' => 'openehr-fhir-modeller',
         'MCP_TRANSPORT' => 'streamable-http', 'MCP_HOST' => '127.0.0.1', 'MCP_PORT' => '8343',
         'MCP_ALLOWED_HOSTS' => 'localhost,127.0.0.1,[::1]', 'CORS_ALLOWED_ORIGINS' => '',
         'AUTH_MODE' => 'none', 'AUTH_API_KEY' => '', 'AUTH_API_KEY_HEADER' => 'X-API-Key',
@@ -40,6 +40,9 @@ final class Settings
         'TERMINOLOGY_CODESYSTEM_VALIDATE_PARAMETER' => 'url',
         'HTTP_TIMEOUT' => '15', 'HTTP_SSL_VERIFY' => 'true', 'HTTP_CA_BUNDLE' => '',
         'OPENEHR_ENGINE_URL' => '', 'OPENEHR_ENGINE_KEY_FILE' => '', 'OPENEHR_ENGINE_TIMEOUT' => '50',
+        'FHIR_ENGINE_URL' => '', 'FHIR_ENGINE_KEY_FILE' => '',
+        'FHIR_REPOSITORY_PATH' => '/data/models/fhir-workspaces', 'FHIR_AUDIT_PATH' => '/data/governance/fhir.sqlite',
+        'FHIR_CONNECTIONS_FILE' => '', 'FHIR_ALLOWED_HOSTS' => '', 'FHIR_ALLOW_HTTP' => 'false',
         'CDR_ENABLED' => 'false', 'CDR_DATA_DIR' => '/data/cdr', 'CDR_ENCRYPTION_KEY_FILE' => '',
         'CDR_CONNECTIONS_FILE' => '', 'CDR_ALLOWED_HOSTS' => '', 'CDR_ALLOW_HTTP' => 'false',
         'MAX_REQUEST_BYTES' => '2097152', 'MAX_UPSTREAM_BYTES' => '8388608',
@@ -93,7 +96,7 @@ final class Settings
         if ((int) $this->get('MCP_PORT') > 65535) {
             throw new InvalidArgumentException('MCP_PORT must be <= 65535.');
         }
-        foreach (['HTTP_SSL_VERIFY', 'MODEL_REPOSITORY_WRITE_ENABLED', 'GOVERNANCE_ENABLED', 'PROJECT_RBAC_ENABLED', 'CDR_ENABLED', 'CDR_ALLOW_HTTP'] as $key) {
+        foreach (['HTTP_SSL_VERIFY', 'MODEL_REPOSITORY_WRITE_ENABLED', 'GOVERNANCE_ENABLED', 'PROJECT_RBAC_ENABLED', 'CDR_ENABLED', 'CDR_ALLOW_HTTP', 'FHIR_ALLOW_HTTP'] as $key) {
             if (!in_array($this->get($key), ['true', 'false'], true)) {
                 throw new InvalidArgumentException("$key must be true or false.");
             }
@@ -101,10 +104,13 @@ final class Settings
         if ($this->get('HTTP_SSL_VERIFY') !== 'true') {
             throw new InvalidArgumentException('TLS verification cannot be disabled. Configure HTTP_CA_BUNDLE.');
         }
-        foreach (['CDR_DATA_DIR', 'CDR_ENCRYPTION_KEY_FILE', 'CDR_CONNECTIONS_FILE'] as $key) {
+        foreach (['CDR_DATA_DIR', 'CDR_ENCRYPTION_KEY_FILE', 'CDR_CONNECTIONS_FILE', 'FHIR_REPOSITORY_PATH', 'FHIR_AUDIT_PATH', 'FHIR_CONNECTIONS_FILE', 'FHIR_ENGINE_KEY_FILE'] as $key) {
             if ($this->get($key) !== '' && (!str_starts_with($this->get($key), '/') || str_contains($this->get($key), "\0"))) {
                 throw new InvalidArgumentException('Invalid CDR storage configuration.');
             }
+        }
+        if ($this->get('FHIR_ENGINE_URL') !== '' && $this->get('FHIR_ENGINE_URL') !== 'http://fhir:8094') {
+            self::validateUrl($this->get('FHIR_ENGINE_URL'));
         }
         if ($this->get('AUTH_MODE') === 'api_key' && strlen($this->get('AUTH_API_KEY')) < 32) {
             throw new InvalidArgumentException('AUTH_API_KEY must contain at least 32 characters.');

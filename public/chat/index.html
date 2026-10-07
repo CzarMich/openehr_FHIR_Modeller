@@ -13,6 +13,8 @@
         <script src="/chat/identity.js" type="module"></script>
         <script src="/chat/aql.js" type="module"></script>
         <link rel="stylesheet" href="/chat/aql.css" />
+        <script src="/chat/fhir.js" type="module"></script>
+        <link rel="stylesheet" href="/chat/fhir.css" />
     </head>
     <body data-section="chat">
         <a class="skip-link" href="#workspace-content">Skip to workspace</a>
@@ -71,6 +73,26 @@
                             <path d="M3 8V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2" />
                         </svg>
                         Models
+                    </button>
+                    <button
+                        id="tab-fhir"
+                        role="tab"
+                        aria-controls="panel-fhir"
+                        aria-selected="false"
+                        tabindex="-1"
+                        data-tab="fhir"
+                    >
+                        FHIR modelling
+                    </button>
+                    <button
+                        id="tab-mappings"
+                        role="tab"
+                        aria-controls="panel-mappings"
+                        aria-selected="false"
+                        tabindex="-1"
+                        data-tab="mappings"
+                    >
+                        Cross-standard mappings
                     </button>
                     <button
                         id="tab-aql"
@@ -1041,9 +1063,500 @@
                     </dialog>
                 </section>
 
+                <section
+                    id="panel-fhir"
+                    role="tabpanel"
+                    aria-labelledby="tab-fhir"
+                    class="content-panel fhir-panel"
+                    hidden
+                >
+                    <div class="page-intro">
+                        <p class="eyebrow">FHIR AUTHORING WORKSPACE</p>
+                        <h1>FHIR modelling</h1>
+                        <p>
+                            Discover authoritative packages, author profiles and validate exact drafts. Git holds the
+                            engineering source; your existing IG server publishes and distributes reviewed artifacts.
+                        </p>
+                    </div>
+                    <p id="fhir-notice" role="status" aria-live="polite">Sign in to load FHIR projects.</p>
+                    <div class="fhir-toolbar">
+                        <label for="fhir-project">FHIR project</label
+                        ><select id="fhir-project" disabled>
+                            <option value="">Select a project</option>
+                        </select>
+                        <button id="fhir-refresh" type="button" class="secondary-button" disabled>
+                            Refresh FHIR projects
+                        </button>
+                        <button id="fhir-new-project" type="button" class="primary-button" disabled>
+                            New FHIR project
+                        </button>
+                    </div>
+                    <p id="fhir-context" class="revision-note">
+                        FHIR workspaces have independent releases, dependencies and repositories.
+                    </p>
+                    <details id="fhir-project-settings" class="fhir-card">
+                        <summary>Project configuration and knowledge sources</summary>
+                        <form id="fhir-project-form">
+                            <fieldset id="fhir-project-fields" disabled>
+                                <div class="fhir-grid">
+                                    <label
+                                        >Project identifier<input
+                                            name="id"
+                                            required
+                                            maxlength="64"
+                                            pattern="[A-Za-z0-9][A-Za-z0-9_-]{0,63}"
+                                    /></label>
+                                    <label>Project name<input name="name" required /></label>
+                                    <label
+                                        >FHIR release<select name="fhirVersion">
+                                            <option value="4.0.1">R4 · 4.0.1</option>
+                                            <option value="4.3.0">R4B · 4.3.0</option>
+                                            <option value="5.0.0">R5 · 5.0.0</option>
+                                        </select></label
+                                    >
+                                    <label
+                                        >Canonical base URL<input
+                                            name="canonical"
+                                            type="url"
+                                            required
+                                            placeholder="https://your-namespace.example/fhir"
+                                    /></label>
+                                    <label
+                                        >Package ID<input name="packageId" required placeholder="org.example.clinical"
+                                    /></label>
+                                    <label>Package version<input name="version" required value="0.1.0" /></label>
+                                    <label>Publisher<input name="publisher" required /></label>
+                                    <label
+                                        >Jurisdiction<input name="jurisdiction" placeholder="Project jurisdiction"
+                                    /></label>
+                                    <label>Default language<input name="language" value="en" /></label>
+                                    <label
+                                        >Shared clinical project<input
+                                            name="clinicalProjectId"
+                                            placeholder="Optional higher-level project ID"
+                                    /></label>
+                                    <label
+                                        >Source format<select name="sourceFormat">
+                                            <option value="fsh">FHIR Shorthand (FSH)</option>
+                                            <option value="json">FHIR JSON</option>
+                                        </select></label
+                                    >
+                                    <label
+                                        >FHIR Git repository<input
+                                            name="repositoryUrl"
+                                            type="url"
+                                            value="https://github.com/CzarMich/fhir_ig"
+                                            required
+                                    /></label>
+                                    <label
+                                        >Repository provider<select name="repositoryProvider">
+                                            <option value="github">GitHub</option>
+                                            <option value="gitlab">GitLab</option>
+                                            <option value="filesystem">Filesystem</option>
+                                        </select></label
+                                    >
+                                    <label
+                                        >Repository branch<input name="repositoryBranch" value="main" required
+                                    /></label>
+                                    <label
+                                        >Artifact root folder<input
+                                            name="repositoryRoot"
+                                            placeholder="Empty for repository root"
+                                    /></label>
+                                    <label
+                                        >Private Git connection ID<input
+                                            name="repositoryConnection"
+                                            placeholder="Connection from Chat settings"
+                                    /></label>
+                                    <label
+                                        >IG server connection ID<input
+                                            name="ig"
+                                            placeholder="Publication and distribution"
+                                    /></label>
+                                    <label
+                                        >Runtime FHIR connection ID<input
+                                            name="runtime"
+                                            placeholder="Operational test resources"
+                                    /></label>
+                                    <label
+                                        >Terminology connection ID<input
+                                            name="terminology"
+                                            placeholder="Terminology operations"
+                                    /></label>
+                                </div>
+                                <label
+                                    >Exact package dependencies (JSON)<textarea
+                                        name="dependencies"
+                                        rows="4"
+                                        spellcheck="false"
+                                    >
+[]</textarea
+                                    >
+                                </label>
+                                <p class="field-hint">
+                                    Use objects with id, version and optional source. Versions must be exact; release
+                                    conflicts are reported by the service.
+                                </p>
+                                <label
+                                    >Preferred knowledge sources (JSON)<textarea
+                                        name="sources"
+                                        rows="4"
+                                        spellcheck="false"
+                                    >
+[]</textarea
+                                    >
+                                </label>
+                                <p class="field-hint">
+                                    Use configured source IDs, URLs and priorities. National sources such as MII or ISiK
+                                    are project choices, never a universal default.
+                                </p>
+                                <label
+                                    >Generation and governance policy (JSON)<textarea
+                                        name="policy"
+                                        rows="3"
+                                        spellcheck="false"
+                                    >
+{}</textarea
+                                    >
+                                </label>
+                                <button type="submit" class="primary-button">Review project changes</button>
+                            </fieldset>
+                        </form>
+                    </details>
+                    <div id="fhir-project-work" hidden>
+                        <section class="fhir-card" aria-labelledby="fhir-discovery-title">
+                            <h2 id="fhir-discovery-title">Reuse analysis and profile authoring</h2>
+                            <form id="fhir-discovery-form">
+                                <label
+                                    >Clinical requirements<textarea
+                                        id="fhir-requirement"
+                                        rows="3"
+                                        required
+                                        placeholder="Describe the data to exchange, purpose, jurisdiction and additional constraints."
+                                    ></textarea>
+                                </label>
+                                <div class="fhir-grid">
+                                    <label
+                                        >Base resource<input
+                                            id="fhir-base-resource"
+                                            value="Observation"
+                                            required /></label
+                                    ><label
+                                        >Profile identifier<input
+                                            id="fhir-profile-id"
+                                            placeholder="clinical-observation" /></label
+                                    ><label
+                                        >Profile name<input
+                                            id="fhir-profile-name"
+                                            placeholder="ClinicalObservation" /></label
+                                    ><label>Profile title<input id="fhir-profile-title" /></label>
+                                </div>
+                                <label
+                                    >Structured constraints (JSON)<textarea
+                                        id="fhir-constraints"
+                                        rows="4"
+                                        spellcheck="false"
+                                    >
+[]</textarea
+                                    >
+                                </label>
+                                <p class="field-hint">
+                                    Use the assistant to extract typed constraints from your requirements. Candidate
+                                    ranking and generation use the same backend as the agent.
+                                </p>
+                                <div class="fhir-actions">
+                                    <button type="submit" class="secondary-button">Discover reusable profiles</button
+                                    ><button id="fhir-discuss" type="button" class="secondary-button">
+                                        Analyse requirements in chat</button
+                                    ><button id="fhir-generate" type="button" class="primary-button">
+                                        Generate draft FSH
+                                    </button>
+                                </div>
+                            </form>
+                            <div id="fhir-candidates" class="fhir-results"></div>
+                            <pre id="fhir-reuse-result" class="fhir-output" tabindex="0" hidden></pre>
+                        </section>
+                        <section class="fhir-card" aria-labelledby="fhir-package-title">
+                            <h2 id="fhir-package-title">Authoritative packages</h2>
+                            <form id="fhir-package-form" class="fhir-toolbar">
+                                <label>Package or artifact search<input id="fhir-package-query" type="search" /></label
+                                ><button type="submit" class="secondary-button">Search installed artifacts</button
+                                ><button id="fhir-package-search" type="button" class="secondary-button">
+                                    Search package registry</button
+                                ><button id="fhir-dependencies" type="button" class="secondary-button">
+                                    Inspect dependencies
+                                </button>
+                            </form>
+                            <form id="fhir-install-form" class="fhir-toolbar">
+                                <label>Package ID to install<input id="fhir-install-id" required /></label
+                                ><label>Exact version<input id="fhir-install-version" required /></label
+                                ><button type="submit" class="secondary-button">Review package installation</button>
+                            </form>
+                            <div id="fhir-package-list" class="fhir-results"></div>
+                            <pre id="fhir-package-result" class="fhir-output" tabindex="0" hidden></pre>
+                        </section>
+                        <section class="fhir-card" aria-labelledby="fhir-artifact-title">
+                            <h2 id="fhir-artifact-title">Artifacts, source and validation</h2>
+                            <div class="fhir-toolbar">
+                                <button id="fhir-artifact-refresh" type="button" class="secondary-button">
+                                    Refresh project artifacts</button
+                                ><label
+                                    >Saved or generated artifact<select id="fhir-artifact-select">
+                                        <option value="">New draft</option>
+                                    </select></label
+                                >
+                            </div>
+                            <div class="fhir-grid">
+                                <label
+                                    >Repository path<input
+                                        id="fhir-artifact-path"
+                                        placeholder="input/fsh/ClinicalObservation.fsh" /></label
+                                ><label
+                                    >Representation<select id="fhir-representation">
+                                        <option value="authored">Authored source</option>
+                                        <option value="imported">Imported original</option>
+                                        <option value="generated">Generated artifact</option>
+                                        <option value="example">Synthetic example</option>
+                                    </select></label
+                                ><label
+                                    >Source format<select id="fhir-format">
+                                        <option value="fsh">FSH</option>
+                                        <option value="json">FHIR JSON</option>
+                                        <option value="xml">FHIR XML (source preservation)</option>
+                                    </select></label
+                                >
+                            </div>
+                            <label
+                                >Exact source<textarea
+                                    id="fhir-source"
+                                    class="fhir-source"
+                                    rows="12"
+                                    spellcheck="false"
+                                ></textarea>
+                            </label>
+                            <p class="field-hint">
+                                XML originals can be saved and downloaded unchanged. Inspection, semantic comparison and
+                                FHIR validation currently require JSON. Keep the XML original when creating a JSON
+                                working copy.
+                            </p>
+                            <p id="fhir-artifact-revision" class="revision-note">
+                                Unsaved draft · validation has not run.
+                            </p>
+                            <div class="fhir-actions">
+                                <button id="fhir-inspect" type="button" class="secondary-button">
+                                    Inspect artifact</button
+                                ><button id="fhir-compile" type="button" class="secondary-button">
+                                    Compile FSH with SUSHI</button
+                                ><button id="fhir-validate" type="button" class="secondary-button">
+                                    Validate exact artifact</button
+                                ><button id="fhir-save" type="button" class="primary-button">Review draft save</button
+                                ><button id="fhir-git" type="button" class="secondary-button">
+                                    Prepare Git commit in chat</button
+                                ><button id="fhir-download" type="button" class="secondary-button">
+                                    Download source
+                                </button>
+                            </div>
+                            <label
+                                >Example validation target profile (optional canonical URL)<input
+                                    id="fhir-validation-profile"
+                                    type="url"
+                            /></label>
+                            <p id="fhir-validation-state" role="status">
+                                Not validated. Compilation and clinical approval are separate from validator results.
+                            </p>
+                            <div id="fhir-artifact-inspector"></div>
+                            <details>
+                                <summary>Provenance and processing evidence</summary>
+                                <pre id="fhir-artifact-evidence" class="fhir-output" tabindex="0"></pre>
+                            </details>
+                            <details>
+                                <summary>Synthetic example generation</summary>
+                                <label
+                                    >Example identifier<input id="fhir-example-id" value="synthetic-example"
+                                /></label>
+                                <label
+                                    >Synthetic values by element path (JSON)<textarea
+                                        id="fhir-example-values"
+                                        rows="4"
+                                        spellcheck="false"
+                                    >
+{}</textarea
+                                    >
+                                </label>
+                                <p class="field-hint">
+                                    Select a StructureDefinition in JSON first. Supply synthetic values for required
+                                    elements; the generator reports missing semantics instead of inventing clinical
+                                    values. Generated examples require validation.
+                                </p>
+                                <button id="fhir-example-generate" type="button" class="secondary-button">
+                                    Generate synthetic example
+                                </button>
+                            </details>
+                            <details>
+                                <summary>Semantic comparison</summary>
+                                <label
+                                    >Earlier artifact or parent profile (FHIR JSON)<textarea
+                                        id="fhir-diff-before"
+                                        rows="6"
+                                        spellcheck="false"
+                                    ></textarea></label
+                                ><button id="fhir-diff" type="button" class="secondary-button">
+                                    Compare with current JSON
+                                </button>
+                                <pre id="fhir-diff-result" class="fhir-output" tabindex="0" hidden></pre>
+                            </details>
+                            <details>
+                                <summary>FHIRPath</summary>
+                                <label
+                                    >Expression<input
+                                        id="fhirpath-expression"
+                                        placeholder="Observation.value.exists()" /></label
+                                ><button id="fhirpath-evaluate" type="button" class="secondary-button">
+                                    Evaluate on current JSON
+                                </button>
+                                <pre id="fhirpath-result" class="fhir-output" tabindex="0" hidden></pre>
+                            </details>
+                        </section>
+                        <section class="fhir-card" aria-labelledby="fhir-connections-title">
+                            <h2 id="fhir-connections-title">Connections and publication handoff</h2>
+                            <p>
+                                Git stores source and review history. The IG server owns publication and distribution.
+                                The runtime FHIR server holds operational resources. The terminology server resolves and
+                                validates terminology.
+                            </p>
+                            <div id="fhir-connection-list" class="fhir-results"></div>
+                            <button id="fhir-connection-refresh" type="button" class="secondary-button">
+                                Inspect configured connections
+                            </button>
+                            <p class="field-hint">
+                                Server credentials are managed by the deployment administrator. Private Git credentials
+                                are managed in Chat settings. Secrets never belong in project configuration.
+                            </p>
+                            <div class="fhir-actions">
+                                <button id="fhir-ig-test" type="button" class="secondary-button">Test IG server</button
+                                ><button id="fhir-ig-projects" type="button" class="secondary-button">
+                                    List IG destinations</button
+                                ><button id="fhir-ig-status" type="button" class="secondary-button">
+                                    Publication status
+                                </button>
+                            </div>
+                            <label
+                                >IG adapter operation arguments (JSON)<textarea
+                                    id="fhir-ig-arguments"
+                                    rows="4"
+                                    spellcheck="false"
+                                >
+{}</textarea
+                                >
+                            </label>
+                            <p class="field-hint">
+                                For submission use {"paths":["input/resources/profile.json"]}; for Git import use
+                                {"commitSha":"the exact 40-character Git revision"}. Both operations create drafts. The
+                                destination is configured on the IG connection. Build, governance review and publication
+                                continue in the existing IG platform. Development testing never implies production
+                                deployment.
+                            </p>
+                            <div class="fhir-actions">
+                                <button id="fhir-ig-submit" type="button" class="secondary-button">
+                                    Review validated submission</button
+                                ><button id="fhir-ig-sync" type="button" class="secondary-button">
+                                    Review Git import
+                                </button>
+                            </div>
+                            <pre id="fhir-connection-result" class="fhir-output" tabindex="0" hidden></pre>
+                        </section>
+                    </div>
+                </section>
+                <section
+                    id="panel-mappings"
+                    role="tabpanel"
+                    aria-labelledby="tab-mappings"
+                    class="content-panel fhir-panel"
+                    hidden
+                >
+                    <div class="page-intro">
+                        <p class="eyebrow">CROSS-STANDARD ANALYSIS</p>
+                        <h1>Cross-standard mappings</h1>
+                        <p>
+                            Relate explicit openEHR and FHIR semantics with versioned evidence, transformation rules and
+                            unresolved gaps. Proposals require review; matching names do not establish equivalence or
+                            lossless conversion.
+                        </p>
+                    </div>
+                    <p id="mapping-notice" role="status" aria-live="polite">
+                        Select a FHIR project to analyse mappings.
+                    </p>
+                    <label
+                        >Mapping project<select id="mapping-project" disabled>
+                            <option value="">Select a project</option>
+                        </select></label
+                    >
+                    <section class="fhir-card">
+                        <h2>Analyse source semantics</h2>
+                        <label
+                            >Extracted source model (JSON)<textarea
+                                id="mapping-source"
+                                rows="8"
+                                spellcheck="false"
+                                placeholder='{"standard":"openEHR","artifact":"...","version":"...","elements":[]}'
+                            ></textarea></label
+                        ><label>Mapping requirement<textarea id="mapping-requirement" rows="3"></textarea></label
+                        ><label
+                            >Candidate FHIR base resource<input id="mapping-base-resource" value="Observation"
+                        /></label>
+                        <div class="fhir-actions">
+                            <button id="mapping-analyse" type="button" class="primary-button" disabled>
+                                Analyse mapping proposals</button
+                            ><button id="mapping-discuss" type="button" class="secondary-button" disabled>
+                                Inspect openEHR source in chat
+                            </button>
+                        </div>
+                        <pre id="mapping-analysis" class="fhir-output" tabindex="0" hidden></pre>
+                    </section>
+                    <section class="fhir-card">
+                        <h2>Versioned mapping proposal</h2>
+                        <label
+                            >Mapping document (JSON)<textarea
+                                id="mapping-document"
+                                rows="12"
+                                spellcheck="false"
+                                placeholder='{"id":"mapping-id","source":{"standard":"openEHR","artifact":"...","version":"...","path":"..."},"target":{"standard":"FHIR","artifact":"...","version":"...","path":"..."},"relationship":"conditional","provenance":{}}'
+                            ></textarea>
+                        </label>
+                        <p class="field-hint">
+                            Include source and target versions and paths, the relationship, transformation or
+                            terminology rules, and provenance. Mapping artifacts can use a dedicated Git repository
+                            selected in Chat settings.
+                        </p>
+                        <div class="fhir-actions">
+                            <button id="mapping-save" type="button" class="primary-button" disabled>
+                                Review mapping save</button
+                            ><button id="mapping-list" type="button" class="secondary-button" disabled>
+                                List saved mappings</button
+                            ><button id="mapping-git" type="button" class="secondary-button" disabled>
+                                Prepare mapping Git commit
+                            </button>
+                        </div>
+                        <pre id="mapping-result" class="fhir-output" tabindex="0" hidden></pre>
+                    </section>
+                </section>
+                <dialog id="fhir-confirm-dialog" aria-labelledby="fhir-confirm-title">
+                    <h2 id="fhir-confirm-title">Review FHIR change</h2>
+                    <p id="fhir-confirm-summary"></p>
+                    <pre id="fhir-confirm-request" class="fhir-output" tabindex="0"></pre>
+                    <p>
+                        This confirms only the displayed operation. Validation evidence, governance review and
+                        publication remain separate steps.
+                    </p>
+                    <form method="dialog" class="fhir-actions">
+                        <button value="cancel" class="secondary-button">Cancel change</button
+                        ><button value="confirm" class="primary-button">Confirm exact change</button>
+                    </form>
+                </dialog>
+
                 <section id="panel-models" role="tabpanel" aria-labelledby="tab-models" class="content-panel" hidden>
                     <div class="page-intro">
-                        <p class="eyebrow">MODEL REPOSITORY</p>
+                        <p class="eyebrow">OPENEHR MODEL REPOSITORY</p>
                         <h1>Your models</h1>
                         <p>
                             Browse project artifacts, inspect their exact source, and keep revision context as you work.

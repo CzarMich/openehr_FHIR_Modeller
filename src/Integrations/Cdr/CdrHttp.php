@@ -41,7 +41,7 @@ class CdrHttp
         if ($timeout < 1 || $timeout > 120 || !in_array($method, ['GET', 'POST', 'OPTIONS'], true)) { throw new \InvalidArgumentException('CDR_INVALID_REQUEST'); }
         $host = $target['host'];
         $addresses = filter_var($host, FILTER_VALIDATE_IP) ? [$host] : array_values(array_filter(array_merge(
-            array_column(dns_get_record($host, DNS_A) ?: [], 'ip'), array_column(dns_get_record($host, DNS_AAAA) ?: [], 'ipv6')
+            array_column(@dns_get_record($host, DNS_A) ?: [], 'ip'), array_column(@dns_get_record($host, DNS_AAAA) ?: [], 'ipv6')
         )));
         if ($addresses === []) { throw new \RuntimeException('CDR_DNS_FAILED'); }
         if (!in_array($host, $this->settings->csv('CDR_ALLOWED_HOSTS'), true)) {

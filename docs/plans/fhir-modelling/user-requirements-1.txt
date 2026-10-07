@@ -1,0 +1,782 @@
+<codex-task>
+
+  <identity>
+    <project>openEHR Modelling Assistant</project>
+    <task-name>Add FHIR Profiling, Implementation Guide, Package and Publication Capabilities</task-name>
+    <execution-mode>autonomous</execution-mode>
+    <instruction>
+      Work autonomously from repository inspection through implementation, testing,
+      documentation, migration and final verification.
+
+      Do not stop after producing an implementation plan.
+      Do not repeatedly ask for permission to continue.
+      Inspect the existing architecture first and adapt these requirements to it.
+      Preserve all existing openEHR functionality and backwards compatibility.
+
+      Make reasonable engineering decisions where implementation details are not explicitly
+      specified. Prefer modular, standards-based and maintainable implementations.
+
+      Do not fabricate FHIR conformance.
+      Do not claim validation succeeded unless an actual validator or equivalent deterministic
+      validation mechanism executed successfully.
+    </instruction>
+  </identity>
+
+
+  <!-- ================================================================ -->
+  <!-- 1. PRIMARY OBJECTIVE                                             -->
+  <!-- ================================================================ -->
+
+  <objective>
+
+    Extend the existing openEHR Modelling Assistant into a multi-standard clinical
+    modelling platform.
+
+    The platform must support at least two independent modelling domains:
+
+    1. openEHR
+    2. HL7 FHIR
+
+    The existing openEHR functionality must remain intact.
+
+    FHIR must be implemented as a separate standards provider/module rather than by
+    contaminating openEHR-specific code with FHIR logic.
+
+    The resulting conceptual architecture should be:
+
+    Clinical Modelling Platform
+        |
+        +-- Common Platform Services
+        |     +-- MCP / agent interface
+        |     +-- artifact management
+        |     +-- repository management
+        |     +-- provenance
+        |     +-- versioning
+        |     +-- authentication/secrets
+        |     +-- audit
+        |
+        +-- openEHR Provider
+        |     +-- archetypes
+        |     +-- templates
+        |     +-- OPT
+        |     +-- ADL/AOM
+        |     +-- AQL
+        |     +-- openEHR CDR connections
+        |
+        +-- FHIR Provider
+        |     +-- StructureDefinitions
+        |     +-- Profiles
+        |     +-- Extensions
+        |     +-- ValueSets
+        |     +-- CodeSystems
+        |     +-- ConceptMaps
+        |     +-- SearchParameters
+        |     +-- CapabilityStatements
+        |     +-- FSH
+        |     +-- FHIRPath
+        |     +-- Packages
+        |     +-- Implementation Guides
+        |     +-- validation
+        |
+        +-- Terminology Services
+        |
+        +-- Repository Services
+        |
+        +-- Runtime Connections
+
+  </objective>
+
+
+  <!-- ================================================================ -->
+  <!-- 2. NON-DESTRUCTIVE ARCHITECTURE                                  -->
+  <!-- ================================================================ -->
+
+  <architecture>
+
+    <requirement>
+      Do not rewrite or remove the existing openEHR implementation merely to introduce FHIR.
+    </requirement>
+
+    <requirement>
+      Refactor common functionality only where doing so clearly improves the architecture
+      and existing tests demonstrate that openEHR behaviour remains unchanged.
+    </requirement>
+
+    <requirement>
+      Introduce a standards-provider abstraction if an equivalent abstraction does not
+      already exist.
+    </requirement>
+
+    <conceptual-interface>
+      A standards provider should be capable of exposing functions conceptually equivalent to:
+
+      - identify standard
+      - identify artifact type
+      - inspect artifact
+      - create artifact
+      - update artifact
+      - validate artifact
+      - diff artifact
+      - resolve dependencies
+      - resolve terminology
+      - save artifact
+      - retrieve artifact
+      - publish artifact
+      - obtain provenance
+    </conceptual-interface>
+
+    <providers>
+      <provider>openEHR</provider>
+      <provider>FHIR</provider>
+    </providers>
+
+  </architecture>
+
+
+  <!-- ================================================================ -->
+  <!-- 3. FHIR VERSION SUPPORT                                          -->
+  <!-- ================================================================ -->
+
+  <fhir-versioning>
+
+    Support explicit FHIR version selection.
+
+    Initial architecture must accommodate:
+
+    - R4
+    - R4B
+    - R5
+
+    Do not silently mix artifacts from different FHIR releases.
+
+    Every FHIR workspace/project must declare its FHIR version.
+
+    Every package dependency must be checked for compatibility with the configured
+    FHIR version.
+
+    Validation must occur against the configured version.
+
+  </fhir-versioning>
+
+
+  <!-- ================================================================ -->
+  <!-- 4. FHIR PROJECT / WORKSPACE                                      -->
+  <!-- ================================================================ -->
+
+  <fhir-workspace>
+
+    Add a FHIR modelling workspace/project concept.
+
+    Store configuration such as:
+
+    <configuration>
+      <field>project name</field>
+      <field>FHIR version</field>
+      <field>canonical base URL</field>
+      <field>FHIR package ID</field>
+      <field>package version</field>
+      <field>publisher</field>
+      <field>jurisdiction</field>
+      <field>default language</field>
+      <field>source repository</field>
+      <field>repository branch</field>
+      <field>IG server</field>
+      <field>FHIR runtime server</field>
+      <field>terminology server</field>
+      <field>package dependencies</field>
+      <field>preferred knowledge sources</field>
+      <field>profile-generation policy</field>
+    </configuration>
+
+    FHIR projects must be independent from openEHR projects while allowing both to belong
+    to the same higher-level clinical modelling project.
+
+  </fhir-workspace>
+
+
+  <!-- ================================================================ -->
+  <!-- 5. REPOSITORY MODEL                                              -->
+  <!-- ================================================================ -->
+
+  <repositories>
+
+    Do not assume openEHR and FHIR artifacts use the same Git repository.
+
+    Support independent repository configuration.
+
+    Example:
+
+    Project: Uganda Maternal Health
+
+      openEHR:
+        repository: clinical-models-openehr
+
+      FHIR:
+        repository: clinical-models-fhir
+
+      mappings:
+        repository: clinical-model-mappings
+
+    However, do not hard-code this structure.
+
+    Repository configuration must support:
+
+    <repository-properties>
+      <property>provider/standard</property>
+      <property>repository URL</property>
+      <property>branch</property>
+      <property>artifact root path</property>
+      <property>authentication configuration</property>
+      <property>read/write permissions</property>
+    </repository-properties>
+
+    Reuse the existing GitHub/GitLab/filesystem repository infrastructure where possible.
+
+  </repositories>
+
+
+  <!-- ================================================================ -->
+  <!-- 6. FHIR SOURCE-OF-TRUTH MODEL                                    -->
+  <!-- ================================================================ -->
+
+  <source-of-truth>
+
+    Treat source-controlled FHIR artifacts as the engineering source of truth.
+
+    The Implementation Guide server is a publication/governance/distribution destination.
+
+    A runtime FHIR server is a deployment/testing/runtime destination.
+
+    These three concepts MUST NOT be treated as identical:
+
+      1. Git repository
+      2. Implementation Guide server
+      3. Runtime FHIR server
+
+    Maintain separate connection types for each.
+
+  </source-of-truth>
+
+
+  <!-- ================================================================ -->
+  <!-- 7. FHIR AUTHORING FORMATS                                        -->
+  <!-- ================================================================ -->
+
+  <fhir-authoring>
+
+    Support FHIR Shorthand (FSH) as a first-class authoring format.
+
+    Where appropriate integrate SUSHI for deterministic generation of FHIR artifacts.
+
+    Support:
+
+    - FSH
+    - FHIR JSON
+    - FHIR XML where practical
+
+    Preferred authoring pipeline:
+
+      requirements
+          ->
+      modelling analysis
+          ->
+      FSH
+          ->
+      SUSHI
+          ->
+      StructureDefinition/resources
+          ->
+      FHIR validation
+          ->
+      review
+          ->
+      Git
+          ->
+      IG build/publication
+
+    Preserve source FSH.
+
+    Generated JSON must not replace FSH source unless the project explicitly chooses
+    JSON-first authoring.
+
+  </fhir-authoring>
+
+
+  <!-- ================================================================ -->
+  <!-- 8. FHIR ARTIFACT TYPES                                           -->
+  <!-- ================================================================ -->
+
+  <fhir-artifacts>
+
+    Implement inspection, creation, modification, validation, storage and retrieval for:
+
+    <artifact>StructureDefinition</artifact>
+    <artifact>Profile</artifact>
+    <artifact>Extension</artifact>
+    <artifact>ValueSet</artifact>
+    <artifact>CodeSystem</artifact>
+    <artifact>ConceptMap</artifact>
+    <artifact>SearchParameter</artifact>
+    <artifact>CapabilityStatement</artifact>
+    <artifact>ImplementationGuide</artifact>
+    <artifact>OperationDefinition</artifact>
+
+    Also support FHIR example instances associated with profiles.
+
+  </fhir-artifacts>
+
+
+  <!-- ================================================================ -->
+  <!-- 9. AUTHORITATIVE KNOWLEDGE SOURCES                               -->
+  <!-- ================================================================ -->
+
+  <knowledge-sources>
+
+    This is a critical requirement.
+
+    The agent MUST NOT generate profiles based solely on LLM knowledge.
+
+    Introduce authoritative FHIR knowledge sources.
+
+    Support FHIR package/IG sources including:
+
+    <source priority="base">
+      HL7 FHIR core packages
+    </source>
+
+    <source priority="international">
+      HL7 International Implementation Guides
+    </source>
+
+    <source priority="international">
+      International Patient Summary
+    </source>
+
+    <source priority="international">
+      WHO SMART Guidelines / compatible WHO FHIR implementation artifacts
+    </source>
+
+    <source priority="national">
+      German Medical Informatics Initiative / MII Kerndatensatz
+    </source>
+
+    <source priority="national">
+      German ISiK specifications
+    </source>
+
+    <source priority="national">
+      other configured national Implementation Guides
+    </source>
+
+    <source priority="organisation">
+      organisation-specific Implementation Guides
+    </source>
+
+    <source priority="project">
+      project-specific Implementation Guides
+    </source>
+
+    <source priority="project">
+      existing artifacts from the configured Git repository
+    </source>
+
+    Sources must be configurable.
+
+    Do not hard-code Germany or MII as universally applicable.
+
+  </knowledge-sources>
+
+
+  <!-- ================================================================ -->
+  <!-- 10. FHIR PACKAGE REGISTRY                                        -->
+  <!-- ================================================================ -->
+
+  <package-registry>
+
+    Implement a FHIR package registry/dependency subsystem.
+
+    It must be capable of recording and resolving:
+
+    - package ID
+    - package version
+    - FHIR version
+    - canonical URL
+    - dependencies
+    - package source
+    - installation/cache status
+    - provenance
+
+    Allow users/projects to register package sources.
+
+    Support package dependency resolution.
+
+    Cache resolved packages locally where appropriate.
+
+    Never silently substitute a different package version.
+
+    Persist the exact package version used during modelling and validation.
+
+  </package-registry>
+
+
+  <!-- ================================================================ -->
+  <!-- 11. MII SUPPORT                                                  -->
+  <!-- ================================================================ -->
+
+  <mii>
+
+    Add MII as a configurable FHIR knowledge source.
+
+    The agent should be able to inspect installed/configured MII packages and determine
+    whether an existing MII profile, extension, ValueSet or CodeSystem satisfies a
+    modelling requirement.
+
+    Example request:
+
+      "Create a laboratory result profile for a German research project using MII
+       wherever possible."
+
+    Expected behaviour:
+
+      1. determine configured FHIR version;
+      2. inspect project dependencies;
+      3. search configured MII packages;
+      4. identify potentially reusable profiles;
+      5. inspect their constraints;
+      6. inspect terminology bindings;
+      7. prefer reuse or derivation;
+      8. create new constraints only when necessary;
+      9. record the package/version from which the artifact derives.
+
+    Never copy an MII artifact and silently claim it is locally authored.
+
+    Preserve provenance.
+
+  </mii>
+
+
+  <!-- ================================================================ -->
+  <!-- 12. PROFILE GENERATION POLICY                                    -->
+  <!-- ================================================================ -->
+
+  <profile-generation-policy>
+
+    Before generating a new StructureDefinition/Profile, execute a deterministic
+    discovery workflow.
+
+    <step number="1">
+      Determine the project's FHIR release.
+    </step>
+
+    <step number="2">
+      Determine the clinical/business requirement.
+    </step>
+
+    <step number="3">
+      Identify the appropriate base FHIR resource.
+    </step>
+
+    <step number="4">
+      Search configured project artifacts.
+    </step>
+
+    <step number="5">
+      Search configured organisation profiles.
+    </step>
+
+    <step number="6">
+      Search configured national IGs.
+    </step>
+
+    <step number="7">
+      Search configured international IGs.
+    </step>
+
+    <step number="8">
+      Inspect FHIR core.
+    </step>
+
+    <step number="9">
+      Search terminology resources.
+    </step>
+
+    <step number="10">
+      Decide whether to:
+        - reuse,
+        - derive,
+        - further constrain,
+        - extend,
+        - or create a new profile.
+    </step>
+
+    <step number="11">
+      Explain the modelling decision.
+    </step>
+
+    <step number="12">
+      Generate FSH or configured source format.
+    </step>
+
+    <step number="13">
+      compile/generate artifacts.
+    </step>
+
+    <step number="14">
+      validate.
+    </step>
+
+    <step number="15">
+      generate examples.
+    </step>
+
+    <step number="16">
+      present the artifact for review or continue according to configured governance policy.
+    </step>
+
+  </profile-generation-policy>
+
+
+  <!-- ================================================================ -->
+  <!-- 13. REUSE-FIRST POLICY                                           -->
+  <!-- ================================================================ -->
+
+  <reuse-policy>
+
+    Implement the following default principles:
+
+    <rule>Prefer reuse over creation.</rule>
+
+    <rule>Prefer deriving from an applicable profile over duplicating it.</rule>
+
+    <rule>Prefer standard FHIR elements over extensions.</rule>
+
+    <rule>Prefer existing standard extensions over creating new extensions.</rule>
+
+    <rule>Prefer authoritative terminology artifacts over locally invented code lists.</rule>
+
+    <rule>Do not create duplicate profiles solely because names differ.</rule>
+
+    <rule>Inspect semantics and constraints before determining equivalence.</rule>
+
+    <rule>Do not automatically treat two artifacts as equivalent merely because they use the same FHIR resource.</rule>
+
+  </reuse-policy>
+
+
+  <!-- ================================================================ -->
+  <!-- 14. PROFILE CONSTRAINT SUPPORT                                   -->
+  <!-- ================================================================ -->
+
+  <constraints>
+
+    Support generation and inspection of at least:
+
+    - cardinality constraints
+    - fixed values
+    - pattern values
+    - type constraints
+    - reference target profiles
+    - slicing
+    - discriminators
+    - Must Support
+    - modifier elements
+    - terminology bindings
+    - invariants
+    - FHIRPath constraints
+    - extensions
+    - nested extensions
+    - canonical references
+
+    The agent must explain non-trivial constraints when requested.
+
+  </constraints>
+
+
+  <!-- ================================================================ -->
+  <!-- 15. TERMINOLOGY INTEGRATION                                      -->
+  <!-- ================================================================ -->
+
+  <terminology>
+
+    Reuse the platform's terminology capabilities.
+
+    FHIR profiling must support:
+
+    - ValueSet discovery
+    - CodeSystem discovery
+    - terminology binding
+    - ConceptMap discovery
+    - code validation
+    - ValueSet expansion
+    - ValueSet validation
+    - terminology provenance
+
+    Allow connection to configurable terminology servers.
+
+    Where the server supports relevant FHIR terminology operations, support operations
+    conceptually equivalent to:
+
+      ValueSet/$expand
+      ValueSet/$validate-code
+      CodeSystem/$lookup
+      ConceptMap/$translate
+
+    Do not invent codes when an authoritative terminology source is available.
+
+    Record terminology system URI, version and ValueSet canonical where available.
+
+  </terminology>
+
+
+  <!-- ================================================================ -->
+  <!-- 16. IMPLEMENTATION GUIDE SERVER                                  -->
+  <!-- ================================================================ -->
+
+  <ig-server>
+
+    Add an explicit Implementation Guide server connection type.
+
+    The exact adapter must be configurable because different IG platforms expose
+    different APIs.
+
+    Connection configuration should support:
+
+    - server name
+    - base URL
+    - authentication method
+    - credentials/token reference
+    - project/IG identifier
+    - publication destination
+    - capabilities
+    - optional API-specific configuration
+
+    Never hard-code credentials.
+
+    Use the application's existing secret-management mechanism.
+
+    If none exists, introduce a secure abstraction and keep secrets outside normal
+    project artifacts.
+
+  </ig-server>
+
+
+  <!-- ================================================================ -->
+  <!-- 17. IG PUBLICATION                                               -->
+  <!-- ================================================================ -->
+
+  <publication>
+
+    Implement a publication pipeline conceptually equivalent to:
+
+      source artifacts
+          ->
+      dependency resolution
+          ->
+      SUSHI
+          ->
+      generated FHIR resources
+          ->
+      FHIR validation
+          ->
+      IG build
+          ->
+      publication package
+          ->
+      IG server
+
+    Publication must record:
+
+    - commit SHA
+    - branch
+    - package versions
+    - FHIR version
+    - build timestamp
+    - validator result
+    - publisher result
+    - destination
+    - artifact version
+
+    Failed validation must not be represented as successful publication.
+
+  </publication>
+
+
+  <!-- ================================================================ -->
+  <!-- 18. FHIR RUNTIME SERVERS                                         -->
+  <!-- ================================================================ -->
+
+  <fhir-runtime>
+
+    Add runtime FHIR server connections separately from IG server connections.
+
+    Support generic FHIR REST endpoints.
+
+    Detect server capabilities through CapabilityStatement where possible.
+
+    Provide capabilities for:
+
+    - connectivity test
+    - metadata retrieval
+    - resource read
+    - resource search
+    - validation where supported
+    - example-instance testing
+
+    Runtime deployment of conformance resources must be explicit and configurable.
+
+    Do not automatically push profiles into production FHIR servers merely because an
+    IG was published.
+
+  </fhir-runtime>
+
+
+  <!-- ================================================================ -->
+  <!-- 19. VALIDATION                                                   -->
+  <!-- ================================================================ -->
+
+  <validation>
+
+    Implement deterministic FHIR validation.
+
+    Integrate appropriate official/community-standard FHIR validation tooling where
+    technically feasible.
+
+    Support:
+
+    - syntax validation
+    - StructureDefinition validation
+    - profile validation
+    - example-instance validation
+    - terminology validation
+    - package dependency validation
+    - canonical resolution
+    - FHIR version compatibility
+    - FHIRPath/invariant validation
+
+    Distinguish:
+
+      ERROR
+      WARNING
+      INFORMATION
+
+    Never convert validator warnings into success claims without displaying them.
+
+    Preserve raw validator output where useful for audit/debugging.
+
+  </validation>
+
+
+  <!-- ================================================================ -->
+  <!-- 20. FHIRPATH                                                     -->
+  <!-- ================================================================ -->
+
+  <fhirpath>
+
+    Add FHIRPath capabilities.
+
+    Support:
+
+    - syntax validation
+    - expression evaluation against example resources
+    - invariant testing
+    - human-readable explanation where practical

@@ -45,3 +45,20 @@ REQ-F24: `CdrWorkspace` orchestrates actor-scoped encrypted connection/query met
 ### Native ownership and shared connections (REQ-F15, REQ-F23)
 
 `IdentityStore` retains the original bootstrap owner, enforces MFA-gated self-registration and explicit shared-connection grants, and persists bounded failed-login counters. Recovery codes are stored as hashes; code recovery rotates password/MFA, clears lockout and revokes sessions atomically. `access.mjs` resolves current native grants from the store. Shared provider/repository credentials occupy an encrypted non-user namespace; request routes check management rights separately from usage. Providers prefer personal credentials; shared fallback requires current usage authority. Conversations, uploads and checkpoints keep their original identity scopes. Permission revocation cancels the user's active turns and AQL drafts.
+
+### FHIR authoring provider and existing IG adapter (REQ-F25, REQ-F26)
+
+`StandardsProvider` isolates standards-specific operations. `OpenEhrStandardsProvider`
+wraps existing behaviour without rewriting the openEHR engine. `HttpFhirProvider`
+connects to the private authenticated Node service, which owns exact package resolution,
+FHIRPath, SUSHI and HL7 validation. `FhirModelling` owns release-pinned project
+configuration, optimistic revisions, immutable imported copies, mapping proposals
+and append-only operation evidence. Tenant namespaces and project access wrappers
+are inherited; browser service credentials do not become user identity claims.
+
+`FhirConnections` loads administrator-owned named destinations and secret references.
+It uses the existing DNS-pinned bounded HTTP transport. The IG adapter maps to actual
+project upload, health, status and exact Git commit import endpoints. It never
+promotes a draft to a publication. The existing IG platform keeps its reviewed,
+validated publication lifecycle. `fhir_ig` stores engineering artefacts, while
+`openehr_FHIR_Modeller` stores application code. See [ADR-0025](decisions/0025-fhir-authoring-and-existing-ig-boundary.md).

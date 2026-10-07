@@ -578,7 +578,7 @@ final class GitModelRepository implements HostedGitRepository, OriginalRepositor
             catch (\InvalidArgumentException) { return false; }
         }
         return strlen($path) <= 240 && preg_match('//u', $path) === 1
-            && preg_match('~^(requirements|archetypes|templates|terminology|aql|tests|validation|decisions|documentation)/[^\\x00-\\x1f\\x7f]+$~D', $path) === 1
+            && preg_match('~^(requirements|archetypes|templates|terminology|aql|tests|validation|decisions|documentation|fhir|mappings)/[^\\x00-\\x1f\\x7f]+$~D', $path) === 1
             && !str_contains($path, '\\') && !str_contains($path, '%') && !str_contains($path, '//')
             && !preg_match('~(^|/)\\.{1,2}(/|$)~D', $path) && !str_ends_with($path, '/');
     }

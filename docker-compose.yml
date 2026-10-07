@@ -1,7 +1,7 @@
-name: openehr-modelling-assistant
+name: openehr-fhir-modeller
 services:
   app:
-    image: openehr-modelling-assistant:local
+    image: openehr-fhir-modeller:local
     build:
       context: .
       target: production
@@ -24,7 +24,7 @@ services:
     mem_limit: 512m
     restart: unless-stopped
   chat:
-    image: openehr-modelling-chat:local
+    image: openehr-fhir-modeller-chat:local
     build:
       context: .
       dockerfile: chat/Dockerfile
@@ -43,7 +43,7 @@ services:
     mem_limit: 1536m
     restart: unless-stopped
   ingress:
-    image: openehr-modelling-ingress:local
+    image: openehr-fhir-modeller-ingress:local
     build:
       context: .
       target: ingress

@@ -47,6 +47,35 @@ export const ARTIFACT_FOLDERS = Object.freeze({
     text: "documents/text",
     yaml: "config/yaml",
 });
+export const FHIR_ARTIFACT_FOLDERS = Object.freeze({
+    fsh: "input/fsh",
+    resources: "input/resources",
+    examples: "input/examples",
+    pages: "input/pagecontent",
+    generated: "fsh-generated/resources",
+    validation: "validation",
+    mappings: "mappings",
+});
+export function fhirArtifactPath(path, folder = "", standard = "FHIR") {
+    requireFolderPath(path, folder);
+    const relative = folder ? path.slice(folder.length + 1) : path;
+    if (
+        typeof relative !== "string" ||
+        relative.length > 240 ||
+        relative.split("/").some((part) => !part || part === "." || part === ".." || part.startsWith(".")) ||
+        /[\\\x00-\x1f\x7f]/u.test(relative)
+    )
+        throw problem("Use a safe relative FHIR artifact path.");
+    const allowed =
+        standard === "mappings"
+            ? /^(mappings|validation|provenance|documentation)\/[A-Za-z0-9_.\/-]+$/
+            : /^(?:(?:input\/(?:fsh|resources|examples|pagecontent|vocabulary)|fsh-generated\/resources|validation|provenance|mappings)\/[A-Za-z0-9_.\/-]+|sushi-config\.yaml|package(?:-lock)?\.json|ig\.ini|README\.md)$/;
+    if (!allowed.test(relative))
+        throw problem(
+            "Use the selected standard's source layout: input/fsh, input/resources, input/examples, validation, provenance or mappings; project configuration stays at its root.",
+        );
+    return path;
+}
 const folderPrefixes = [
     ...new Set([
         ...Object.values(ARTIFACT_FOLDERS),

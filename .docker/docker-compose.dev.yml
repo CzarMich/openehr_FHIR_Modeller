@@ -1,6 +1,6 @@
 services:
   app:
-    image: openehr-modelling-assistant-dev:local
+    image: openehr-fhir-modeller-dev:local
     build:
       context: .
       dockerfile: Dockerfile
