@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Exercise site ownership and failed-activation recovery in an isolated filesystem."""
+import fcntl
 import os
 import subprocess
 import tempfile
@@ -23,7 +24,9 @@ class NginxDeliveryTest(unittest.TestCase):
         self.backup = self.root / "backup"
         (self.root / "deploy/production" / SITE).write_text(MARKER + "new configuration\n")
         self.script = self.root / "nginx.sh"
-        self.script.write_text((ROOT / "scripts/fhir-prod-nginx.sh").read_text().replace("/etc/nginx/", str(self.root) + "/"))
+        self.lock = self.root / "nginx.lock"
+        self.lock.touch()
+        self.script.write_text((ROOT / "scripts/fhir-prod-nginx.sh").read_text().replace("/etc/nginx/", str(self.root) + "/").replace("/opt/hygeoniq/fhir-production-tooling/nginx.lock", str(self.lock)).replace("flock --wait 30", "flock --wait 0.1"))
         sudo = self.root / "bin/sudo"
         sudo.write_text("""#!/usr/bin/env python3
 import os,subprocess,sys
@@ -41,7 +44,7 @@ sys.exit(subprocess.run(args).returncode)
 """)
         sudo.chmod(0o755)
         stat = self.root / "bin/stat"
-        stat.write_text("#!/bin/sh\nif [ \"$2\" = %u ]; then echo 0; else exec /usr/bin/stat \"$@\"; fi\n")
+        stat.write_text("#!/bin/sh\ncase \"$2\" in %u) echo 0;; %u:%g:%a) echo 0:1000:660;; *) exec /usr/bin/stat \"$@\";; esac\n")
         stat.chmod(0o755)
         self.env = dict(os.environ, PATH=str(self.root / "bin") + ":" + os.environ["PATH"], NGINX_FAIL_ONCE=str(self.root / "fail-once"))
 
@@ -92,6 +95,13 @@ sys.exit(subprocess.run(args).returncode)
         self.assertNotEqual(self.run_helper("restore").returncode, 0)
         self.assertEqual(os.readlink(self.enabled), "/etc/nginx/sites-available/another-app")
         self.assertEqual(self.available.read_text(), MARKER + "new configuration\n")
+
+    def test_shared_lock_blocks_a_competing_site_change(self):
+        with self.lock.open("r+") as handle:
+            fcntl.flock(handle, fcntl.LOCK_EX)
+            result = self.run_helper("prepare")
+        self.assertEqual(result.returncode, 75, result.stderr)
+        self.assertFalse(self.available.exists())
 
 
 if __name__ == "__main__":

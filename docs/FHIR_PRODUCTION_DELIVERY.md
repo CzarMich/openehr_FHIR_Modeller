@@ -57,6 +57,8 @@ GitHub delivery installs only the tracked site named
 It rejects an unrelated existing file or enabled-site link, saves previous bytes
 and link state, checks `nginx -t` before reload, and restores the prior managed
 site if activation or subsequent verification fails. Other sites remain intact.
+Both applications share `/opt/hygeoniq/fhir-production-tooling/nginx.lock`
+(root:1000, mode0660), serializing site installation, configuration tests and reloads.
 
 The engine has a 2 GiB limit for its existing 1,536 MiB validator heap and native
 overhead. A production-only Java wrapper is mounted read-only from the tracked

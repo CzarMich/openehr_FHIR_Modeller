@@ -7,6 +7,10 @@ source_file=deploy/production/openehr-fhir-modeller.sandbox.hygeoniq.com.conf
 available=/etc/nginx/sites-available/openehr-fhir-modeller.sandbox.hygeoniq.com.conf
 enabled=/etc/nginx/sites-enabled/openehr-fhir-modeller.sandbox.hygeoniq.com.conf
 marker='# Managed by openehr_FHIR_Modeller production delivery.'
+lock=/opt/hygeoniq/fhir-production-tooling/nginx.lock
+[[ -f "$lock" && ! -L "$lock" && "$(stat -c '%u:%g:%a' "$lock")" == 0:1000:660 ]] || { echo 'The shared Nginx delivery lock is missing or has unexpected ownership.' >&2; exit 2; }
+exec 9<>"$lock"
+flock --wait 30 9 || { echo 'Another Nginx delivery is active; retry later.' >&2; exit 75; }
 
 owned_site() {
   if [[ -e "$available" || -L "$available" ]]; then
