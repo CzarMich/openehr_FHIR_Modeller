@@ -44,7 +44,9 @@ install -m 0644 deploy/fhir-dev/compose.yml "$release_dir/compose.yml"
 unset APP_IMAGE CHAT_IMAGE INGRESS_IMAGE FHIR_IMAGE REVISION
 compose=(docker compose --project-name openehr-fhir-modeller --env-file "$release_dir/images.env" -f "$release_dir/compose.yml")
 "${compose[@]}" config --quiet
-"${compose[@]}" pull
+echo 'Pulling the four pinned Dev images; layer progress is suppressed to preserve WAN bandwidth.'
+"${compose[@]}" pull --quiet
+echo 'Pinned Dev image transfer completed.'
 while IFS='=' read -r name image; do
   [[ "$name" == *_IMAGE ]] || continue
   [[ "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image")" == "$revision" ]] || { echo 'Image provenance revision mismatch.' >&2; exit 2; }
