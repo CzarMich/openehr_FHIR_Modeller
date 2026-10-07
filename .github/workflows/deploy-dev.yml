@@ -126,6 +126,7 @@ jobs:
         env:
           VALIDATED_REVISION: ${{ needs.gate.outputs.revision }}
         with:
+          retries: 3
           script: |
             const main = await github.rest.git.getRef({...context.repo, ref: 'heads/main'});
             const eligible = main.data.object.sha === process.env.VALIDATED_REVISION;
