@@ -113,7 +113,8 @@ jobs:
     if: needs.gate.outputs.eligible == 'true'
     runs-on: [self-hosted, Linux, X64, hyq-dev, fhir-modeller-dev]
     environment: development
-    timeout-minutes: 20
+    # The first transfer uses a slow Dev WAN link; Docker retains completed layers.
+    timeout-minutes: 240
     permissions:
       contents: read
       actions: read
