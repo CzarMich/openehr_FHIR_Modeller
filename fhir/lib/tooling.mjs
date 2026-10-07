@@ -5,7 +5,8 @@ import { mkdir, mkdtemp, rm, writeFile, readFile, readdir, cp, access } from 'no
 import path from 'node:path';
 import { stringify } from 'yaml';
 import { tenantRoot, safeFile, parseResource, sha256, fail, jsonRead, canonical, atomicJSON } from './common.mjs';
-import { resolveDependencies } from './packages.mjs';
+import { resolveDependencies, unpackPackage } from './packages.mjs';
+import { fetchBuffer, DEFAULT_REGISTRY } from './network.mjs';
 import { terminologyBridge, javaPolicy } from './terminology.mjs';
 
 export const TOOL_VERSIONS={sushi:'3.20.1',fhirpath:'5.2.0',validator:'6.10.4'};
@@ -23,12 +24,28 @@ async function run(command,args,cwd,toolHome,timeout=180_000) {
     child.on('close',(exitCode,signal)=>{clearTimeout(timer);resolve({exitCode,signal,stdout,stderr,timedOut,oversized,elapsedMs:Date.now()-started,executed:true});});
   });
 }
-async function job(project,context) {
+async function job(project,context,validator=false) {
   const lock=await resolveDependencies(project,context),root=await tenantRoot(context);
   await mkdir(path.join(root,'jobs'),{recursive:true});
   const dir=await mkdtemp(path.join(root,'jobs','run-'));
   const toolHome=path.join(dir,'home'),cache=path.join(toolHome,'.fhir','packages');await mkdir(cache,{recursive:true});
   for(const p of lock.packages)await cp(path.join(root,'packages',p.key,'package'),path.join(cache,`${p.id}#${p.version}`,'package'),{recursive:true});
+  if(validator) {
+    // This mandatory validator support package describes cross-version mechanics,
+    // not an authoring dependency. Keep it out of project discovery and its lock.
+    const support=[['hl7.fhir.xver-extensions','0.1.0']];
+    lock.tooling=[];
+    for(const [id,version]of support) {
+    const archive=path.join(root,'tooling',`${id}#${version}.tgz`);
+    let bytes;try{bytes=await readFile(archive);}catch(error){if(error.code!=='ENOENT')throw error;bytes=await fetchBuffer(`${DEFAULT_REGISTRY}/${id}/${version}`,context);}
+    if(id==='hl7.fhir.xver-extensions'&&sha256(bytes)!=='f3bb9fa2083402e88a02b41f433655274e8a1cca563211c8f7ba6fd0badf537a')fail('TOOL_PACKAGE_CHECKSUM','Validator support package checksum mismatch.',503);
+    const files=await unpackPackage(bytes),manifest=JSON.parse(files.get('package/package.json'));
+    if(manifest.name!==id||manifest.version!==version)fail('TOOL_PACKAGE_IDENTITY','Validator support package identity mismatch.',503);
+    await mkdir(path.dirname(archive),{recursive:true});await writeFile(archive,bytes);
+    for(const [name,content]of files){const dest=path.join(cache,`${id}#${version}`,name);await mkdir(path.dirname(dest),{recursive:true});await writeFile(dest,content);}
+    lock.tooling.push({id,version,source:DEFAULT_REGISTRY,sha256:sha256(bytes),purpose:'HL7 validator internal support; excluded from authoring discovery'});
+    }
+  }
   return {dir,root,toolHome,lock};
 }
 function publicEvidence(result,dir,tool,version,inputs,lock) {
@@ -63,23 +80,30 @@ export async function compile(parameters,project,context) {
 }
 export async function validate(parameters,project,context) {
   const resource=parseResource(parameters.content,project.fhirVersion);
+  if(parameters.profiles!==undefined&&!Array.isArray(parameters.profiles))fail('PROFILES','Profiles must be an array.');
   const profiles=(parameters.profiles || []).map(p=>parseResource(p,project.fhirVersion));
   if(profiles.length>100||profiles.some(p=>p.resourceType!=='StructureDefinition'))fail('PROFILES','Provide at most 100 StructureDefinitions.');
+  // StructureDefinition invariants refer to the definition's own constrained
+  // type. Register that exact definition before validating its FHIRPath content.
+  if(resource.resourceType==='StructureDefinition') {
+    const existing=profiles.find(p=>p.url===resource.url&&p.version===resource.version);
+    if(existing&&sha256(JSON.stringify(existing))!==sha256(JSON.stringify(resource)))fail('PROFILE_CONFLICT','Supplied profile conflicts with the definition being validated.');
+    if(!existing)profiles.unshift(resource);
+  }
   if(parameters.profile)canonical(parameters.profile);
   const jar=process.env.FHIR_VALIDATOR_JAR || path.join(base,'tools','validator_cli.jar');
   try {await access(jar);}catch{fail('VALIDATOR_UNAVAILABLE','Pinned HL7 validator is not installed; validation was not executed.',503);}
   const actual=sha256(await readFile(jar));if(actual!==VALIDATOR_SHA256)fail('VALIDATOR_CHECKSUM','HL7 validator checksum does not match the pinned release.',503);
-  const j=await job(project,context);
+  const j=await job(project,context,true);
   let bridge;
   try {
     const input=path.join(j.dir,'resource.json'),output=path.join(j.dir,'outcome.json');await writeFile(input,JSON.stringify(resource));
     bridge=await terminologyBridge();
     const policy=path.join(j.dir,'validator.policy');await writeFile(policy,javaPolicy(bridge?.socket));
-    const args=[`-Duser.home=${j.toolHome}`,'-Djava.security.manager',`-Djava.security.policy==${policy}`,'-Xmx1536m','-jar',jar,input,'-version',project.fhirVersion,'-tx',bridge?.url || 'n/a','-output',output];
-    const root=await tenantRoot(context);
-    for(const p of j.lock.packages.filter(p=>!p.id.endsWith('.core')))args.push('-ig',path.join(root,'packages',p.key,'package.tgz'));
-    if(profiles.length){const profileDir=path.join(j.dir,'profiles');await mkdir(profileDir);for(const [i,p]of profiles.entries())await writeFile(path.join(profileDir,`${i}.json`),JSON.stringify(p));args.push('-ig',profileDir);}
-    if(parameters.profile)args.push('-profile',parameters.profile);
+    let profileDir='-';
+    if(profiles.length){profileDir=path.join(j.dir,'profiles');await mkdir(profileDir);for(const [i,p]of profiles.entries())await writeFile(path.join(profileDir,`${i}.json`),JSON.stringify(p));}
+    const args=[`-Duser.home=${j.toolHome}`,'-Djava.security.manager',`-Djava.security.policy==${policy}`,'-Xmx1536m','-cp',`${jar}:${path.join(base,'tools')}`,'ValidationRunner',input,output,project.fhirVersion,bridge?.url || '-',parameters.profile || '-',profileDir,project.jurisdiction || '-'];
+    for(const p of j.lock.packages.filter(p=>!p.id.endsWith('.core')))args.push(`${p.id}#${p.version}`);
     const result=await run('java',args,j.dir,j.toolHome,context.toolTimeout || 300_000);
     const evidence=publicEvidence(result,j.dir,'HL7 FHIR Validator',TOOL_VERSIONS.validator,[{path:'resource.json',sha256:sha256(JSON.stringify(resource))},...profiles.map((p,i)=>({path:`profiles/${i}.json`,sha256:sha256(JSON.stringify(p))}))],j.lock);
     const outcome=await jsonRead(output,null);

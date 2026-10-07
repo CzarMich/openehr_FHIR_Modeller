@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { create } from 'tar';
 import { execute } from '../engine.mjs';
-import { projectConfig, release, exactVersion, safeFile } from '../lib/common.mjs';
+import { projectConfig, release, exactVersion, safeFile, parseResource } from '../lib/common.mjs';
 import { approvedURL, isPrivate } from '../lib/network.mjs';
 import { unpackPackage } from '../lib/packages.mjs';
 import { constraintsToFsh } from '../lib/modelling.mjs';
@@ -42,6 +42,22 @@ test('package archives reject links and unsafe source file paths',async()=>{
   for(const value of ['../x','/etc/passwd','a/../b','a\\b','a//b'])assert.throws(()=>safeFile(value));
   const malicious=await archive({name:'test.pkg',version:'1.0.0'},[],dir=>symlink('/etc/passwd',path.join(dir,'package','escape')));
   await assert.rejects(()=>unpackPackage(malicious),/links and special/);
+});
+test('official R4 patch declarations preserve their version without allowing R4B or R5',()=>{
+  const artifact={resourceType:'StructureDefinition',fhirVersion:'4.0.0'};
+  assert.equal(parseResource(artifact,'4.0.1').fhirVersion,'4.0.0');
+  assert.throws(()=>parseResource(artifact,'4.3.0'),/project requires/);
+  assert.throws(()=>parseResource({...artifact,fhirVersion:'5.0.0'},'4.0.1'),/project requires/);
+});
+test('safe supplemental core archive content is ignored, never extracted into package cache',async()=>{
+  const dir=await mkdtemp(path.join(os.tmpdir(),'fhir-core-layout-test-'));
+  try {
+    await mkdir(path.join(dir,'package'));await mkdir(path.join(dir,'openapi'));
+    await writeFile(path.join(dir,'package/package.json'),'{}');await writeFile(path.join(dir,'openapi/Patient.schema.json'),'{}');
+    await create({gzip:true,file:path.join(dir,'package.tgz'),cwd:dir},['package','openapi']);
+    const files=await unpackPackage(await readFile(path.join(dir,'package.tgz')));
+    assert.deepEqual([...files.keys()],['package/package.json']);
+  } finally {await rm(dir,{recursive:true,force:true});}
 });
 test('exact package graph caches provenance and tenant data stays separate',async t=>{
   const ctx=await context(t);

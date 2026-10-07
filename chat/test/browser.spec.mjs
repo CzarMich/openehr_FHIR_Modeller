@@ -1965,6 +1965,27 @@ test("FHIR workspace separates modelling, exact source validation and reviewed c
     await expect(page.locator("#panel-mappings")).toContainText("matching names do not establish equivalence");
 });
 
+test("FHIR project controls wait for pending loads before starting a new draft", async ({ page }) => {
+    let finishLoad;
+    const pending = new Promise((resolve) => {
+        finishLoad = resolve;
+    });
+    await page.route("**/chat/api/fhir/execute", async (route) => {
+        if (route.request().postDataJSON().args.action === "list") await pending;
+        await route.fulfill({ json: { result: { items: [] } } });
+    });
+    await login(page);
+    await page.getByRole("tab", { name: "FHIR modelling", exact: true }).click();
+    await expect(page.locator("#panel-fhir")).toHaveAttribute("aria-busy", "true");
+    await expect(page.locator("#fhir-new-project")).toBeDisabled();
+    await expect(page.locator("#fhir-project")).toBeDisabled();
+    finishLoad();
+    await expect(page.locator("#fhir-new-project")).toBeEnabled();
+    await page.locator("#fhir-new-project").click();
+    await page.locator('#fhir-project-form [name="name"]').fill("Draft after load");
+    await expect(page.locator('#fhir-project-form [name="name"]')).toHaveValue("Draft after load");
+});
+
 test("FHIR project configuration is explicit, confirmed and usable on a small viewport", async ({ page }) => {
     let current = null;
     const writes = [];
@@ -2008,4 +2029,48 @@ test("FHIR project configuration is explicit, confirmed and usable on a small vi
     expect(current.repository.branch).toBe("dev");
     expect(current.connections).toEqual({});
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("FHIR imported XML download preserves original CRLF bytes until the source is edited", async ({ page }) => {
+    const original =
+        '<?xml version="1.0" encoding="UTF-8"?>\r\n<Patient xmlns="http://hl7.org/fhir">\r\n  <id value="synthetic-original"/>\r\n</Patient>\r\n';
+    const project = {
+        id: "xml-original",
+        name: "XML original",
+        fhirVersion: "4.0.1",
+        canonical: "https://example.org/dev",
+        packageId: "org.example.dev",
+        version: "0.1.0",
+        repository: {},
+        connections: {},
+    };
+    const file = {
+        path: "fhir/input/resources/original.xml",
+        content: original,
+        revision: "original-revision",
+        metadata: { format: "xml", representation: "imported" },
+    };
+    await page.route("**/chat/api/fhir/execute", async (route) => {
+        const { tool, args } = route.request().postDataJSON();
+        const result =
+            tool === "fhir_project"
+                ? args.action === "list"
+                    ? { items: [project] }
+                    : { project, revision: "configuration-revision", artifacts: [file] }
+                : file;
+        await route.fulfill({ json: { result } });
+    });
+    await login(page);
+    await page.getByRole("tab", { name: "FHIR modelling", exact: true }).click();
+    await page.locator("#fhir-artifact-select").selectOption("saved:" + file.path);
+    await expect(page.locator("#fhir-format")).toHaveValue("xml");
+    const readFile = (await import("node:fs/promises")).readFile;
+    const download = page.waitForEvent("download");
+    await page.locator("#fhir-download").click();
+    expect(await readFile(await (await download).path(), "utf8")).toBe(original);
+    const revised = '<Patient xmlns="http://hl7.org/fhir"><id value="edited-copy"/></Patient>';
+    await page.locator("#fhir-source").fill(revised);
+    const editedDownload = page.waitForEvent("download");
+    await page.locator("#fhir-download").click();
+    expect(await readFile(await (await editedDownload).path(), "utf8")).toBe(revised);
 });

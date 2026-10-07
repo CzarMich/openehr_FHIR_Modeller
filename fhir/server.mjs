@@ -10,7 +10,7 @@ export function createServer({token=process.env.FHIR_ENGINE_TOKEN_FILE ? readFil
   if(!token||token.length<32)throw Error('FHIR_ENGINE_TOKEN must be at least 32 characters.');
   // Tool checks and the 200 MB validator hash run once per process, not per poll.
   const readiness=checkToolReadiness();
-  let active=0;
+  let active=0,activeValidators=0;
   const server=http.createServer(async(req,res)=>{
     const send=(status,value)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(value));};
     if(req.method==='GET'&&req.url==='/health'){const ready=await readiness;send(ready.toolsReady?200:503,{status:ready.toolsReady?'ok':'unavailable',standard:'FHIR',role:'private-authoring-and-validation-engine',tools:TOOL_VERSIONS,...ready});return;}
@@ -20,14 +20,19 @@ export function createServer({token=process.env.FHIR_ENGINE_TOKEN_FILE ? readFil
     if(!req.headers['content-type']?.startsWith('application/json')){send(415,{error:{code:'CONTENT_TYPE',message:'Use application/json.'}});return;}
     if(active>=2){send(429,{error:{code:'ENGINE_BUSY',message:'Two FHIR jobs are already running; retry later.'}});return;}
     active++;
+    let validationSlot=false;
     try {
       let size=0;const parts=[];
       for await(const chunk of req){size+=chunk.length;if(size>12_000_000)throw new EngineError('REQUEST_SIZE','Request exceeds 12 MB.',413);parts.push(chunk);}
       let body;try{body=JSON.parse(Buffer.concat(parts).toString('utf8'));}catch{throw new EngineError('INVALID_JSON','Invalid request JSON.');}
       if(!body||Object.keys(body).some(k=>!['operation','parameters','tenant'].includes(k)))throw new EngineError('REQUEST','Request accepts operation, parameters and tenant only.');
+      if(body.operation==='artifact.validate') {
+        if(activeValidators>=1)throw new EngineError('ENGINE_BUSY','One validator job is already running; retry later.',429);
+        activeValidators++;validationSlot=true;
+      }
       const result=await execute(body.operation,body.parameters,{...context,tenant:body.tenant});send(200,result);
     } catch(error) {send(error instanceof EngineError?error.status:500,{error:{code:error.code || 'ENGINE_FAILURE',message:error instanceof EngineError?error.message:'FHIR engine execution failed; inspect private service logs.'}});if(!(error instanceof EngineError))console.error('FHIR engine failure:',error.name,error.message);}
-    finally{active--;}
+    finally{active--;if(validationSlot)activeValidators--;}
   });
   server.requestTimeout=30_000;server.headersTimeout=15_000;server.keepAliveTimeout=5000;
   return server;

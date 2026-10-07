@@ -33,7 +33,7 @@ final class FhirConnectionsTest extends TestCase
         $http = $this->createMock(CdrHttp::class);
         $http->expects(self::exactly(3))->method('request')->willReturnCallback(static function ($url, $method, $headers, $body) use (&$calls): array {
             $calls[] = [$url, $method, $headers, $body];
-            return ['status' => 200, 'body' => str_ends_with($url, '/login') ? '{"token":"test-jwt"}' : '{"status":"ok"}', 'content_type' => 'application/json', 'headers' => []];
+            return ['status' => 200, 'body' => str_ends_with($url, '/login') ? '{"accessToken":"test-jwt"}' : '{"status":"ok"}', 'content_type' => 'application/json', 'headers' => []];
         });
         $connections = new FhirConnections($settings, $http);
         $summary = $connections->summaries()[0];

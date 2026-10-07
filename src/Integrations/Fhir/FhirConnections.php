@@ -97,7 +97,7 @@ class FhirConnections
         if ($response['status'] !== 200) { throw new \RuntimeException('FHIR_CONNECTION_PERMISSION_DENIED'); }
         try { $result = json_decode($response['body'], true, 8, JSON_THROW_ON_ERROR); }
         catch (\Throwable) { throw new \RuntimeException('FHIR_AUTH_RESPONSE_INVALID'); }
-        $token = is_array($result) ? ($result['token'] ?? null) : null;
+        $token = is_array($result) ? ($result['accessToken'] ?? null) : null;
         if (!is_string($token) || $token === '' || strlen($token) > 8192 || preg_match('/[\x00-\x20\x7f]/', $token)) {
             throw new \RuntimeException('FHIR_AUTH_RESPONSE_INVALID');
         }

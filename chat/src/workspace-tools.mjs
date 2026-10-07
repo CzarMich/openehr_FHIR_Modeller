@@ -1,5 +1,6 @@
 import { WRITE_TOOLS, isWriteTool } from "./mcp.mjs";
 import { isFhirTool, validateFhirCall } from "./fhir-workspace.mjs";
+import { FHIR_DRAFT_DESCRIPTIONS, hydrateFhirDrafts, retainFhirDrafts } from "./fhir-drafts.mjs";
 import { problem } from "./personal-http.mjs";
 import {
     requireFolderPath,
@@ -52,7 +53,11 @@ export class WorkspaceTools {
         this.prepared = new WeakMap();
     }
     async tools() {
-        const catalogue = await this.mcp.tools();
+        const catalogue = (await this.mcp.tools()).map((item) =>
+            FHIR_DRAFT_DESCRIPTIONS[item.name]
+                ? { ...item, description: (item.description || item.name) + " " + FHIR_DRAFT_DESCRIPTIONS[item.name] }
+                : item,
+        );
         this.draftTools = new Map(
             catalogue
                 .filter(
@@ -375,6 +380,11 @@ export class WorkspaceTools {
     resolveDraft(name, args) {
         if (name !== PERSONAL_WRITE) return;
         if (args.draftId) {
+            if (this.execution?.task?.mode === "independent")
+                throw problem(
+                    "Generator drafts are unavailable in independent review. Read the current repository artifact.",
+                    403,
+                );
             const draft = this.checkpoints.getDraft(args.draftId);
             if (args.content !== undefined && args.content !== draft.content)
                 throw problem(
@@ -387,7 +397,18 @@ export class WorkspaceTools {
         this.checkpoints.draft(args.content, args.path);
     }
     async call(name, args) {
+        if (isFhirTool(name)) {
+            validateFhirCall(name, args);
+            args = hydrateFhirDrafts(name, args, this.checkpoints, {
+                independent: this.execution?.task?.mode === "independent",
+            });
+        }
         if (this.draftTools?.has(name) && args?.draftId) {
+            if (this.execution?.task?.mode === "independent")
+                throw problem(
+                    "Generator drafts are unavailable in independent review. Read the current repository artifact.",
+                    403,
+                );
             const draft = this.checkpoints.getDraft(args.draftId);
             if (args.content !== undefined && args.content !== draft.content)
                 throw problem("Draft contents do not match the retained draft.");
@@ -466,6 +487,7 @@ export class WorkspaceTools {
                     content: [{ type: "text", text: JSON.stringify(value) }],
                 };
             }
+            response = retainFhirDrafts(name, args, response, this.checkpoints);
             this.packages.capture(name, args, response);
             const result = name === "template_build_oet" ? modelResult(response) : null;
             if (result?.dependencies) {

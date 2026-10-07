@@ -4,6 +4,7 @@ import { readdirSync, statSync, unlinkSync } from "node:fs";
 import { ProviderStore } from "./provider-store.mjs";
 import { modelResult } from "./template-packages.mjs";
 import { problem } from "./personal-http.mjs";
+import { isFhirRecoverable } from "./fhir-drafts.mjs";
 
 // Only modelling evidence may enter recovery context. In particular, never cache
 // CDR execution, patient results, credentials or mutable repository-read results.
@@ -133,7 +134,12 @@ export class Checkpoints {
         };
     }
     capture(name, args, response) {
-        if (!RECOVERABLE.has(name) || response?.isError || response?.structuredContent?.success === false) return;
+        if (
+            (!RECOVERABLE.has(name) && !isFhirRecoverable(name, args)) ||
+            response?.isError ||
+            response?.structuredContent?.success === false
+        )
+            return;
         const result = modelResult(response);
         if (name === "template_build_oet" && result?.content) this.draft(result.content, "template.oet", name);
         if (name === "template_compile") {
@@ -154,6 +160,8 @@ export class Checkpoints {
                     Object.entries(args).filter(
                         ([key, value]) =>
                             [
+                                "projectId",
+                                "action",
                                 "keyword",
                                 "source",
                                 "cid",
@@ -173,7 +181,8 @@ export class Checkpoints {
             },
             ...data.steps.filter((entry) => entry.key !== key),
         ];
-        if (/(?:_validate|_qa)$/.test(name)) this.archive?.put(data.steps[0].id, data.steps[0], "evidence");
+        if (/(?:_validate|_qa)$/.test(name) || isFhirRecoverable(name, args))
+            this.archive?.put(data.steps[0].id, data.steps[0], "evidence");
         this.persist(data);
         return data.steps[0].id;
     }

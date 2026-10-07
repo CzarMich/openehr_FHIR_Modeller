@@ -9,10 +9,16 @@ RUN mkdir -p /opt/fhir/tools && \
     curl --connect-timeout 20 --max-time 600 --retry 3 -fL https://github.com/hapifhir/org.hl7.fhir.core/releases/download/6.10.4/validator_cli.jar -o /opt/fhir/tools/validator_cli.jar && \
     echo '1106b9d58f9e363e47bea7c4fc065841e5fc91fe9d062775c3bfdd212bd653cc  /opt/fhir/tools/validator_cli.jar' | sha256sum -c -
 
+FROM eclipse-temurin:21-jdk-jammy AS validation-runner
+COPY --from=runtime /opt/fhir/tools/validator_cli.jar /tools/validator_cli.jar
+COPY fhir/java/ValidationRunner.java /src/ValidationRunner.java
+RUN javac --release 21 -proc:none -cp /tools/validator_cli.jar -d /tools /src/ValidationRunner.java
+
 FROM runtime
 COPY --from=dependencies /usr/local/bin/node /usr/local/bin/node
 WORKDIR /opt/fhir
 COPY --from=dependencies /opt/fhir/node_modules ./node_modules
+COPY --from=validation-runner /tools/ValidationRunner.class ./tools/ValidationRunner.class
 COPY fhir/ ./
 RUN mkdir -p /data/fhir && \
     useradd --uid 10001 --create-home fhir && chown -R fhir:fhir /data/fhir

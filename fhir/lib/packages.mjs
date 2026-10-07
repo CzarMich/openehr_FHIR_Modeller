@@ -19,12 +19,13 @@ export function checkPackageVersion(manifest, project) {
 }
 export async function unpackPackage(buffer) {
   let raw; try { raw = gunzipSync(buffer, { maxOutputLength: 250_000_000 }); } catch { fail('PACKAGE_ARCHIVE', 'Package must be a gzip tar archive within the 250 MB expanded limit.'); }
-  const files = new Map(); let bytes = 0; let count = 0;
+  const files = new Map(), seenPaths=new Set(); let bytes = 0; let count = 0;
   await new Promise((resolve, reject) => {
     const parser = new Parser({ strict: true, onReadEntry(entry) {
       try {
         count++; if (count > 40_000) fail('PACKAGE_SIZE', 'Too many package entries.');
         const name = entry.path.replace(/^\.\//, '').replace(/\/$/, ''); safeFile(name);
+        if(seenPaths.has(name))fail('PACKAGE_SIZE','Duplicate archive entry.');seenPaths.add(name);
         if (!['File', 'Directory', 'OldFile'].includes(entry.type)) fail('PACKAGE_PATH', 'Archive links and special entries are prohibited.');
         if (entry.type === 'Directory') { entry.resume(); return; }
         if (entry.size > 30_000_000 || (bytes += entry.size) > 250_000_000 || files.has(name)) fail('PACKAGE_SIZE', 'Duplicate or oversized package entry.');

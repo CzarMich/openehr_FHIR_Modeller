@@ -1,7 +1,7 @@
 import http from 'node:http';
 import https from 'node:https';
 import { readFile } from 'node:fs/promises';
-import { approvedURL } from './network.mjs';
+import { approvedURL, publicLookup } from './network.mjs';
 import { fail } from './common.mjs';
 
 // This loopback bridge keeps deployment-owned credentials out of Java command
@@ -21,7 +21,7 @@ export async function terminologyBridge() {
     for await(const data of req){bytes+=data.length;if(bytes>5_000_000){res.writeHead(413).end();return;}parts.push(data);}
     const url=new URL(target);url.pathname=target.pathname.replace(/\/$/,'')+request.pathname;url.search=request.search;
     const headers={accept:'application/fhir+json',...(req.headers['content-type']?{'content-type':req.headers['content-type']}:{}),...(token?{authorization:`Bearer ${token}`}:{})};
-    const upstream=https.request(url,{method:req.method,headers,timeout:30_000},response=>{
+    const upstream=https.request(url,{method:req.method,headers,timeout:30_000,lookup:publicLookup},response=>{
       if(response.statusCode>=300&&response.statusCode<400){unavailable=true;response.resume();res.writeHead(502).end();return;}
       if(response.statusCode>=500)unavailable=true;
       res.writeHead(response.statusCode,{'content-type':response.headers['content-type'] || 'application/fhir+json'});

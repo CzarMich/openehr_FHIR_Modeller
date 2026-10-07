@@ -56,6 +56,29 @@ Mutation previews issue short-lived single-use tickets bound to identity and exa
 
 Runtime patient-resource read/search is intentionally absent from the agent and this first browser workspace. A separately authenticated browser-only connection route is required before operational results can be displayed without entering model context. Current connection tools support metadata/testing and synthetic-resource validation where advertised.
 
+## FHIR context and token budgets
+
+The fork inherits the upstream [bounded task execution](TASK_EXECUTION.md): a small
+tool-discovery interface, complete recent-turn budgets, lossless result paging,
+private task handoffs, logical session rotation and independent review. FHIR tools
+use the same permission and confirmation checks when called through discovery.
+
+Within browser conversations, generated FSH, compiled resources and synthetic
+examples return small file records with `draftId`, path, SHA-256 and byte count.
+The exact source remains in the encrypted private project draft store. The model
+can compile `files:[{path,draftId}]`, validate/inspect `{"draftId":"..."}`, add
+`profileDraftIds` for exact target profiles, and compare `beforeDraftId` and
+`afterDraftId` without retranscribing large StructureDefinitions. These references
+are inside the tool's JSON `arguments`. Read complete bytes through
+`workspace_checkpoint_read` when editing requires them. Existing confirmed
+`personal_repository_save` accepts the same draft ID for a Git commit.
+
+Conflicting supplied content, unavailable or another identity's draft, and draft
+references on unsupported mutations are refused. Independent review requires
+current repository artifacts and cannot load generator drafts by ID. The public
+MCP contracts and direct browser editor keep their original content-based APIs.
+A retained draft is private working state; Git remains engineering authority.
+
 ## Live Dev browser acceptance
 
 The opt-in `chat/test/fhir-live-smoke.mjs` script uses a real isolated loopback Dev

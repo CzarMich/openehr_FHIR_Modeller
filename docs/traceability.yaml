@@ -345,8 +345,8 @@ requirements:
     canonical: docs/requirements.md
     status: draft
     implementation: partial
-    packages: [src/Domain/Fhir/*.php, src/Domain/Standards/*.php, src/Integrations/Fhir/*.php, src/Application/FhirModelling.php, src/Tools/FhirTools.php, fhir, chat/src/fhir-workspace.mjs, public/chat/fhir.js]
-    tests: [tests/Application/FhirModellingTest.php, tests/Domain/Fhir/ProjectConfigurationTest.php, tests/Tools/FhirOutputCases.php, tests/Integrations/Fhir/HttpFhirProviderTest.php, tests/Integrations/Fhir/FhirConnectionsTest.php, fhir/test, chat/test]
+    packages: [src/Domain/Fhir/*.php, src/Domain/Standards/*.php, src/Integrations/Fhir/*.php, src/Application/FhirModelling.php, src/Tools/FhirTools.php, fhir, chat/src/fhir-workspace.mjs, chat/src/fhir-drafts.mjs, public/chat/fhir.js]
+    tests: [tests/Application/FhirModellingTest.php, tests/Domain/Fhir/ProjectConfigurationTest.php, tests/Tools/FhirOutputCases.php, tests/Integrations/Fhir/HttpFhirProviderTest.php, tests/Integrations/Fhir/FhirConnectionsTest.php, fhir/test, chat/test/fhir-drafts.test.mjs, chat/test]
     adr: ["0026"]
 
   - id: REQ-F27

@@ -72,3 +72,4 @@ chat/playwright-report/
 /fhir/tools/
 /fhir/acceptance-results.json
 /fhir/acceptance-export/
+/test-results/

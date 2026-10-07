@@ -41,7 +41,7 @@ final class Settings
         'HTTP_TIMEOUT' => '15', 'HTTP_SSL_VERIFY' => 'true', 'HTTP_CA_BUNDLE' => '',
         'OPENEHR_ENGINE_URL' => '', 'OPENEHR_ENGINE_KEY_FILE' => '', 'OPENEHR_ENGINE_TIMEOUT' => '50',
         'FHIR_ENGINE_URL' => '', 'FHIR_ENGINE_KEY_FILE' => '',
-        'FHIR_REPOSITORY_PATH' => '/data/models/fhir-workspaces', 'FHIR_AUDIT_PATH' => '/data/governance/fhir.sqlite',
+        'FHIR_REPOSITORY_PATH' => '/tmp/fhir-models', 'FHIR_AUDIT_PATH' => '/data/governance/fhir.sqlite',
         'FHIR_CONNECTIONS_FILE' => '', 'FHIR_ALLOWED_HOSTS' => '', 'FHIR_ALLOW_HTTP' => 'false',
         'CDR_ENABLED' => 'false', 'CDR_DATA_DIR' => '/data/cdr', 'CDR_ENCRYPTION_KEY_FILE' => '',
         'CDR_CONNECTIONS_FILE' => '', 'CDR_ALLOWED_HOSTS' => '', 'CDR_ALLOW_HTTP' => 'false',

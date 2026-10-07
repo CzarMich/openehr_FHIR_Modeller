@@ -75,7 +75,9 @@ Exported `execute(operation, parameters, context)` supports deterministic tests.
 
 All operations require explicit project `fhirVersion`: `R4`/`4.0.1`,
 `R4B`/`4.3.0`, or `R5`/`5.0.0`. Artifacts and packages from another release are
-rejected. Missing package compatibility declarations are not guessed. Package
+rejected. The R4 4.0.1 core archive preserves three R4 4.0.0 declarations; those
+remain unchanged and are accepted within R4, never as R4B or R5. Missing package
+compatibility declarations are not guessed. Package
 versions must be exact; `latest`, ranges, `current` and `dev` are rejected. Registry
 metadata discovery is separate from resolving/persisting a chosen version.
 
@@ -156,6 +158,16 @@ exit, timeout or error diagnostic fails compilation and withholds partial output
 release, locked dependencies and supplied custom profiles. It captures exit code,
 stdout/stderr, errors/warnings, input hashes, profile canonical and package lock.
 An absent output, crashed/missing tool or timeout is not a successful validation.
+The Java runner calls the checksum-pinned HL7 `ValidationEngine` API with the exact
+core, project dependencies and supplied profiles. It avoids the upstream CLI's
+implicit unversioned terminology/extension downloads. The required internal tool
+package `hl7.fhir.xver-extensions#0.1.0` is separately checksum-pinned and reported
+in validation evidence, excluded from authoring discovery. The runner class is
+compiled against that same JAR during the Docker build. Tool subprocesses cannot
+download fallback packages; the application prepares caches through its restricted
+downloader. SUSHI cannot launch a nested npm/shell version probe. Offline Java runs
+disable HTTP; a terminology-enabled run can contact only its restricted loopback
+bridge.
 `valid`/`success` describe that validator run; `publicationReady` additionally
 requires a configured, successfully available terminology service. Default offline
 terminology is explicitly `not-run`, so it cannot silently authorize publication.
@@ -213,7 +225,7 @@ identity. Ambiguous canonicals require explicit version/package selection.
 
 Requests are limited to 12 MB; resources to 5 MB; compilation sources to 10 MB/200
 files; dependency graphs to 150 packages; archives to 60 MB compressed/250 MB
-expanded. At most two requests execute concurrently. Tool output, CPU time and
+expanded. At most two requests and one Java validator execute concurrently. Tool output, CPU time and
 FHIRPath worker memory/time are bounded. Persistent cache storage requires the
 operator's normal volume quota and retention policy.
 

@@ -26,10 +26,16 @@ function output(id, value) {
 function message(text) {
     $(document.body.dataset.section === "mappings" ? "mapping-notice" : "fhir-notice").textContent = text;
 }
+function updateProjectControls() {
+    for (const id of ["fhir-refresh", "fhir-project", "mapping-project"])
+        $(id).disabled = busy || !session?.authenticated;
+    $("fhir-new-project").disabled = busy || !session?.authenticated || !session?.allowWrites;
+}
 async function run(action) {
     if (busy) return;
     if (!session?.authenticated) return message("Sign in to use FHIR modelling.");
     busy = true;
+    updateProjectControls();
     $("panel-fhir").setAttribute("aria-busy", "true");
     $("panel-mappings").setAttribute("aria-busy", "true");
     message("Working with the FHIR modelling service…");
@@ -44,6 +50,7 @@ async function run(action) {
         );
     } finally {
         busy = false;
+        updateProjectControls();
         $("panel-fhir").setAttribute("aria-busy", "false");
         $("panel-mappings").setAttribute("aria-busy", "false");
     }
@@ -814,6 +821,7 @@ function updateSession(value) {
         $(id).disabled = !session.authenticated;
     for (const id of ["fhir-new-project", "fhir-project-fields", "mapping-save"])
         $(id).disabled = !session.authenticated || !session.allowWrites;
+    updateProjectControls();
     if (session.authenticated && ["fhir", "mappings"].includes(document.body.dataset.section) && !loaded)
         run(loadProjects);
     else if (!session.authenticated) message("Sign in to use FHIR modelling.");

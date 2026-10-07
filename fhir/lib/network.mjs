@@ -20,6 +20,14 @@ export function approvedURL(input, context = {}) {
   if (url.protocol !== 'https:' || url.username || url.password || url.hash || !origins.includes(url.origin) || (isIP(url.hostname) && isPrivate(url.hostname))) fail('SOURCE_DENIED', 'Package source must be an administrator-allowed HTTPS origin without credentials.');
   return url;
 }
+export function publicLookup(host, options, cb) {
+  lookup(host, { all: true, verbatim: true }, (error, addresses) => {
+    if (error) return cb(error);
+    if (!addresses.length || addresses.some(a => isPrivate(a.address))) return cb(new EngineError('SOURCE_DENIED', 'Source resolves to a non-public address.'));
+    if (options.all) return cb(null, addresses);
+    cb(null, addresses[0].address, addresses[0].family);
+  });
+}
 export async function fetchBuffer(input, context = {}, maxBytes = 60_000_000) {
   const url = approvedURL(input, context);
   if (context.fetchBuffer) return context.fetchBuffer(url.href, maxBytes); // Dependency injection is available only in-process, never via HTTP parameters.
@@ -27,14 +35,7 @@ export async function fetchBuffer(input, context = {}, maxBytes = 60_000_000) {
     const req = https.get(url, {
       timeout: 60_000,
       headers: { 'User-Agent': 'openEHR-FHIR-Modeller/0.1', Accept: '*/*' },
-      lookup(host, options, cb) {
-        lookup(host, { all: true, verbatim: true }, (error, addresses) => {
-          if (error) return cb(error);
-          if (!addresses.length || addresses.some(a => isPrivate(a.address))) return cb(new EngineError('SOURCE_DENIED', 'Package source resolves to a non-public address.'));
-          if (options.all) return cb(null, addresses);
-          cb(null, addresses[0].address, addresses[0].family);
-        });
-      },
+      lookup:publicLookup,
     }, res => {
       if (res.statusCode !== 200) { res.resume(); reject(new EngineError('SOURCE_HTTP', `Package registry returned HTTP ${res.statusCode}; redirects are not followed.`, 502)); return; }
       if (Number(res.headers['content-length'] || 0) > maxBytes) { res.destroy(); reject(new EngineError('DOWNLOAD_SIZE', 'Package download exceeds configured limit.')); return; }

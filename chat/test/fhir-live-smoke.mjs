@@ -55,6 +55,9 @@ async function operation(button, tool, action, confirm = false) {
         },
         { timeout: 670000 },
     );
+    // A failed dialog assertion closes the browser before this pending response.
+    // Observe rejection immediately so the original failure remains in evidence.
+    result.catch(() => {});
     await button.click();
     if (confirm) {
         await expect(page.getByRole("dialog", { name: "Review FHIR change" })).toBeVisible();
@@ -165,18 +168,16 @@ try {
         element.closest("details").open = true;
     });
     await page.locator("#fhir-example-id").fill("browser-synthetic-patient");
-    await page
-        .locator("#fhir-example-values")
-        .fill(
-            JSON.stringify({
-                "Patient.active": true,
-                "Patient.birthDate": "2000-01-01",
-                "Patient.text": {
-                    status: "generated",
-                    div: '<div xmlns="http://www.w3.org/1999/xhtml">Synthetic development patient. Not for clinical use.</div>',
-                },
-            }),
-        );
+    await page.locator("#fhir-example-values").fill(
+        JSON.stringify({
+            "Patient.active": true,
+            "Patient.birthDate": "2000-01-01",
+            "Patient.text": {
+                status: "generated",
+                div: '<div xmlns="http://www.w3.org/1999/xhtml">Synthetic development patient. Not for clinical use.</div>',
+            },
+        }),
+    );
     await check("generate synthetic example with exact profile lineage", async () => {
         const example = await operation(page.locator("#fhir-example-generate"), "fhir_example_generate");
         assert.equal(example.synthetic, true);

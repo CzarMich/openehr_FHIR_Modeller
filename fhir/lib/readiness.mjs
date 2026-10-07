@@ -15,6 +15,7 @@ export async function checkToolReadiness({jar=process.env.FHIR_VALIDATOR_JAR || 
   }
   try {const hash=createHash('sha256');for await(const chunk of createReadStream(jar))hash.update(chunk);if(hash.digest('hex')!==VALIDATOR_SHA256)failures.push('validator:checksum-mismatch');}
   catch {failures.push('validator:unavailable');}
+  try {if(!(await readFile(path.join(base,'tools','ValidationRunner.class'))).length)throw Error();}catch{failures.push('validator-runner:unavailable');}
   const runtime=spawnSync(java,['-version'],{timeout:5000,encoding:'utf8',maxBuffer:16000});
   // Java 21 retains the network policy used to confine validator subprocesses.
   if(runtime.status!==0 || !/version "21\./.test(runtime.stderr || runtime.stdout || ''))failures.push('java:requires-version-21');
