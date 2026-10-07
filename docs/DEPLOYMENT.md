@@ -1,5 +1,10 @@
 # Deployment and supported environments
 
+This fork's shared Dev deployment uses [GitHub delivery with immutable images](FHIR_DEV_DELIVERY.md).
+That document owns the current host, HTTPS access and protected configuration.
+The environment examples and original deployment history below remain reference
+material; this fork has no VPS deployment workflow or script.
+
 ## Purpose and boundaries
 
 Deploy this service where AI agents need openEHR modelling knowledge, source retrieval,

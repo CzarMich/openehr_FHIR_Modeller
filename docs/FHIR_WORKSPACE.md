@@ -81,7 +81,7 @@ A retained draft is private working state; Git remains engineering authority.
 
 ## Live Dev browser acceptance
 
-The opt-in `chat/test/fhir-live-smoke.mjs` script uses a real isolated loopback Dev
+The opt-in `chat/test/fhir-live-smoke.mjs` script uses a real isolated Dev
 deployment and an MFA-enabled synthetic account. It creates its own FHIR project,
 exercises confirmed saves, real SUSHI and HL7 validation, rejects an invalid example,
 checks reload persistence, and records sanitized evidence and screenshots. It never
@@ -89,8 +89,15 @@ publishes or writes to a runtime server.
 
 ```bash
 FHIR_DEV_ACCOUNT_FILE=/private/dev-account.json \
-  node chat/test/fhir-live-smoke.mjs
+node chat/test/fhir-live-smoke.mjs
 ```
+
+To exercise the local HTTPS deployment, set
+`FHIR_DEV_ORIGIN=https://dev-openehr-fhir-modeller.sandbox.hygeoniq.com`.
+The script pins that hostname to the Dev LAN address `192.168.178.20` and retains
+normal certificate verification. Install the development CA in the test browser's
+trust store first; the script never bypasses TLS checks. HTTPS acceptance also
+checks the private `__Host-` session cookie's Secure and HttpOnly flags.
 
 The private account JSON supplies `username`, `password`, `totpSecret` and
 `origin`. Keep it outside Git with mode 0600. Evidence defaults to

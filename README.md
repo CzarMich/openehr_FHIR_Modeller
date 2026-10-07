@@ -17,6 +17,9 @@ A CDR and terminology server are optional.
 This fork preserves the openEHR workspace and adds a distinct FHIR workspace for
 R4, R4B and R5 package discovery, reuse analysis, FSH authoring, SUSHI compilation,
 validation, synthetic examples, semantic comparison and explicit mapping proposals.
+Shared Dev uses [GitHub image delivery](docs/FHIR_DEV_DELIVERY.md) and the
+`dev-openehr-fhir-modeller.sandbox.hygeoniq.com` address.
+
 The private FHIR engine is optional; see [Dev setup](docs/FHIR_DEV.md) and the
 [FHIR workspace](docs/FHIR_WORKSPACE.md).
 

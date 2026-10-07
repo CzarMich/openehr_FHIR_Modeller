@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Deliver validated Dev images through GitHub with preserved workspace storage.
+
 - Add a separate FHIR authoring workspace, validation provider and existing-IG adapter.
 
 - Browser AI tasks use bounded context, selective tool retrieval and persistent project handoffs.

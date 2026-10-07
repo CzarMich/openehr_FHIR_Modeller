@@ -111,5 +111,15 @@ FROM caddy:2-alpine@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d
 RUN setcap -r /usr/bin/caddy
 USER 1000:1000
 
+# Immutable local Dev delivery targets. Existing Dev data belongs to UID 1000.
+FROM runtime AS fhir-dev
+USER root
+COPY .docker/php/zz-fhir-runtime.ini /usr/local/etc/php/conf.d/
+RUN chown -R 1000:1000 /data
+USER 1000:1000
+
+FROM ingress AS fhir-dev-ingress
+COPY .docker/Caddyfile /etc/caddy/Caddyfile
+
 # The default build is the production PHP-FPM image.
 FROM runtime AS production
