@@ -129,6 +129,12 @@ def main():
         assert len({t['name'] for t in tools}) == len(tools)
         assert all(t['inputSchema'].get('additionalProperties') is False for t in tools)
         record("tools/list", [t['name'] for t in tools])
+        if 'fhir_project' in {t['name'] for t in tools}:
+            capabilities = client.tool('fhir_project', {'action': 'capabilities'})
+            assert {'4.0.1', '4.3.0', '5.0.0'} <= {release['version'] for release in capabilities['toolchainReleases']}
+            assert capabilities['additionalExactReleases']['inspection'] is True
+            assert capabilities['additionalExactReleases']['validation'] is False
+            record('FHIR release capabilities over the actual engine transport')
         if args.catalogue:
             args.catalogue.parent.mkdir(parents=True, exist_ok=True)
             args.catalogue.write_text(json.dumps(tools, indent=2) + "\n")

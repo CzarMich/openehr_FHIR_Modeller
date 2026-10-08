@@ -40,7 +40,7 @@ final readonly class HttpFhirProvider implements StandardsProvider
         if ($url === '' || $file === '' || !is_readable($file)) { throw new \RuntimeException('FHIR_ENGINE_NOT_CONFIGURED'); }
         $key = trim((string) file_get_contents($file));
         if (strlen($key) < 32) { throw new \RuntimeException('FHIR_ENGINE_KEY_INVALID'); }
-        $body = json_encode(['operation' => $operation, 'parameters' => $parameters, 'tenant' => $this->tenant], JSON_THROW_ON_ERROR);
+        $body = json_encode(['operation' => $operation, 'parameters' => (object) $parameters, 'tenant' => $this->tenant], JSON_THROW_ON_ERROR);
         if (strlen($body) > 8388608) { throw new \InvalidArgumentException('FHIR_INPUT_LIMIT'); }
         try {
             $response = $this->client->post(rtrim($url, '/') . '/execute', ['body' => $body,
