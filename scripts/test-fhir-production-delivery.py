@@ -81,6 +81,9 @@ class ProductionPromotionTest(unittest.TestCase):
         for name, service in config["services"].items():
             self.assertNotIn("build", service)
             self.assertTrue(service["read_only"])
+            # Flow-sequence commas must not turn options into separate mounts.
+            for mount in service["tmpfs"]:
+                self.assertTrue(mount.startswith("/"), f"{name}: invalid tmpfs mount {mount!r}")
             if name != "ingress":
                 self.assertFalse(service.get("ports"))
         port = config["services"]["ingress"]["ports"][0]
