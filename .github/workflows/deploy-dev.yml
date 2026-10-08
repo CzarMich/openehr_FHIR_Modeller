@@ -149,19 +149,23 @@ jobs:
         run: |
           install -d -m 700 "$RUNNER_TEMP/fhir-modeller-docker"
           printf 'DOCKER_CONFIG=%s\n' "$RUNNER_TEMP/fhir-modeller-docker" >> "$GITHUB_ENV"
-      - name: Authenticate the image pull with bounded network retries
+      - name: Prepare temporary registry credentials for the authenticated pull
         if: steps.current.outputs.eligible == 'true'
         env:
           GHCR_USER: ${{ github.actor }}
           GHCR_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
-          for attempt in 1 2 3; do
-            if printf '%s\n' "$GHCR_TOKEN" | timeout 90s docker login ghcr.io --username "$GHCR_USER" --password-stdin; then break; fi
-            if [[ "$attempt" == 3 ]]; then exit 1; fi
-            echo 'Registry authentication encountered a network error; retrying in ten seconds.' >&2
-            sleep 10
-          done
+          python3 - <<'PY'
+          import base64,json,os
+          from pathlib import Path
+          directory=Path(os.environ['DOCKER_CONFIG'])
+          directory.chmod(0o700)
+          credential=base64.b64encode((os.environ['GHCR_USER']+':'+os.environ['GHCR_TOKEN']).encode()).decode()
+          descriptor=os.open(directory/'config.json',os.O_WRONLY|os.O_CREAT|os.O_TRUNC|os.O_NOFOLLOW,0o600)
+          with os.fdopen(descriptor,'w') as output:
+              os.fchmod(output.fileno(),0o600)
+              json.dump({'auths':{'ghcr.io':{'auth':credential}}},output)
+          PY
       - name: Deploy pinned images on the marked local Dev host
         if: steps.current.outputs.eligible == 'true'
         env:

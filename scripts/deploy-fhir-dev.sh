@@ -18,6 +18,8 @@ unset DOCKER_CONTEXT DOCKER_TLS DOCKER_TLS_VERIFY DOCKER_CERT_PATH
 export DOCKER_HOST=unix:///var/run/docker.sock
 [[ "$(docker context inspect --format '{{.Endpoints.docker.Host}}')" == unix:///var/run/docker.sock ]] || { echo 'A local Docker context is required.' >&2; exit 2; }
 [[ "$(docker info --format '{{.Name}}')" == platform ]] || { echo 'Docker is not on the approved Dev host.' >&2; exit 2; }
+[[ "${DOCKER_CONFIG:-}" == "${RUNNER_TEMP:?}/fhir-modeller-docker" ]] || { echo 'The dedicated temporary registry configuration is required.' >&2; exit 2; }
+trap 'rm -f -- "$DOCKER_CONFIG/config.json"' EXIT
 
 state_dir=/opt/hygeoniq/projects/openehr-fhir-modeller/deployment
 config_dir=/opt/hygeoniq/projects/openehr-fhir-modeller/config
