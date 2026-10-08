@@ -108,6 +108,7 @@ def main():
     parser.add_argument("--live-ckm", action="store_true")
     parser.add_argument("--live-terminology", action="store_true")
     parser.add_argument("--without-terminology", action="store_true", help="Assert optional external terminology is unconfigured")
+    parser.add_argument("--fhir", action="store_true", help="Require the configured FHIR engine and inspect release capabilities")
     parser.add_argument("--governance", action="store_true", help="Exercise enabled governance persistence with --writes")
     parser.add_argument("--writes", action="store_true", help="Create an isolated smoke project; requires enabled writes")
     args = parser.parse_args()
@@ -129,7 +130,8 @@ def main():
         assert len({t['name'] for t in tools}) == len(tools)
         assert all(t['inputSchema'].get('additionalProperties') is False for t in tools)
         record("tools/list", [t['name'] for t in tools])
-        if 'fhir_project' in {t['name'] for t in tools}:
+        if args.fhir:
+            assert 'fhir_project' in {t['name'] for t in tools}
             capabilities = client.tool('fhir_project', {'action': 'capabilities'})
             assert {'4.0.1', '4.3.0', '5.0.0'} <= {release['version'] for release in capabilities['toolchainReleases']}
             assert capabilities['additionalExactReleases']['inspection'] is True
