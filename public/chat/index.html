@@ -5,6 +5,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#005eb8" />
         <title>openEHR Modelling Assistant</title>
+        <link rel="icon" href="/chat/favicon.ico" sizes="32x32" />
+        <link rel="icon" href="/chat/favicon.svg" type="image/svg+xml" sizes="any" />
+        <link rel="apple-touch-icon" href="/chat/apple-touch-icon.png" sizes="180x180" />
         <link rel="stylesheet" href="/chat/style.css" />
         <link rel="stylesheet" href="/chat/workspace.css" />
         <script src="/chat/app.js" type="module"></script>
@@ -1111,6 +1114,14 @@
                     <p id="fhir-context" class="revision-note">
                         FHIR workspaces have independent releases, dependencies and repositories.
                     </p>
+                    <button id="fhir-capabilities" type="button" class="secondary-button">
+                        Show installed release capabilities
+                    </button>
+                    <pre id="fhir-capabilities-result" class="fhir-output" hidden></pre>
+                    <p class="revision-note">
+                        R4, R4B and R5 have installed modelling tools. Other exact releases can be inspected and
+                        imported; compilation, validation and FHIRPath require a compatible processor.
+                    </p>
                     <details id="fhir-project-settings" class="fhir-card">
                         <summary>Project configuration and knowledge sources</summary>
                         <form id="fhir-project-form">
@@ -1125,11 +1136,18 @@
                                     /></label>
                                     <label>Project name<input name="name" required /></label>
                                     <label
-                                        >FHIR release<select name="fhirVersion">
-                                            <option value="4.0.1">R4 · 4.0.1</option>
-                                            <option value="4.3.0">R4B · 4.3.0</option>
-                                            <option value="5.0.0">R5 · 5.0.0</option>
-                                        </select></label
+                                        >FHIR release<input
+                                            name="fhirVersion"
+                                            list="fhir-release-options"
+                                            required
+                                            placeholder="Exact release version"
+                                            value="4.0.1"
+                                        />
+                                        <datalist id="fhir-release-options">
+                                            <option value="4.0.1">R4</option>
+                                            <option value="4.3.0">R4B</option>
+                                            <option value="5.0.0">R5</option>
+                                        </datalist></label
                                     >
                                     <label
                                         >Canonical base URL<input
@@ -1292,6 +1310,71 @@
                             </form>
                             <div id="fhir-candidates" class="fhir-results"></div>
                             <pre id="fhir-reuse-result" class="fhir-output" tabindex="0" hidden></pre>
+                        </section>
+                        <section class="fhir-card" aria-labelledby="fhir-external-title">
+                            <h2 id="fhir-external-title">External IGs and definition sources</h2>
+                            <p>
+                                Inspect a public HTTPS IG page, package archive or definition JSON. Select an exact
+                                published version. Review provenance and licence before importing unchanged originals or
+                                adding a pinned package dependency.
+                            </p>
+                            <div class="fhir-grid">
+                                <label
+                                    >Source URL<input
+                                        id="fhir-external-url"
+                                        type="url"
+                                        placeholder="https://…/package-list.json or definition.json"
+                                /></label>
+                                <label
+                                    >Exact package version<input
+                                        id="fhir-external-version"
+                                        placeholder="Select a publication version"
+                                /></label>
+                                <label
+                                    >New original path<input
+                                        id="fhir-external-path"
+                                        placeholder="imported/StructureDefinition-original.json"
+                                /></label>
+                            </div>
+                            <button id="fhir-external-inspect" type="button" class="secondary-button">
+                                Inspect URL
+                            </button>
+                            <div id="fhir-external-releases" class="fhir-results"></div>
+                            <h3>Definitions on a connected FHIR or terminology server</h3>
+                            <div class="fhir-grid">
+                                <label
+                                    >Configured connection ID<input
+                                        id="fhir-definition-connection"
+                                        placeholder="ID from Connections below"
+                                /></label>
+                                <label
+                                    >Definition type<select id="fhir-definition-type">
+                                        <option>StructureDefinition</option>
+                                        <option>ValueSet</option>
+                                        <option>CodeSystem</option>
+                                        <option>ConceptMap</option>
+                                        <option>ImplementationGuide</option>
+                                        <option>SearchParameter</option>
+                                        <option>OperationDefinition</option>
+                                        <option>CapabilityStatement</option>
+                                        <option>StructureMap</option>
+                                        <option>NamingSystem</option>
+                                    </select></label
+                                >
+                                <label
+                                    >Canonical URL or name<input
+                                        id="fhir-definition-query"
+                                        placeholder="Refine to narrow the first 50 results"
+                                /></label>
+                            </div>
+                            <button id="fhir-definition-search" type="button" class="secondary-button">
+                                Search connected definitions
+                            </button>
+                            <div id="fhir-definition-results" class="fhir-results"></div>
+                            <pre id="fhir-external-result" class="fhir-output" hidden></pre>
+                            <button id="fhir-external-import" type="button" class="primary-button" disabled>
+                                Review and import inspected source
+                            </button>
                         </section>
                         <section class="fhir-card" aria-labelledby="fhir-package-title">
                             <h2 id="fhir-package-title">Authoritative packages</h2>
@@ -1636,6 +1719,7 @@
                             <h1>AQL workspace</h1>
                             <p>Inspect a model, check its paths, then query a connected CDR.</p>
                         </div>
+                        <a href="#help-fhir">FHIR profiles and external sources</a>
                         <a href="#help-aql">How to use AQL</a>
                     </div>
                     <p id="aql-notice" role="status" aria-live="polite"></p>
@@ -2026,6 +2110,62 @@ LIMIT 100</textarea
                         <a href="#help-troubleshooting">Solve a problem</a>
                         <a href="#help-about">About and licensing</a>
                     </nav>
+                    <section class="help-topic" aria-labelledby="help-fhir">
+                        <h2 id="help-fhir" tabindex="-1">FHIR profiles and external sources</h2>
+                        <p>
+                            Open <strong>FHIR modelling</strong>, create a project with an exact FHIR release and your
+                            own canonical namespace, then discover reusable profiles before creating one. FHIR release
+                            (for example 4.0.1) and an IG package version (for example 1.0.0) are separate. Use
+                            <strong>Show installed release capabilities</strong> to check available processors.
+                            Additional exact releases support inspection and import; unsupported compilation or
+                            validation stops explicitly.
+                        </p>
+                        <p>
+                            In <strong>External IGs and definition sources</strong>, paste a public HTTPS guide URL,
+                            <code>package-list.json</code>, <code>package.tgz</code> or a
+                            StructureDefinition/ValueSet/CodeSystem JSON URL. Click <strong>Inspect URL</strong>, select
+                            an exact publication, review package dependencies, source hash, canonical identity and
+                            licence, then <strong>Review and import inspected source</strong>. Imports refetch and
+                            verify the reviewed hash; changed sources require a new inspection. An IG page discovers its
+                            machine-readable package; it does not copy website scripts.
+                        </p>
+                        <p>
+                            Package imports add an exact dependency to the project. Browse its definitions through the
+                            package search. Individual JSON imports need a new path and retain the original bytes,
+                            source URL, hash and retrieval time. Originals are immutable: derive a profile with your own
+                            canonical URL and preserve the parent profile and terminology references. Referencing a
+                            compatible published IG is usually preferable to copying and renaming it. Check upstream
+                            licence and copyright before redistribution.
+                        </p>
+                        <p>
+                            For connected sources, refresh <strong>Connections</strong>, use a configured FHIR or
+                            terminology connection ID, choose a definition type and search by canonical URL or name.
+                            Inspect a result before importing. Searches return up to 50 definitions; refine the query if
+                            more are available. Credentials remain in deployment-managed connections. These tools
+                            retrieve definitions, not patient records.
+                        </p>
+                        <p>
+                            A ValueSet definition expresses which codes are permitted; an expansion is a
+                            terminology-server result tied to terminology versions and parameters. Importing a ValueSet
+                            does not run an expansion or prove membership. Compile FSH and validate the resulting exact
+                            drafts with the selected release, then review and submit through the connected IG platform.
+                            Compilation, validation and clinical approval remain separate.
+                        </p>
+                        <p>
+                            MCP clients use <code>fhir_source</code> to inspect/import URLs or connected definitions,
+                            <code>fhir_connection</code> to search/read definitions, and <code>fhir_project</code> with
+                            action <code>capabilities</code> to inspect installed release support. See
+                            <a href="https://hl7.org/fhir/R5/packages.html" target="_blank" rel="noopener"
+                                >FHIR packages</a
+                            >,
+                            <a href="https://hl7.org/fhir/R4/profiling.html" target="_blank" rel="noopener"
+                                >profiling</a
+                            >
+                            and
+                            <a href="https://hl7.org/fhir/R4/valueset.html" target="_blank" rel="noopener">ValueSets</a
+                            >.
+                        </p>
+                    </section>
                     <section class="help-topic" aria-labelledby="help-accounts">
                         <h2 id="help-accounts" tabindex="-1">Accounts and shared connections</h2>
                         <p>

@@ -161,3 +161,37 @@ test("selected private repository retains FHIR tools but still forbids enterpris
     assert.doesNotThrow(() => workspace.checkWrite("fhir_project", create.args));
     assert.throws(() => workspace.checkWrite("model_artifact_save", {}));
 });
+
+test("external source imports require an unchanged hash-bound confirmation; inspection and definition reads are read-only", async () => {
+    const service = client();
+    service.tools = async () => [{ name: "fhir_source" }, { name: "fhir_connection" }, { name: "fhir_project" }];
+    const workspace = new FhirWorkspace({ allowWrites: true });
+    const input = {
+        tool: "fhir_source",
+        args: {
+            action: "import",
+            projectId: "clinical",
+            arguments: JSON.stringify({
+                url: "https://example.org/profile.json",
+                expectedSha256: "a".repeat(64),
+                projectRevision: "reviewed",
+                path: "imported/original.json",
+            }),
+        },
+    };
+    const preview = await workspace.execute(service, "alice", input);
+    assert.equal(service.calls.length, 0);
+    await assert.rejects(
+        workspace.execute(service, "alice", {
+            ...input,
+            args: { ...input.args, arguments: input.args.arguments.replace("reviewed", "changed") },
+            confirmation: preview.confirmation,
+        }),
+        (e) => e.status === 409,
+    );
+    await workspace.execute(service, "alice", { ...input, confirmation: preview.confirmation });
+    assert.equal(service.calls.length, 1);
+    assert.equal(isFhirWrite("fhir_source", { action: "inspect" }), false);
+    assert.equal(isFhirWrite("fhir_connection", { action: "search" }), false);
+    assert.doesNotThrow(() => validateFhirCall("fhir_project", { action: "capabilities" }));
+});

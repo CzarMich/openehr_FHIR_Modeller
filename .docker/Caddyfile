@@ -37,7 +37,7 @@
             }
         }
     }
-    @chat path /chat /chat/*
+    @chat path /chat /chat/* /favicon.ico /favicon.svg /apple-touch-icon.png
     handle @chat {
         reverse_proxy chat:8350 {
             flush_interval -1

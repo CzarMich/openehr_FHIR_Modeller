@@ -60,4 +60,38 @@ final class FhirConnectionsTest extends TestCase
         $this->expectExceptionMessage('FHIR_REQUEST_PATH_INVALID');
         (new FhirConnections($settings, $http))->request('ig-dev', 'ig', 'GET', '/metadata?redirect=https://other.example');
     }
+
+    private function definitionSettings(): Settings
+    {
+        file_put_contents($this->directory . '/connections.json', '{"definitions":{"type":"runtime","baseUrl":"https://fhir.example.org"}}');
+        return new Settings(['FHIR_CONNECTIONS_FILE' => $this->directory . '/connections.json']);
+    }
+
+    public function testDefinitionSearchBoundsQueryAndNeverFollowsUntrustedNextUrl(): void
+    {
+        $http = $this->createMock(CdrHttp::class);
+        $http->expects(self::once())->method('request')->with('https://fhir.example.org/ValueSet?_count=50&url=https%3A%2F%2Fexample.org%2Fvs', 'GET', self::anything(), null, self::anything(), self::anything(), self::anything())
+            ->willReturn(['status' => 200, 'body' => '{"resourceType":"Bundle","type":"searchset","entry":[{"resource":{"resourceType":"ValueSet","id":"test","url":"https://example.org/vs","compose":{"include":[]}}}],"link":[{"relation":"next","url":"http://127.0.0.1/secret"}]}', 'content_type' => 'application/json', 'headers' => []]);
+        $result = (new FhirConnections($this->definitionSettings(), $http))->definitions('definitions', 'search', ['resourceType' => 'ValueSet', 'url' => 'https://example.org/vs']);
+        self::assertTrue($result['hasMore']); self::assertSame('test', $result['items'][0]['id']); self::assertArrayNotHasKey('compose', $result['items'][0]);
+    }
+
+    public function testDefinitionReadPreservesOriginalAndRejectsPatientQueriesBeforeRequest(): void
+    {
+        $http = $this->createMock(CdrHttp::class); $bytes = ' {"resourceType":"StructureDefinition","id":"test"}';
+        $http->expects(self::once())->method('request')->willReturn(['status' => 200, 'body' => $bytes, 'content_type' => 'application/json', 'headers' => []]);
+        $connections = new FhirConnections($this->definitionSettings(), $http);
+        $result = $connections->definitions('definitions', 'read', ['resourceType' => 'StructureDefinition', 'resourceId' => 'test']);
+        self::assertSame($bytes, $result['content']); self::assertSame(hash('sha256', $bytes), $result['sha256']);
+        $this->expectExceptionMessage('FHIR_DEFINITION_TYPE_REQUIRED');
+        $connections->definitions('definitions', 'search', ['resourceType' => 'Patient']);
+    }
+
+    public function testDefinitionEndpointCannotReturnPatientData(): void
+    {
+        $http = $this->createMock(CdrHttp::class);
+        $http->expects(self::once())->method('request')->willReturn(['status' => 200, 'body' => '{"resourceType":"Bundle","type":"searchset","entry":[{"resource":{"resourceType":"Patient","id":"private"}}]}', 'content_type' => 'application/json', 'headers' => []]);
+        $this->expectExceptionMessage('FHIR_DEFINITION_RESPONSE_INVALID');
+        (new FhirConnections($this->definitionSettings(), $http))->definitions('definitions', 'search', ['resourceType' => 'ValueSet']);
+    }
 }

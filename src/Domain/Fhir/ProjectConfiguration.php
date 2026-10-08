@@ -20,7 +20,7 @@ final class ProjectConfiguration
         }
         $input['fhirVersion'] = self::RELEASES[$input['fhirVersion']] ?? $input['fhirVersion'];
         if (strlen($input['name']) > 200) { throw new \InvalidArgumentException('FHIR_PROJECT_NAME_TOO_LONG'); }
-        if (!in_array($input['fhirVersion'], self::RELEASES, true)) { throw new \InvalidArgumentException('FHIR_RELEASE_UNSUPPORTED'); }
+        if (!in_array($input['fhirVersion'], self::RELEASES, true) && !self::exactVersion($input['fhirVersion'])) { throw new \InvalidArgumentException('FHIR_RELEASE_UNSUPPORTED'); }
         self::url($input['canonical']);
         $input['canonical'] = rtrim($input['canonical'], '/');
         if (!preg_match('/^[a-z][a-z0-9.-]{2,150}$/D', $input['packageId']) || !self::exactVersion($input['version'])) {
@@ -42,6 +42,11 @@ final class ProjectConfiguration
                 throw new \InvalidArgumentException('FHIR_DEPENDENCY_CONFLICT');
             }
             $versions[$dependency['id']] = $dependency['version'];
+            if (isset($dependency['url'])) {
+                self::url($dependency['url']);
+                if (!str_starts_with($dependency['url'], 'https://') || !is_string($dependency['sha256'] ?? null)
+                    || !preg_match('/^[a-f0-9]{64}$/D', $dependency['sha256'])) { throw new \InvalidArgumentException('FHIR_PINNED_SOURCE_REQUIRED'); }
+            }
             if (preg_match('/^hl7\.fhir\.(r4|r4b|r5)\.core$/D', $dependency['id'], $match)) {
                 if (self::RELEASES[strtoupper($match[1])] !== $input['fhirVersion'] || $dependency['version'] !== $input['fhirVersion']) {
                     throw new \InvalidArgumentException('FHIR_DEPENDENCY_RELEASE_MISMATCH');

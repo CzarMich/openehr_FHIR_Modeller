@@ -12,6 +12,15 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(ProjectConfiguration::class)]
 final class ProjectConfigurationTest extends TestCase
 {
+    public function testAdditionalExactReleaseAndPinnedSourceAreAccepted(): void
+    {
+        $config = FhirModellingTest::config(); $config['fhirVersion'] = '6.0.0-snapshot1';
+        $config['dependencies'] = [['id' => 'test.future', 'version' => '1.0.0', 'url' => 'https://example.org/package.tgz', 'sha256' => str_repeat('a', 64)]];
+        self::assertSame('6.0.0-snapshot1', ProjectConfiguration::validate($config)['fhirVersion']);
+        unset($config['dependencies'][0]['sha256']);
+        $this->expectExceptionMessage('FHIR_PINNED_SOURCE_REQUIRED'); ProjectConfiguration::validate($config);
+    }
+
     public function testCrossReleaseDependencyFails(): void
     {
         $config = FhirModellingTest::config();

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import { Parser } from 'tar';
 import { fail, packageId, exactVersion, sha256, jsonRead, atomicJSON, tenantRoot, references, safeFile, CORES, artifactVersionMatches } from './common.mjs';
-import { DEFAULT_REGISTRY, approvedURL, fetchBuffer } from './network.mjs';
+import { DEFAULT_REGISTRY, approvedURL, fetchBuffer, publicSourceURL, fetchPublicDocument } from './network.mjs';
 
 function sourceURL(source, project, context) {
   const configured = project.sources.find(s => s.id === source);
@@ -15,7 +15,7 @@ function sourceURL(source, project, context) {
 export function checkPackageVersion(manifest, project) {
   const versions = manifest.fhirVersions || manifest['fhir-version-list'] || (manifest.fhirVersion ? [manifest.fhirVersion] : []);
   if (!Array.isArray(versions) || !versions.includes(project.fhirVersion)) fail('FHIR_VERSION_MISMATCH', `Package ${manifest.name}#${manifest.version} does not declare compatibility with FHIR ${project.fhirVersion}.`);
-  for (const [id, v] of Object.entries(manifest.dependencies || {})) { packageId(id); exactVersion(v); if (/^hl7\.fhir\.r[45]/.test(id) && (id !== CORES[project.fhirVersion] || v !== project.fhirVersion)) fail('FHIR_VERSION_MISMATCH', 'Package depends on a different FHIR core release.'); }
+  for (const [id, v] of Object.entries(manifest.dependencies || {})) { packageId(id); exactVersion(v); if (CORES[project.fhirVersion] && /^hl7\.fhir\.r[45]/.test(id) && (id !== CORES[project.fhirVersion] || v !== project.fhirVersion)) fail('FHIR_VERSION_MISMATCH', 'Package depends on a different FHIR core release.'); }
 }
 export async function unpackPackage(buffer) {
   let raw; try { raw = gunzipSync(buffer, { maxOutputLength: 250_000_000 }); } catch { fail('PACKAGE_ARCHIVE', 'Package must be a gzip tar archive within the 250 MB expanded limit.'); }
@@ -55,12 +55,16 @@ export async function installPackage(parameters, project, context, state) {
   if (state.selected.has(id)) return state.packages.find(p=>p.id === id) || { id, version, cycle: true };
   if (++state.nodes > 150) fail('DEPENDENCY_LIMIT', 'Dependency graph exceeds 150 packages.');
   state.selected.set(id, version); state.active.add(id);
-  const source = sourceURL(parameters.source, project, context);
-  const key = sha256(`${source}|${id}|${version}|${project.fhirVersion}`);
+  const configured = project.dependencies.find(d=>d.id===id && d.version===version);
+  const archiveURL = parameters.url || configured?.url;
+  const expectedHash = parameters.sha256 || configured?.sha256;
+  const source = archiveURL ? publicSourceURL(archiveURL).href : sourceURL(parameters.source, project, context);
+  const key = sha256(`${source}|${id}|${version}|${project.fhirVersion}${archiveURL ? '|'+(expectedHash || '') : ''}`);
   const dir = path.join(root, 'packages', key);
   let info = await jsonRead(path.join(dir, 'info.json'), null);
   if (!info) {
-    const buffer = await fetchBuffer(`${source}/${encodeURIComponent(id)}/${encodeURIComponent(version)}`, context);
+    const buffer = archiveURL ? (await fetchPublicDocument(source,context)).bytes : await fetchBuffer(`${source}/${encodeURIComponent(id)}/${encodeURIComponent(version)}`, context);
+    if (expectedHash && sha256(buffer)!==expectedHash) fail('SOURCE_CHANGED','Package bytes changed after inspection; inspect and review again.');
     const files = await unpackPackage(buffer);
     let manifest; try { manifest = JSON.parse(files.get('package/package.json')); } catch { fail('PACKAGE_MANIFEST', 'Invalid package manifest JSON.'); }
     if (manifest.name !== id || manifest.version !== version) fail('PACKAGE_IDENTITY', 'Downloaded package does not match the exact requested package ID and version.');
@@ -97,7 +101,7 @@ export async function installPackage(parameters, project, context, state) {
 }
 export async function resolveDependencies(project, context) {
   const state = { selected: new Map(), active: new Set(), packages: [], nodes: 0 };
-  await installPackage({ id: CORES[project.fhirVersion], version: project.fhirVersion }, project, context, state);
+  if (CORES[project.fhirVersion]) await installPackage({ id: CORES[project.fhirVersion], version: project.fhirVersion }, project, context, state);
   for (const d of project.dependencies) await installPackage(d, project, context, state);
   const lock = state.packages.map(p=>({ id:p.id, version:p.version, fhirVersion:p.fhirVersion, source:p.source, sha256:p.sha256, key:p.key }));
   return { fhirVersion:project.fhirVersion, packages:lock, fingerprint:sha256(JSON.stringify(lock)), source:'resolved-exact-package-manifests' };

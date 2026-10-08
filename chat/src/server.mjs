@@ -145,6 +145,12 @@ export function createApplication(
             )
                 throw Object.assign(new Error("Unknown host"), { status: 421 });
             const assets = {
+                "/favicon.ico": ["favicon.ico", "image/x-icon"],
+                "/favicon.svg": ["favicon.svg", "image/svg+xml"],
+                "/apple-touch-icon.png": ["apple-touch-icon.png", "image/png"],
+                "/chat/favicon.ico": ["favicon.ico", "image/x-icon"],
+                "/chat/favicon.svg": ["favicon.svg", "image/svg+xml"],
+                "/chat/apple-touch-icon.png": ["apple-touch-icon.png", "image/png"],
                 "/": ["index.html", "text/html; charset=utf-8"],
                 "/chat/": ["index.html", "text/html; charset=utf-8"],
                 "/chat/workspace.js": ["workspace.js", "text/javascript"],

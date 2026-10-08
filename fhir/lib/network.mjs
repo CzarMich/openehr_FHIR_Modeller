@@ -17,7 +17,7 @@ export function isPrivate(address) {
 export function approvedURL(input, context = {}) {
   let url; try { url = new URL(input); } catch { fail('SOURCE_URL', 'Invalid package source URL.'); }
   const origins = context.allowedOrigins || (process.env.FHIR_PACKAGE_ORIGINS ? process.env.FHIR_PACKAGE_ORIGINS.split(',').map(x=>x.trim()) : DEFAULT_ORIGINS);
-  if (url.protocol !== 'https:' || url.username || url.password || url.hash || !origins.includes(url.origin) || (isIP(url.hostname) && isPrivate(url.hostname))) fail('SOURCE_DENIED', 'Package source must be an administrator-allowed HTTPS origin without credentials.');
+  if (url.protocol !== 'https:' || url.username || url.password || url.hash || !origins.includes(url.origin) || (isIP(url.hostname.replace(/^\[|\]$/g,'')) && isPrivate(url.hostname.replace(/^\[|\]$/g,'')))) fail('SOURCE_DENIED', 'Package source must be an administrator-allowed HTTPS origin without credentials.');
   return url;
 }
 export function publicLookup(host, options, cb) {
@@ -46,5 +46,45 @@ export async function fetchBuffer(input, context = {}, maxBytes = 60_000_000) {
     });
     req.on('timeout', () => req.destroy(new EngineError('SOURCE_TIMEOUT', 'Package registry timed out.', 504)));
     req.on('error', reject);
+  });
+}
+
+// Public definition sources are distinct from administrator-selected registries.
+// Never forward connection credentials or permit local-network destinations.
+export function publicSourceURL(input) {
+  let url; try { url = new URL(input); } catch { fail('SOURCE_URL', 'Invalid source URL.'); }
+  const allowed = process.env.FHIR_SOURCE_ORIGINS?.split(',').map(x => x.trim()).filter(Boolean);
+  if (typeof input !== 'string' || input.length > 2000 || url.protocol !== 'https:' || url.username || url.password || url.hash || url.search
+      || (url.port && url.port !== '443') || (allowed?.length && !allowed.includes(url.origin))
+      || url.hostname === 'localhost' || url.hostname.endsWith('.localhost') || (isIP(url.hostname.replace(/^\[|\]$/g,'')) && isPrivate(url.hostname.replace(/^\[|\]$/g,''))))
+    fail('SOURCE_DENIED', 'Use a public HTTPS definition URL without credentials, queries or a custom port.');
+  return url;
+}
+export async function fetchPublicDocument(input, context = {}, maxBytes = 60_000_000, redirects = 0) {
+  const url = publicSourceURL(input);
+  if (context.fetchPublicDocument) {
+    const result = await context.fetchPublicDocument(url.href, maxBytes);
+    publicSourceURL(result.url || url.href);
+    if (!Buffer.isBuffer(result.bytes) || result.bytes.length > maxBytes) fail('DOWNLOAD_SIZE', 'Source download exceeds the limit.');
+    return {...result, url:result.url || url.href};
+  }
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, {timeout:30_000, lookup:publicLookup,
+      headers:{'User-Agent':'openEHR-FHIR-Modeller/0.1', Accept:'application/fhir+json, application/json, text/html, */*'}}, res => {
+      if ([301,302,303,307,308].includes(res.statusCode)) {
+        res.resume();
+        if (redirects >= 3 || !res.headers.location) return reject(new EngineError('SOURCE_REDIRECT', 'Source redirect limit exceeded.'));
+        try { resolve(fetchPublicDocument(new URL(res.headers.location,url).href,context,maxBytes,redirects+1)); } catch (error) { reject(error); }
+        return;
+      }
+      if (res.statusCode !== 200) {res.resume();reject(new EngineError('SOURCE_HTTP', `Definition source returned HTTP ${res.statusCode}.`,502));return;}
+      if (Number(res.headers['content-length'] || 0) > maxBytes) {res.destroy();reject(new EngineError('DOWNLOAD_SIZE','Source download exceeds the limit.'));return;}
+      const chunks=[];let size=0;
+      res.on('data',chunk=>{size+=chunk.length;if(size>maxBytes)res.destroy(new EngineError('DOWNLOAD_SIZE','Source download exceeds the limit.'));else chunks.push(chunk);});
+      res.on('end',()=>resolve({bytes:Buffer.concat(chunks),url:url.href,contentType:res.headers['content-type'] || ''}));
+      res.on('error',reject);
+    });
+    req.on('timeout',()=>req.destroy(new EngineError('SOURCE_TIMEOUT','Definition source timed out.',504)));
+    req.on('error',reject);
   });
 }

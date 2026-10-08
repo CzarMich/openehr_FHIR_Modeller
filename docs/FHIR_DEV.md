@@ -122,3 +122,5 @@ The modeller's `/ready` endpoint checks the configured private engine and its
 installed toolchain. A running browser shell with a missing FHIR engine now
 returns a failed readiness check. External registries and the IG platform are
 tested separately; readiness does not claim those remote services are available.
+
+External IG/package URLs, StructureDefinition and ValueSet imports, connected definition searches and extensible release capabilities: [FHIR external sources](FHIR_EXTERNAL_SOURCES.md). The browser User guide includes the same workflow.

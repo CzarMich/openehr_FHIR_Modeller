@@ -6,7 +6,7 @@ import path from 'node:path';
 import { create } from 'tar';
 import { execute } from '../engine.mjs';
 import { projectConfig, release, exactVersion, safeFile, parseResource } from '../lib/common.mjs';
-import { approvedURL, isPrivate } from '../lib/network.mjs';
+import { approvedURL, publicSourceURL, isPrivate } from '../lib/network.mjs';
 import { unpackPackage } from '../lib/packages.mjs';
 import { constraintsToFsh } from '../lib/modelling.mjs';
 import { createServer } from '../server.mjs';
@@ -27,7 +27,7 @@ async function context(t,packages={}) {
 }
 test('releases are explicit and package versions are pinned',()=>{
   for(const [input,want]of [['R4','4.0.1'],['R4B','4.3.0'],['R5','5.0.0']])assert.equal(release(input),want);
-  for(const bad of [undefined,'4.0','latest','3.0.2'])assert.throws(()=>release(bad));
+  for(const bad of [undefined,'4.0','latest','R6'])assert.throws(()=>release(bad));
   for(const bad of ['latest','current','^1.0.0','1.0','../1.0.0'])assert.throws(()=>exactVersion(bad));
   assert.equal(exactVersion('2026.0.0-ballot'), '2026.0.0-ballot');
   assert.throws(()=>projectConfig({fhirVersion:'R4',dependencies:[{id:'foo',version:'latest'}]}));
@@ -128,4 +128,45 @@ test('SUSHI subprocess blocks fallback network transports',()=>{
   const guard=fileURLToPath(new URL('../lib/tool-home.cjs',import.meta.url));
   const result=spawnSync(process.execPath,['--require',guard,'-e',`for (const m of ['node:http','node:https']) { for (const method of ['get','request']) { try { require(m)[method]('https://example.org'); process.exit(1); } catch (e) { if (!e.message.includes('Network access disabled')) throw e; } } } try { fetch('https://example.org'); process.exit(1); } catch(e) { if (!e.message.includes('Network access disabled')) throw e; }`],{env:{PATH:process.env.PATH,FHIR_TOOL_HOME:'/tmp/fhir-test-home'},timeout:5000});
   assert.equal(result.status,0,result.stderr?.toString());
+});
+
+test('additional exact releases allow inspection and reject uninstalled processors',async t=>{
+  const ctx=await context(t),future={...project,fhirVersion:'6.0.0-snapshot1'};
+  const resource={resourceType:'ImplementationGuide',id:'future',fhirVersion:['6.0.0-snapshot1']};
+  assert.equal((await execute('artifact.inspect',{project:future,content:resource},ctx)).identity.resourceType,'ImplementationGuide');
+  const capabilities=await execute('capabilities.get',{},ctx);
+  assert.equal(capabilities.additionalExactReleases.validation,false);
+  for(const operation of ['artifact.validate','profile.generate','fsh.compile','fhirpath.evaluate'])
+    await assert.rejects(()=>execute(operation,{project:future,content:resource},ctx),e=>e.code==='FHIR_RELEASE_TOOLCHAIN_UNSUPPORTED');
+});
+test('public URL import preserves exact original bytes and refuses changed sources or patient resources',async t=>{
+  const ctx=await context(t),url='https://example.org/StructureDefinition-original.json';
+  let bytes=Buffer.from(' {"resourceType":"StructureDefinition","id":"original","fhirVersion":"4.0.1","copyright":"Upstream licence"}\n');
+  ctx.fetchPublicDocument=async source=>({bytes,url:source});
+  const inspected=await execute('source.inspect',{project,url},ctx);
+  const imported=await execute('source.import',{project,url,expectedSha256:inspected.sha256},ctx);
+  assert.equal(imported.content,bytes.toString());assert.equal(imported.identity.copyright,'Upstream licence');
+  bytes=Buffer.from(bytes.toString().replace('original','changed'));
+  await assert.rejects(()=>execute('source.import',{project,url,expectedSha256:inspected.sha256},ctx),e=>e.code==='SOURCE_CHANGED');
+  bytes=Buffer.from('{"resourceType":"Patient","id":"private"}');
+  await assert.rejects(()=>execute('source.inspect',{project,url},ctx),e=>e.code==='SOURCE_DEFINITION_REQUIRED');
+  for(const unsafe of ['http://example.org/a','https://localhost/a','https://[::1]/a','https://[::ffff:127.0.0.1]/a','https://127.0.0.1/a','https://user:secret@example.org/a','https://example.org/a?token=secret','https://example.org:8443/a'])assert.throws(()=>publicSourceURL(unsafe));
+  ctx.fetchPublicDocument=async()=>({bytes:Buffer.from('{}'),url:'https://127.0.0.1/redirect'});
+  await assert.rejects(()=>execute('source.inspect',{project,url},ctx),e=>e.code==='SOURCE_DENIED');
+});
+test('IG URL discovers explicit publication versions and imports a pinned dependency with reuse resolution',async t=>{
+  const ctx=await context(t),url='https://example.org/ig/';
+  const resource={resourceType:'StructureDefinition',id:'reused',url:'https://example.org/StructureDefinition/reused',fhirVersion:'4.0.1',type:'Observation'};
+  const bytes=await archive({name:'test.external',version:'1.2.0',fhirVersions:['4.0.1'],license:'CC0-1.0'},[resource]);
+  let malformed=false;
+  ctx.fetchPublicDocument=async source=>({url:source,bytes:source===url?Buffer.from('<html>IG</html>'):
+    source.endsWith('/package-list.json') || malformed ? Buffer.from(JSON.stringify({'package-id':'test.external',list:[{version:'current',path:url,status:'ci-build'},{version:'1.2.0',path:'https://example.org/ig/1.2.0',fhirversion:'4.0.1'}]})):bytes});
+  const choices=await execute('source.inspect',{project,url},ctx);assert.equal(choices.kind,'releases');assert.deepEqual(choices.releases.map(r=>r.version),['1.2.0']);
+  const inspected=await execute('source.inspect',{project,url,version:'1.2.0'},ctx);assert.equal(inspected.package.license,'CC0-1.0');
+  const imported=await execute('source.import',{project,url,version:'1.2.0',expectedSha256:inspected.sha256},ctx);
+  assert.equal(imported.dependency.url,'https://example.org/ig/1.2.0/package.tgz');
+  const configured={...project,dependencies:[imported.dependency]};
+  const resolved=await execute('package.resolve',{project:configured,canonical:resource.url},ctx);assert.equal(resolved.resource.id,'reused');
+  malformed=true;
+  await assert.rejects(()=>execute('source.inspect',{project,url,version:'1.2.0'},ctx),e=>e.code==='SOURCE_RELEASE');
 });

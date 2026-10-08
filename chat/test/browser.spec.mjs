@@ -2013,7 +2013,7 @@ test("FHIR project configuration is explicit, confirmed and usable on a small vi
     const form = page.locator("#fhir-project-form");
     await form.getByLabel("Project identifier", { exact: true }).fill("dev-fhir");
     await form.getByLabel("Project name", { exact: true }).fill("Development FHIR");
-    await form.getByRole("combobox", { name: "FHIR release", exact: true }).selectOption("4.3.0");
+    await form.getByRole("combobox", { name: "FHIR release", exact: true }).fill("4.3.0");
     await form.getByLabel("Canonical base URL", { exact: true }).fill("https://example.test/dev-fhir");
     await form.getByLabel("Package ID", { exact: true }).fill("test.development.fhir");
     await form.getByLabel("Publisher", { exact: true }).fill("Synthetic test publisher");
@@ -2073,4 +2073,76 @@ test("FHIR imported XML download preserves original CRLF bytes until the source 
     const editedDownload = page.waitForEvent("download");
     await page.locator("#fhir-download").click();
     expect(await readFile(await (await editedDownload).path(), "utf8")).toBe(revised);
+});
+
+test("FHIR external definitions are inspected before a hash-bound import and cancellation makes no changes", async ({
+    page,
+}) => {
+    const project = {
+        id: "external",
+        name: "External definitions",
+        fhirVersion: "4.0.1",
+        canonical: "https://example.org/fhir",
+        packageId: "test.external",
+        version: "1.0.0",
+    };
+    const original = {
+        resourceType: "ValueSet",
+        id: "codes",
+        url: "https://example.org/codes",
+        version: "1.0.0",
+        copyright: "Upstream licence",
+    };
+    const source = {
+        kind: "resource",
+        sha256: "a".repeat(64),
+        resource: original,
+        content: JSON.stringify(original),
+        identity: original,
+        provenance: { sourceUrl: "https://example.org/codes.json", sha256: "a".repeat(64) },
+    };
+    const mutations = [];
+    await page.route("**/chat/api/fhir/execute", async (route) => {
+        const input = route.request().postDataJSON();
+        if (input.tool === "fhir_project")
+            return route.fulfill({
+                json: {
+                    result:
+                        input.args.action === "list"
+                            ? { items: [project] }
+                            : { project, revision: "configuration-revision", artifacts: [] },
+                },
+            });
+        if (input.args.action === "import") {
+            if (!input.confirmation)
+                return route.fulfill({
+                    json: {
+                        confirmationRequired: true,
+                        confirmation: "reviewed-source",
+                        tool: input.tool,
+                        args: input.args,
+                    },
+                });
+            mutations.push(input);
+        }
+        return route.fulfill({ json: { result: source } });
+    });
+    await login(page);
+    await page.getByRole("tab", { name: "FHIR modelling", exact: true }).click();
+    await expect(page.locator("#fhir-context")).toContainText(project.name);
+    await page.locator("#fhir-external-url").fill("https://example.org/codes.json");
+    await page.getByRole("button", { name: "Inspect URL", exact: true }).click();
+    await expect(page.locator("#fhir-external-result")).toContainText("Upstream licence");
+    await expect(page.locator("#fhir-external-path")).toHaveValue("imported/ValueSet-codes.json");
+    await page.getByRole("button", { name: "Review and import inspected source", exact: true }).click();
+    await expect(page.locator("#fhir-confirm-request")).toContainText("configuration-revision");
+    expect(mutations).toHaveLength(0);
+    await page.getByRole("button", { name: "Cancel change", exact: true }).last().click();
+    expect(mutations).toHaveLength(0);
+    await expect(page.locator("#fhir-notice")).toContainText("cancelled");
+    await page.getByRole("button", { name: "Review and import inspected source", exact: true }).click();
+    await page.getByRole("button", { name: "Confirm exact change", exact: true }).click();
+    await expect(page.locator("#fhir-external-import")).toBeDisabled();
+    expect(mutations).toHaveLength(1);
+    expect(JSON.parse(mutations[0].args.arguments).expectedSha256).toBe(source.sha256);
 });

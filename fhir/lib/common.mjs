@@ -17,10 +17,11 @@ export const RELEASES = { R4: '4.0.1', R4B: '4.3.0', R5: '5.0.0' };
 export const CORES = { '4.0.1': 'hl7.fhir.r4.core', '4.3.0': 'hl7.fhir.r4b.core', '5.0.0': 'hl7.fhir.r5.core' };
 // The official R4 4.0.1 core archive preserves several 4.0.0 declarations.
 // This is the same R4 release family; never extend it to R4B or R5.
-export const artifactVersionMatches=(declared,selected)=>declared===release(selected)||(release(selected)==='4.0.1'&&declared==='4.0.0');
+export const artifactVersionMatches=(declared,selected)=>Array.isArray(declared)?declared.some(v=>artifactVersionMatches(v,selected)):declared===release(selected)||(release(selected)==='4.0.1'&&declared==='4.0.0');
 export function release(value) {
   const result = RELEASES[value] || value;
-  if (!Object.hasOwn(CORES, result)) fail('FHIR_VERSION', 'Declare one supported FHIR release: R4/4.0.1, R4B/4.3.0 or R5/5.0.0.');
+  if (!Object.hasOwn(CORES, result) && (typeof result !== 'string' || !/^\d+\.\d+\.\d+(?:-[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*)?(?:\+[A-Za-z0-9.-]+)?$/.test(result)))
+    fail('FHIR_VERSION', 'Declare an exact FHIR release. Additional releases support definition inspection; authoring requires an installed compatible processor.');
   return result;
 }
 export function projectConfig(project) {
