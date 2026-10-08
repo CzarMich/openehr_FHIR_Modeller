@@ -33,7 +33,7 @@ trait FhirOutputCases
             $service->project('create', 'synthetic', json_encode(FhirModellingTest::config()));
             $args = match ($method) {
                 'project' => ['get', 'synthetic'], 'compile', 'example' => ['synthetic', '{}'],
-                'package' => ['search', 'synthetic'], 'artifact' => ['inspect', 'synthetic', '{"content":{}}'],
+                'source' => ['inspect', 'synthetic', '{"url":"https://example.org/profile.json"}'], 'package' => ['search', 'synthetic'], 'artifact' => ['inspect', 'synthetic', '{"content":{}}'],
                 'profile' => ['discover', 'synthetic'], 'fhirpath' => ['validate', 'synthetic'],
                 'mapping' => ['list', 'synthetic'], 'connection' => ['list', 'synthetic'], 'ig' => ['test', 'synthetic'],
             };
@@ -49,6 +49,7 @@ trait FhirOutputCases
         }
     }
     public function test_fhir_project_result_matches_output_schema(): void { $this->fhirCase('project'); }
+    public function test_fhir_source_result_matches_output_schema(): void { $this->fhirCase('source'); }
     public function test_fhir_package_result_matches_output_schema(): void { $this->fhirCase('package'); }
     public function test_fhir_artifact_result_matches_output_schema(): void { $this->fhirCase('artifact'); }
     public function test_fhir_profile_result_matches_output_schema(): void { $this->fhirCase('profile'); }

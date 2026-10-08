@@ -19,7 +19,7 @@ final readonly class FhirTools
      * @return array<string, mixed> */
     #[Schema(additionalProperties: false)]
     #[McpTool(name: 'fhir_project', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, openWorldHint: false), outputSchema: ToolResult::SCHEMA)]
-    public function project(#[Schema(enum: ['list', 'get', 'create', 'update'])] string $action,
+    public function project(#[Schema(enum: ['list', 'get', 'create', 'update', 'capabilities'])] string $action,
         #[Schema(minLength: 1, maxLength: 80)] ?string $projectId = null,
         #[Schema(maxLength: 65536)] ?string $document = null,
         #[Schema(maxLength: 128)] ?string $expectedRevision = null): array
@@ -33,6 +33,15 @@ final readonly class FhirTools
         #[Schema(minLength: 1, maxLength: 80)] string $projectId,
         #[Schema(maxLength: 8388608)] string $arguments = '{}'): array
     { return ToolResult::run(fn (): array => $this->fhir->operation('package', $action, $projectId, $arguments)); }
+
+    /** Inspect public HTTPS IG/package/definition URLs or read definitions from a named connectionId. Import requires the inspected expectedSha256, current projectRevision and a new path for resource originals. Select an exact publication version; preserve licence and provenance. Never import patient data.
+     * @return array<string, mixed> */
+    #[Schema(additionalProperties: false)]
+    #[McpTool(name: 'fhir_source', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, openWorldHint: true), outputSchema: ToolResult::SCHEMA)]
+    public function source(#[Schema(enum: ['inspect', 'import'])] string $action,
+        #[Schema(minLength: 1, maxLength: 80)] string $projectId,
+        #[Schema(maxLength: 65536)] string $arguments = '{}'): array
+    { return ToolResult::run(fn (): array => $this->fhir->operation('source', $action, $projectId, $arguments)); }
 
     /** Inspect, save and compare authored or imported artefacts. arguments is JSON: save needs path/content/format/representation/expectedRevision; validate content or path; diff before/after. Preserve imported originals.
      * @return array<string, mixed> */
@@ -70,11 +79,11 @@ final readonly class FhirTools
         #[Schema(maxLength: 8388608)] string $arguments = '{}'): array
     { return ToolResult::run(fn (): array => $this->fhir->operation('mapping', $action, $projectId, $arguments)); }
 
-    /** Inspect named deployment-managed connections. JSON arguments contain id; validate sends a synthetic resource only. Credentials are never tool arguments. Runtime patient-data search is browser-only.
+    /** Inspect named deployment-managed connections. search/read browse definition resource types only, with resourceType and canonical url/name/version or resourceId. validate sends a synthetic resource only. Credentials are never tool arguments; patient-data search is browser-only.
      * @return array<string, mixed> */
     #[Schema(additionalProperties: false)]
     #[McpTool(name: 'fhir_connection', annotations: new ToolAnnotations(readOnlyHint: true, destructiveHint: false, openWorldHint: true), outputSchema: ToolResult::SCHEMA)]
-    public function connection(#[Schema(enum: ['list', 'get', 'test', 'metadata', 'validate'])] string $action,
+    public function connection(#[Schema(enum: ['list', 'get', 'test', 'metadata', 'search', 'read', 'validate'])] string $action,
         #[Schema(minLength: 1, maxLength: 80)] string $projectId,
         #[Schema(maxLength: 8388608)] string $arguments = '{}'): array
     { return ToolResult::run(fn (): array => $this->fhir->operation('connection', $action, $projectId, $arguments)); }

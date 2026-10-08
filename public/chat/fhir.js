@@ -13,6 +13,7 @@ let session,
     artifacts = [],
     draftFiles = [],
     artifact = null;
+let inspectedSource = null;
 let loaded = false,
     busy = false,
     generation = 0,
@@ -184,6 +185,7 @@ async function loadProjects() {
     }
 }
 async function loadProject(id) {
+    clearExternalSource();
     if (!id) {
         project = null;
         projectContext();
@@ -801,6 +803,7 @@ function updateSession(value) {
         artifacts = [];
         draftFiles = [];
         artifact = null;
+        clearExternalSource();
         if ($("fhir-confirm-dialog").open) $("fhir-confirm-dialog").close("cancel");
         $("fhir-source").value = $("mapping-source").value = $("mapping-document").value = "";
         for (const node of document.querySelectorAll(".fhir-output,.fhir-results,#fhir-artifact-inspector"))
@@ -835,3 +838,91 @@ fetch("/chat/api/session")
     .then((response) => response.json())
     .then(updateSession)
     .catch(() => message("Could not load sign-in status. Refresh to retry."));
+
+function clearExternalSource() {
+    inspectedSource = null;
+    $("fhir-external-import").disabled = true;
+    $("fhir-external-releases").replaceChildren();
+    $("fhir-definition-results").replaceChildren();
+    $("fhir-external-result").textContent = "";
+}
+function showExternalSource(result, parameters) {
+    inspectedSource = result.sha256 && result.kind !== "releases" ? { result, parameters } : null;
+    $("fhir-external-import").disabled = !inspectedSource || !session?.allowWrites;
+    output("fhir-external-result", { ...result, content: undefined, resource: undefined });
+    $("fhir-external-releases").replaceChildren();
+    for (const release of result.releases || []) {
+        const button = element(
+            "button",
+            release.version + " · FHIR " + (release.fhirVersion || "unspecified"),
+            "secondary-button",
+        );
+        button.type = "button";
+        button.onclick = () =>
+            run(async () => {
+                $("fhir-external-version").value = release.version;
+                const selected = { url: parameters.url, version: release.version };
+                showExternalSource(await invoke("fhir_source", "inspect", selected), selected);
+            });
+        $("fhir-external-releases").append(button);
+    }
+    if (result.kind === "resource") {
+        $("fhir-external-path").value =
+            "imported/" +
+            result.resource.resourceType +
+            "-" +
+            (result.resource.id || result.sha256.slice(0, 12)) +
+            ".json";
+        inspectResource(result.resource, result.provenance);
+    }
+}
+$("fhir-capabilities").onclick = () =>
+    run(async () => output("fhir-capabilities-result", await invoke("fhir_project", "capabilities")));
+$("fhir-external-inspect").onclick = () =>
+    run(async () => {
+        requireProject();
+        clearExternalSource();
+        const parameters = { url: $("fhir-external-url").value.trim() };
+        if ($("fhir-external-version").value.trim()) parameters.version = $("fhir-external-version").value.trim();
+        showExternalSource(await invoke("fhir_source", "inspect", parameters), parameters);
+    });
+$("fhir-definition-search").onclick = () =>
+    run(async () => {
+        requireProject();
+        clearExternalSource();
+        const connectionId = $("fhir-definition-connection").value.trim();
+        const resourceType = $("fhir-definition-type").value;
+        const query = $("fhir-definition-query").value.trim();
+        const args = {
+            id: connectionId,
+            resourceType,
+            ...(query ? { [query.startsWith("http") || query.startsWith("urn:") ? "url" : "name"]: query } : {}),
+        };
+        const result = await invoke("fhir_connection", "search", args);
+        output("fhir-external-result", result);
+        for (const item of result.items || []) {
+            const button = element(
+                "button",
+                "Inspect " + (item.title || item.name || item.id) + " · " + (item.version || "unversioned"),
+                "secondary-button",
+            );
+            button.type = "button";
+            button.onclick = () =>
+                run(async () => {
+                    const parameters = { connectionId, resourceType, resourceId: item.id };
+                    showExternalSource(await invoke("fhir_source", "inspect", parameters), parameters);
+                });
+            $("fhir-definition-results").append(button);
+        }
+    });
+$("fhir-external-import").onclick = () =>
+    run(async () => {
+        requireProject();
+        if (!inspectedSource) throw new Error("Inspect a source first.");
+        const { result, parameters } = inspectedSource;
+        const args = { ...parameters, expectedSha256: result.sha256, projectRevision };
+        if (result.kind === "resource") args.path = $("fhir-external-path").value.trim();
+        const imported = await invoke("fhir_source", "import", args);
+        await loadProject(project.id);
+        output("fhir-external-result", { ...imported, content: undefined, resource: undefined });
+    });

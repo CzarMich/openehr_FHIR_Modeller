@@ -24,6 +24,7 @@ final readonly class FhirModelling
     /** @return array<string, mixed> */
     public function project(string $action, ?string $projectId = null, ?string $document = null, ?string $expectedRevision = null): array
     {
+        if ($action === 'capabilities') { return $this->provider->execute('capabilities.get', []); }
         if ($action === 'list') {
             $items = [];
             foreach ($this->repository->listProjects() as $project) {
@@ -62,13 +63,15 @@ final readonly class FhirModelling
         $project = $this->project('get', $projectId)['project'];
         $allowed = [
             'package' => ['search', 'get', 'install', 'dependencies', 'artifacts', 'resolve'],
+            'source' => ['inspect', 'import'],
             'artifact' => ['inspect', 'get', 'search', 'save', 'validate', 'diff', 'history'],
             'profile' => ['discover', 'generate', 'validate'], 'examples' => ['generate'], 'fsh' => ['compile'], 'fhirpath' => ['validate', 'evaluate'],
-            'mapping' => ['list', 'get', 'save', 'analyse'], 'connection' => ['list', 'get', 'test', 'metadata', 'search', 'validate'],
+            'mapping' => ['list', 'get', 'save', 'analyse'], 'connection' => ['list', 'get', 'test', 'metadata', 'search', 'read', 'validate'],
             'ig' => ['test', 'projects', 'status', 'submit', 'sync', 'build', 'publish'],
         ];
         if (!in_array($action, $allowed[$category] ?? [], true)) { throw new \InvalidArgumentException('FHIR_OPERATION_UNSUPPORTED'); }
-        if (in_array($action, ['save', 'install', 'submit', 'sync', 'build', 'publish'], true)) { $this->access->assertProjectWrite($projectId); }
+        if (in_array($action, ['save', 'install', 'import', 'submit', 'sync', 'build', 'publish'], true)) { $this->access->assertProjectWrite($projectId); }
+        if ($category === 'source') { return $this->source($action, $projectId, $args, $project); }
         if ($category === 'artifact' && in_array($action, ['get', 'search', 'save', 'history'], true)) {
             return $this->artifacts($action, $projectId, $args, $project);
         }
@@ -183,8 +186,7 @@ final readonly class FhirModelling
             throw new \RuntimeException('FHIR_CONNECTION_NOT_FOUND');
         }
         if (in_array($action, ['test', 'metadata'], true)) { return $this->connections->test($id); }
-        // Operational patient resources retain the inherited browser-only patient-data boundary.
-        if ($action === 'search') { throw new \DomainException('FHIR_RUNTIME_BROWSER_ONLY'); }
+        if (in_array($action, ['search', 'read'], true)) { return $this->connections->definitions($id, $action, $args); }
         $metadata = $this->connections->test($id)['capabilities'];
         $supported = false;
         foreach ($metadata['rest'] ?? [] as $rest) {
@@ -194,6 +196,45 @@ final readonly class FhirModelling
         $content = $args['content'] ?? null;
         if (!is_array($content)) { throw new \InvalidArgumentException('FHIR_RESOURCE_REQUIRED'); }
         return $this->connections->request($id, 'runtime', 'POST', '/$validate', $content);
+    }
+
+    /** @param array<string, mixed> $args
+     * @param array<string, mixed> $project
+     * @return array<string, mixed> */
+    private function source(string $action, string $projectId, array $args, array $project): array
+    {
+        $current = $this->project('get', $projectId);
+        if ($action === 'import' && (!is_string($args['projectRevision'] ?? null) || $args['projectRevision'] !== $current['revision'])) {
+            throw new \DomainException('REVISION_CONFLICT');
+        }
+        if (isset($args['connectionId'])) {
+            $source = $this->connections->definitions(self::identifier($args['connectionId']), 'read', $args);
+            $this->provider->execute('artifact.inspect', ['content' => $source['content'], 'project' => $project]);
+            if ($action === 'import' && (!is_string($args['expectedSha256'] ?? null) || !hash_equals($source['sha256'], $args['expectedSha256']))) {
+                throw new \DomainException('SOURCE_CHANGED');
+            }
+        } else {
+            $source = $this->provider->execute('source.' . $action, array_merge($args, ['project' => $project]));
+        }
+        if ($action === 'inspect') { return $source; }
+        if (($source['kind'] ?? '') === 'resource') {
+            $saved = $this->artifacts('save', $projectId, ['path' => $args['path'] ?? null, 'content' => $source['content'],
+                'representation' => 'imported', 'format' => 'json', 'provenance' => $source['provenance']], $project);
+            $source['saved'] = $saved;
+        } elseif (($source['kind'] ?? '') === 'package') {
+            $dependency = $source['dependency'];
+            $dependencies = $project['dependencies'];
+            foreach ($dependencies as $existing) {
+                if ($existing['id'] === $dependency['id'] && $existing !== $dependency) { throw new \DomainException('FHIR_DEPENDENCY_CONFLICT'); }
+            }
+            if (!in_array($dependency, $dependencies, true)) { $dependencies[] = $dependency; }
+            unset($project['id']);
+            $project['dependencies'] = $dependencies;
+            $source['configuration'] = $this->project('update', $projectId, json_encode($project, JSON_THROW_ON_ERROR), $args['projectRevision']);
+        } else { throw new \DomainException('SOURCE_RELEASE'); }
+        $evidence = $this->record($projectId, 'source.import', ['source' => $source['provenance'], 'kind' => $source['kind']]);
+        $source['platformProvenance'] = ['event' => $evidence['subject'], 'hash' => $evidence['hash'], 'actor' => $this->actor->id, 'clinicalApproval' => false];
+        return $source;
     }
 
     /** @param array<string, mixed> $project

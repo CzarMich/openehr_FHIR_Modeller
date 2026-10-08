@@ -244,4 +244,44 @@ final class FhirModellingTest extends TestCase
         $this->expectExceptionMessage('FHIR_IDENTIFIER_INVALID');
         $this->service()->project('create', str_repeat('a', 65), json_encode(self::config()));
     }
+
+    public function testSourceImportRejectsStaleProjectBeforeFetching(): void
+    {
+        $this->project();
+        $this->provider = $this->createMock(StandardsProvider::class);
+        $this->provider->expects(self::never())->method('execute');
+        $this->expectExceptionMessage('REVISION_CONFLICT');
+        $this->service()->operation('source', 'import', 'synthetic', '{"url":"https://example.org/profile.json","projectRevision":"stale"}');
+    }
+
+    public function testSourceOriginalPreservesBytesAndCannotOverrideTheSelectedProjectRelease(): void
+    {
+        $service = $this->project(); $revision = $service->project('get', 'synthetic')['revision'];
+        $bytes = ' {"resourceType":"ValueSet","id":"original","url":"https://example.org/vs"}';
+        $this->provider = $this->createMock(StandardsProvider::class);
+        $this->provider->expects(self::exactly(2))->method('execute')->willReturnCallback(static function (string $operation, array $args) use ($bytes): array {
+            self::assertSame('4.0.1', $args['project']['fhirVersion']);
+            return $operation === 'source.import' ? ['kind' => 'resource', 'content' => $bytes, 'sha256' => hash('sha256', $bytes),
+                'provenance' => ['sourceUrl' => 'https://example.org/vs.json', 'sha256' => hash('sha256', $bytes)]] :
+                ['resource' => ['resourceType' => 'ValueSet', 'id' => 'original', 'url' => 'https://example.org/vs']];
+        });
+        $result = $this->service()->operation('source', 'import', 'synthetic', json_encode(['url' => 'https://example.org/vs.json', 'path' => 'imported/vs.json',
+            'projectRevision' => $revision, 'expectedSha256' => hash('sha256', $bytes), 'project' => ['fhirVersion' => '5.0.0']]));
+        self::assertSame($bytes, $result['saved']['content']);
+        self::assertSame('imported', $result['saved']['metadata']['representation']);
+        self::assertSame(hash('sha256', $bytes), $result['saved']['metadata']['sourceClaims']['sha256']);
+        $this->expectExceptionMessage('FHIR_ORIGINAL_IMMUTABLE');
+        $service->operation('artifact', 'save', 'synthetic', json_encode(['path' => 'imported/vs.json', 'content' => '{}']));
+    }
+
+    public function testImportedPackagePinsDependencyAtTheReviewedConfigurationRevision(): void
+    {
+        $service = $this->project(); $revision = $service->project('get', 'synthetic')['revision'];
+        $dependency = ['id' => 'test.external', 'version' => '1.2.0', 'url' => 'https://example.org/ig/package.tgz', 'sha256' => str_repeat('a', 64)];
+        $this->provider = $this->createStub(StandardsProvider::class);
+        $this->provider->method('execute')->willReturn(['kind' => 'package', 'dependency' => $dependency, 'provenance' => ['sourceUrl' => $dependency['url'], 'sha256' => $dependency['sha256']]]);
+        $result = $this->service()->operation('source', 'import', 'synthetic', json_encode(['url' => $dependency['url'], 'projectRevision' => $revision, 'expectedSha256' => $dependency['sha256']]));
+        self::assertSame([$dependency], $result['configuration']['project']['dependencies']);
+        self::assertNotSame($revision, $result['configuration']['revision']);
+    }
 }
