@@ -43,6 +43,9 @@ The operator provisions `/opt/hygeoniq/projects/openehr-fhir-modeller-prod/`:
 
 The named IG connection is `ig-prod`, with private origin
 `http://ig-prod-api:8092`. Only the app joins `hyq-fhir-ig-prod_default`.
+The protected runtime configuration explicitly includes `ig-prod-api` in
+`FHIR_ALLOWED_HOSTS` and enables `FHIR_ALLOW_HTTP` for this isolated container
+connection. Public origins and external services still require verified HTTPS.
 Compose project `openehr-fhir-modeller-prod` has its own default network and five
 external volumes: models, governance, cdr-data, chat-data and fhir-data. The app
 and browser run as UID1000; the private FHIR engine runs as UID10001.

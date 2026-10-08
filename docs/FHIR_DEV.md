@@ -6,7 +6,9 @@ commands below are for isolated development and testing, not shared Dev delivery
 
 The application fork is `CzarMich/openehr_FHIR_Modeller`. Engineering artefacts go
 to `CzarMich/fhir_ig`. The existing IG platform is `CzarMich/hyq_fhir` and remains
-the sole publication/distribution authority. All changes in this delivery target Dev.
+the sole publication/distribution authority. This guide covers Dev; the separate
+[production promotion workflow](FHIR_PRODUCTION_DELIVERY.md) reuses images verified
+through GitHub Dev delivery.
 
 ## Responsibilities
 
@@ -78,7 +80,10 @@ avoids a development connection silently expiring after a stored JWT expires.
 Other supported connection roles are `runtime`, `terminology` and `git`. Their
 roles are distinct. Only safe summaries are exposed. Add explicit private hosts
 to `FHIR_ALLOWED_HOSTS`; unencrypted private HTTP additionally requires
-`FHIR_ALLOW_HTTP=true`. Keep this exception confined to an isolated Dev network.
+`FHIR_ALLOW_HTTP=true`. Confine this exception to explicitly allowlisted services
+on an isolated container network, such as the private IG adapter in Dev or
+[production](FHIR_PRODUCTION_DELIVERY.md#protected-production-configuration).
+Public browser, MCP and external service connections retain verified HTTPS.
 
 Projects hold connection IDs, never credentials. Existing browser personal Git
 connections retain their encrypted identity-scoped credentials. FHIR project
@@ -110,7 +115,8 @@ authenticated Dev IG import to verify the complete chain.
 Validation evidence differentiates compiler success, structural/profile validation,
 terminology coverage, synthetic example validation and clinical approval. An
 unavailable validator or unresolved package never becomes a successful check.
-No production deployment is enabled for this fork.
+Production promotion requires successful Dev delivery and completed live Dev
+checks; follow the separate [promotion procedure](FHIR_PRODUCTION_DELIVERY.md).
 
 The modeller's `/ready` endpoint checks the configured private engine and its
 installed toolchain. A running browser shell with a missing FHIR engine now
