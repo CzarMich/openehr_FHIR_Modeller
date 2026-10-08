@@ -5,7 +5,7 @@ The user requirements in the three source files are retained verbatim; pasted XM
 - Modeller source: `CzarMich/openehr_FHIR_Modeller`.
 - Existing IG server source: `CzarMich/hyq_fhir`, local `HYQ-FHIR-Governance-Platform`.
 - FHIR engineering artifacts: `CzarMich/fhir_ig`.
-- Deployment scope: isolated Dev only. Production promotion requires subsequent user testing and direction.
+- Deployment scope: verify Dev first, then use the separately authorized [production promotion](../../FHIR_PRODUCTION_DELIVERY.md) of the same immutable images. Dev and production keep separate data and credentials.
 - Preserve inherited openEHR behaviour, source history and MIT/third-party notices.
 
 ## Workstreams
@@ -13,7 +13,7 @@ The user requirements in the three source files are retained verbatim; pasted XM
 1. FHIR provider/tooling: exact-version package discovery, reuse, typed FSH generation, real compilation/validation, FHIRPath, semantic comparisons.
 2. Modeller: independent FHIR project/configuration/artifact persistence, MCP, browser workspace, terminology/runtime/IG adapters, mappings and provenance.
 3. Existing IG platform: authenticated exact-commit GitHub ingestion, draft/review boundaries, build fixes and Dev deployment.
-4. Integration: artifact repository, end-to-end accepted/rejected fixtures, openEHR regression, Dev-only CI and sanitized evidence.
+4. Integration: artifact repository, end-to-end accepted/rejected fixtures, openEHR regression, GitHub Dev delivery, separate production promotion and sanitized evidence.
 
 ## Verification record
 
@@ -33,4 +33,6 @@ This evidence covers synthetic R4 development work. Remote terminology was not r
 clinical approval was not granted, and publication was not requested. XML originals
 are preserved, while semantic processing currently uses JSON/FSH. The existing IG
 platform owns its source/storage settings, review and distribution; its implementation
-and deployment evidence remain in `CzarMich/hyq_fhir`. No production rollout is authorized.
+and deployment evidence remain in `CzarMich/hyq_fhir`. This recorded Dev evidence
+predates the separate production promotion workflow and does not establish a
+successful production rollout.

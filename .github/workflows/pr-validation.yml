@@ -18,6 +18,11 @@ jobs:
         run: |
           bash -n scripts/deploy-fhir-dev.sh
           python3 scripts/test-fhir-dev-delivery.py
+          bash -n scripts/deploy-fhir-prod.sh
+          python3 scripts/test-fhir-production-delivery.py
+          python3 tests/production/java-memory-guard.test.py
+          bash -n scripts/fhir-prod-nginx.sh
+          python3 tests/production/nginx-delivery.test.py
   fhir-engine:
     runs-on: ubuntu-24.04
     timeout-minutes: 30

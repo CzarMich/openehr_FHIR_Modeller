@@ -37,6 +37,8 @@ version. Synthetic example generation leaves undecided clinical values as gaps.
 Cross-standard mappings remain proposals with explicit source/target paths and
 versions. Runtime patient reads require a separate browser-only client boundary.
 
-This delivery is Dev only. Feature branches and isolated volumes keep the original
-platform and production deployment separate. Production promotion requires the
-user's subsequent instruction after testing.
+The initial delivery was Dev only. Subsequent user authorization permits
+[production promotion](../FHIR_PRODUCTION_DELIVERY.md) after Dev verification,
+reusing the same immutable images through GitHub. Feature branches, separate
+credentials and isolated volumes keep the original platform, Dev and production
+deployments independent.

@@ -1,6 +1,6 @@
 # GitHub delivery to Dev
 
-The fork deploys only to local Dev host `platform` (`192.168.178.20`):
+The Dev workflow deploys to local host `platform` (`192.168.178.20`):
 
 - Browser: <https://dev-openehr-fhir-modeller.sandbox.hygeoniq.com/>
 - MCP: <https://dev-openehr-fhir-modeller.sandbox.hygeoniq.com/mcp>
@@ -8,6 +8,8 @@ The fork deploys only to local Dev host `platform` (`192.168.178.20`):
 
 The inherited VPS deployment workflow is removed from this fork. This delivery
 path contains no SSH target, remote build or production deployment.
+Production uses a separate, explicitly dispatched
+[promotion of successfully verified Dev images](FHIR_PRODUCTION_DELIVERY.md).
 
 ## Delivery contract
 

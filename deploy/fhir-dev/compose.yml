@@ -26,7 +26,7 @@ services:
     networks: [default, ig-dev]
     labels:
       org.opencontainers.image.revision: ${REVISION:?A revision is required}
-    tmpfs: [/tmp:mode=1777,size=64m]
+    tmpfs: ["/tmp:mode=1777,size=64m"]
     read_only: true
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
@@ -50,7 +50,7 @@ services:
       - dev-openehr-fhir-modeller.sandbox.hygeoniq.com:192.168.178.20
     labels:
       org.opencontainers.image.revision: ${REVISION:?A revision is required}
-    tmpfs: [/tmp:mode=1777,size=64m]
+    tmpfs: ["/tmp:mode=1777,size=64m"]
     read_only: true
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
@@ -82,7 +82,7 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
-    tmpfs: [/tmp:mode=1777,size=16m]
+    tmpfs: ["/tmp:mode=1777,size=16m"]
     read_only: true
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
@@ -100,7 +100,7 @@ services:
       - /opt/hygeoniq/projects/openehr-fhir-modeller/config/secrets/fhir-engine-key:/run/secrets/fhir-engine-key:ro
     labels:
       org.opencontainers.image.revision: ${REVISION:?A revision is required}
-    tmpfs: [/tmp:mode=1777,size=512m]
+    tmpfs: ["/tmp:mode=1777,size=512m"]
     read_only: true
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
