@@ -94,9 +94,9 @@ node chat/test/fhir-live-smoke.mjs
 
 To exercise the local HTTPS deployment, set
 `FHIR_DEV_ORIGIN=https://dev-openehr-fhir-modeller.sandbox.hygeoniq.com`.
-The script pins that hostname to the Dev LAN address `192.168.178.20` and retains
-normal certificate verification. Install the development CA in the test browser's
-trust store first; the script never bypasses TLS checks. HTTPS acceptance also
+The script pins that hostname to its deployment-specific Dev LAN address and
+retains normal certificate verification. See the script for that address. Install
+the development CA in the test browser's trust store first; the script never bypasses TLS checks. HTTPS acceptance also
 checks the private `__Host-` session cookie's Secure and HttpOnly flags.
 
 The private account JSON supplies `username`, `password`, `totpSecret` and

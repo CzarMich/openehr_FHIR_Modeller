@@ -35,7 +35,7 @@ Defaults map `modeller`, `reviewer`, `approver` and `publisher` to `modelling-mo
 
 Existing `CHAT_PUBLIC_URL`, `CHAT_OIDC_ISSUER`, `CHAT_OIDC_CLIENT_ID`, `CHAT_OIDC_CLIENT_SECRET`, optional `CHAT_ALLOWED_GROUPS` and `CHAT_MCP_URL` configure organisation sign-in and the core location. Native accounts are separately enabled with `CHAT_LOCAL_IDENTITY_ENABLED=true`; configure `CHAT_LOCAL_IDENTITY_ISSUER` to the same exact value as the core's `GOVERNANCE_LOCAL_IDENTITY_ISSUER`, and set `CHAT_LOCAL_IDENTITY_ENCRYPTION_KEY` to a dedicated 32-byte random key encoded as 64 lowercase hexadecimal characters. The review API uses the origin of `CHAT_MCP_URL`, and does not forward its normal MCP API key.
 
-The first native owner is created without a shipped account or password. Enable the option and encryption key in the protected chat environment, start the browser service, then run `docker compose exec chat node src/bootstrap-identity.mjs`. The command writes a 15-minute, single-use token to `/data/chat/owner-bootstrap.token` with private permissions and logs only the file path. Retrieve it into a protected file outside the checkout (for example with `docker compose cp chat:/data/chat/owner-bootstrap.token "$HOME/.config/openehr-modelling/bootstrap-token"`) and enter it at `/chat/`; successful bootstrap deletes the token file. The owner chooses a username and password and must enroll TOTP before using the workspace. No default username or password exists.
+The first native owner is created without a shipped account or password. Follow [owner setup for Linux and Azure](#generate-the-one-time-owner-setup-token), then choose a username and password and enroll TOTP before using the workspace. No default username or password exists.
 
 Invitations, password resets and account recovery produce one-time links for delivery through an approved operator channel; no email is sent. Account recovery replaces the password and TOTP seed and requires MFA enrollment again. TOTP recovery codes are shown once. Local account data lives under `CHAT_DATA_DIR/identity`, separate from conversations; MFA seeds are AES-GCM encrypted with the external encryption key, and the key must be backed up separately. This JSON backend is designed for one chat instance on one host with persistent local storage. Do not run multiple chat replicas against it; use OIDC or a future shared transactional identity backend for horizontally scaled deployments. Back up and restore the identity directory and encryption key together, and test recovery in isolation.
 
@@ -54,6 +54,159 @@ Invitations, password resets and account recovery produce one-time links for del
 | `CHAT_REVIEW_SESSION_MAX_AGE` | `900` | Browser-side maximum sign-in age; match the core policy |
 | `CHAT_ENABLED` | `false` | Conversational chat; may remain false for human review |
 | `MODELLING_BROWSER_TARGET` | `reviews` | Compose build target; use `chat` only when its provider adapter is needed |
+
+### Generate the one-time owner setup token
+
+An operator runs the bootstrap script in the browser container for the intended
+environment. Enable `CHAT_LOCAL_IDENTITY_ENABLED=true`, configure the dedicated
+`CHAT_LOCAL_IDENTITY_ENCRYPTION_KEY` and retain a stable
+`CHAT_LOCAL_IDENTITY_ISSUER`. Keep keys in protected deployment configuration.
+Persist `CHAT_DATA_DIR` (default `/data/chat`) across container replacements, with
+write access for the browser's UID1000 user. The native identity store requires
+private file permissions, exclusive file creation and atomic rename; verify these
+on the chosen storage. Back up the identity directory and encryption key together.
+
+Use one browser instance with this JSON identity backend. On managed platforms,
+keep at most one active instance/revision using that identity directory; prevent
+overlap during updates. Multiple replicas require an identity design suited to
+shared transactional storage or organisation OIDC. These are operator setup
+instructions for an already deployed browser service, not Azure provisioning
+templates or an automated Azure delivery workflow.
+
+All server, container, resource and browser names below are placeholders. Replace
+`Server_vps` with your own verified SSH alias or `operator@server.example.com`,
+`chat-container` with your running browser container, and the Azure placeholders
+with resources in the intended subscription. Dev and production have separate
+identity storage and setup tokens.
+
+#### Linux server with Docker
+
+From the operator's Linux workstation, generate and retrieve the token into a
+private file outside the checkout:
+
+```bash
+ssh Server_vps 'docker exec chat-container node /app/chat/src/bootstrap-identity.mjs'
+install -d -m 700 "$HOME/.config/modelling-assistant"
+(umask 077; ssh Server_vps 'docker exec chat-container cat /data/chat/owner-bootstrap.token' > "$HOME/.config/modelling-assistant/bootstrap-token")
+chmod 600 "$HOME/.config/modelling-assistant/bootstrap-token"
+```
+
+The SSH account needs permission to execute commands in the browser container.
+Use the configured operator key and verified SSH host key. If working directly
+on the Linux server with the correct Compose project and environment selected:
+
+```bash
+docker compose exec -T chat node src/bootstrap-identity.mjs
+```
+
+Retrieve the token privately from `/data/chat/owner-bootstrap.token` in that
+container. Adapt the retrieval path if `CHAT_DATA_DIR` is configured differently.
+
+#### Azure Container Apps
+
+Use an Azure identity authorized to open the application's container console.
+In the portal, open **Monitoring → Console**, select the running browser revision,
+replica and container, then choose `sh`. Alternatively, from a workstation with
+Azure CLI:
+
+```bash
+az login
+az account set --subscription "<subscription-id>"
+az containerapp exec \
+  --resource-group "<resource-group>" \
+  --name "<browser-container-app>" \
+  --container "<chat-container>" \
+  --command /bin/sh
+```
+
+Specify `--revision` and `--replica` when needed to select the instance serving
+the browser. Inside the application container's console:
+
+```bash
+node /app/chat/src/bootstrap-identity.mjs
+cat "${CHAT_DATA_DIR:-/data/chat}/owner-bootstrap.token"
+```
+
+Copy the token directly into the setup form through the private operator console;
+a local download is optional. Ensure the data directory uses persistent storage,
+not the container's ephemeral filesystem. Validate the storage semantics and
+single-instance constraints above before enabling native identity.
+See Microsoft's [container console instructions](https://learn.microsoft.com/en-us/azure/container-apps/container-console)
+and [storage mounts](https://learn.microsoft.com/en-us/azure/container-apps/storage-mounts).
+
+#### Azure Kubernetes Service (AKS)
+
+With Azure CLI and `kubectl` installed, authenticate to the intended cluster and
+select the running browser pod. The operator needs Kubernetes permission to
+execute commands in that pod:
+
+```bash
+az login
+az account set --subscription "<subscription-id>"
+az aks get-credentials --resource-group "<resource-group>" --name "<cluster-name>"
+kubectl -n "<namespace>" get pods
+kubectl -n "<namespace>" exec "<browser-pod>" -c "<chat-container>" -- node /app/chat/src/bootstrap-identity.mjs
+kubectl -n "<namespace>" exec "<browser-pod>" -c "<chat-container>" -- cat /data/chat/owner-bootstrap.token
+```
+
+Use the same pod for generation and retrieval. Mount persistent storage at the
+configured data directory and keep one browser pod using it, including during
+rollouts. See Microsoft's [AKS credentials reference](https://learn.microsoft.com/en-us/cli/azure/aks#az-aks-get-credentials).
+
+#### Azure App Service (Linux custom container)
+
+An App Service custom Linux image needs SSH support configured before its
+container console works. The repository's browser image does not include an SSH
+server; these commands require an image adapted for App Service's documented SSH
+contract. Do not assume they work with the unmodified image.
+
+Once configured, open the browser container's SSH console in the portal, or run:
+
+```bash
+az login
+az account set --subscription "<subscription-id>"
+az webapp ssh --resource-group "<resource-group>" --name "<browser-web-app>"
+```
+
+If the SSH console runs as root, first switch to the image's browser user with
+`su -s /bin/sh node`, preserving the configured environment. Run bootstrap as the
+same UID1000 user as the browser process so private identity files remain readable.
+Then run the same `node` and `cat` commands shown for Container Apps. Provide persistent storage for `CHAT_DATA_DIR`; keep one instance
+and prevent deployment slots from concurrently sharing that identity directory.
+See Microsoft's [App Service container SSH instructions](https://learn.microsoft.com/en-us/azure/app-service/configure-linux-open-ssh-session).
+
+#### Complete setup, expiry and renewal
+
+Open `https://<browser-host>/chat/` and choose **Set up the platform owner**.
+Enter the retrieved token in **One-time setup token**, choose a username and a
+password of at least 12 characters, enroll an authenticator and save the recovery
+codes. Successful account creation consumes the token and deletes the server
+file; delete any retrieved local copy after use. Keep tokens out of Git, CI logs,
+shared terminals and model artefacts.
+
+The script generates 32 cryptographically random bytes using Node's
+`crypto.randomBytes(32)`, encodes them as Base64url and adds `boot_`. It registers
+the token's SHA-256 digest and a 15-minute expiry in the identity store, audits
+`OWNER_BOOTSTRAP_CREATED`, and writes the token file with mode `0600`. Its normal
+output contains only the event and file path. An independently invented token
+will not work because its digest has not been registered.
+
+If the token file already exists, retrieve it. If the token has expired or was
+rejected, replace it in the same browser container:
+
+```bash
+# Linux workstation
+ssh Server_vps 'docker exec chat-container node /app/chat/src/bootstrap-identity.mjs --rotate'
+
+# Inside an Azure application container console
+node /app/chat/src/bootstrap-identity.mjs --rotate
+```
+
+For Compose or AKS, append `--rotate` to the bootstrap script command above.
+Retrieve the replacement using the same method. Rotation immediately invalidates
+the earlier token and starts a fresh 15-minute window. Once an owner account
+exists, bootstrap is permanently closed, including with `--rotate`. Use
+[owner recovery](#owner-recovery-without-email) for an existing account.
 
 ### Managed VPS configuration
 

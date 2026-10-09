@@ -52,6 +52,7 @@ the [deployment guide](docs/DEPLOYMENT.md).
 
 - [Connect Claude, Codex or another client](docs/MCP_CLIENTS.md)
 - [Configure browser chat](docs/BROWSER_CHAT.md)
+- [Create the platform owner on Linux or Azure](docs/REVIEW_DEPLOYMENT.md#generate-the-one-time-owner-setup-token)
 - [Browse models and review changes](docs/BROWSER_WORKSPACE.md)
 - [Installation and configuration](docs/install.md)
 

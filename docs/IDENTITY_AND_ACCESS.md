@@ -1,6 +1,6 @@
 # OIDC Authorization and Browser Review Roles
 
-This guide configures an external OpenID Connect (OIDC) identity provider (IdP) for MCP access and browser review. For a workspace without an IdP, the application also supports [built-in accounts, owner bootstrap, invitations, passwords and MFA](REVIEW_DEPLOYMENT.md#browser-variables). In the OIDC path, the IdP owns those functions. There is no default account; the username `admin` has no special meaning. Do not ship a reusable administrator password or treat an API key as a human identity.
+This guide configures an external OpenID Connect (OIDC) identity provider (IdP) for MCP access and browser review. For a workspace without an IdP, the application also supports [built-in accounts, owner bootstrap, invitations, passwords and MFA](REVIEW_DEPLOYMENT.md#browser-variables). Operators generate the one-time owner token using [Linux or Azure setup](REVIEW_DEPLOYMENT.md#generate-the-one-time-owner-setup-token). In the OIDC path, the IdP owns those functions. There is no default account; the username `admin` has no special meaning. Do not ship a reusable administrator password or treat an API key as a human identity.
 
 The application consumes signed claims from the configured IdP and maps them to separate permissions. The main layers are:
 

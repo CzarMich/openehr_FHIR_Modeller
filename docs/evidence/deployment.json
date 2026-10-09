@@ -11,7 +11,7 @@
     "image_tag": "20260926T223523Z-4a0626ae9bc9",
     "environments": [
       "development",
-      "amcdr-vps",
+      "production-vps",
       "Kubernetes"
     ],
     "workflow": "https://github.com/CzarMich/AmTerminology/actions/runs/36276407659",

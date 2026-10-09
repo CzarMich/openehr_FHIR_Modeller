@@ -10,7 +10,7 @@ final class InstallDocContractTest extends TestCase
     public function test_independent_installation_is_documented(): void
     {
         $doc = (string) file_get_contents(__DIR__ . '/../../docs/install.md');
-        self::assertStringContainsString('github.com/CzarMich/openehr-modelling-assistant', $doc);
+        self::assertStringContainsString('git clone https://github.com/CzarMich/openehr_FHIR_Modeller.git', $doc);
         self::assertStringContainsString('docker compose up -d --build', $doc);
         self::assertStringContainsString('DEPLOYMENT.md', $doc);
         self::assertStringNotContainsString('apps.cadasto.com', $doc);
