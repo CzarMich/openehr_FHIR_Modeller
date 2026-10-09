@@ -1,6 +1,6 @@
 # GitHub delivery to Dev
 
-The Dev workflow deploys to local host `platform` (`192.168.178.20`):
+The Dev workflow deploys to the approved local development server:
 
 - Browser: <https://dev-openehr-fhir-modeller.sandbox.hygeoniq.com/>
 - MCP: <https://dev-openehr-fhir-modeller.sandbox.hygeoniq.com/mcp>
@@ -68,9 +68,13 @@ release if verification fails.
 
 ## Access and verification
 
+For a new native identity installation, follow [owner setup on Linux or Azure](REVIEW_DEPLOYMENT.md#generate-the-one-time-owner-setup-token)
+using the running Dev browser container and the Dev browser URL above. Dev identity
+storage and tokens are separate from production.
+
 Clients on the Dev LAN/VPN need DNS or a hosts entry mapping the public hostname
-to `192.168.178.20`, plus trust in the development CA. Use the existing browser
-account and MFA. MCP uses its configured credential. Delivery never prints it.
+to the configured development server address, plus trust in the development CA.
+Use the existing browser account and MFA. MCP uses its configured credential. Delivery never prints it.
 
 `scripts/test-fhir-dev-delivery.py` checks digest/revision rejection, host guards,
 immutable Compose settings and preserved storage without starting containers.

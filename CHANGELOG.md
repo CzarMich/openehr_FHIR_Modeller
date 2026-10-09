@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Document platform owner setup on Linux and Azure with generic server examples.
+
 - Send empty FHIR engine parameters as a JSON object and verify live release-capability discovery during delivery.
 
 - Add browser and home-screen icons to web deployments.

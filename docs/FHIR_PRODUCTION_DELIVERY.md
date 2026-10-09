@@ -20,16 +20,18 @@ images and does not use mutable image tags.
 
 The GitHub-hosted promotion job uses the protected `production` environment and
 dedicated `PROD_SSH_KEY` / `PROD_SSH_KNOWN_HOSTS` secrets. SSH host-key checking is
-mandatory. The fixed target is `amcdr@82.165.59.171`; there is no persistent Actions
-runner on the production server. Only tracked deployment files and verified
+mandatory. The SSH target is the approved production server; there is no persistent Actions
+runner on that server. Keep operator-specific SSH aliases and addresses in private
+configuration rather than setup examples. Only tracked deployment files and verified
 manifests are transferred. A short-lived Actions token reaches registry login
 through SSH standard input, and the temporary registry configuration is removed
 when the deployment process exits.
 
-The remote script requires hostname and Docker daemon name `ubuntu`, address
-`82.165.59.171`, and root-owned `/opt/hygeoniq/production-host` containing
-`hygeoniq-production`. It forces the local Docker socket and checks current main
-again after image transfer. Pulls are sequential and quiet. No source directory
+The remote script checks the approved hostname, Docker daemon name and server
+address against its delivery guards, plus root-owned
+`/opt/hygeoniq/production-host` containing `hygeoniq-production`.
+See `scripts/deploy-fhir-prod.sh` for the deployment-specific guard contract.
+It forces the local Docker socket and checks current main again after image transfer. Pulls are sequential and quiet. No source directory
 is mounted into an application container.
 
 ## Protected production configuration
@@ -70,6 +72,17 @@ release. The shared host lock `/opt/hygeoniq/fhir-production-tooling/java.lock`
 IG platform. Version probes remain available; the lock releases on process exit.
 Browser, app and ingress limits are 512, 256 and 64 MiB. These limits require
 capacity monitoring alongside existing server workloads.
+
+## First platform owner setup
+
+Native identity must be enabled and its dedicated encryption key configured in
+the protected browser environment. Follow [one-time owner setup on Linux or Azure](REVIEW_DEPLOYMENT.md#generate-the-one-time-owner-setup-token)
+for generation, private retrieval, expiry, renewal and MFA. Replace `Server_vps`
+and `chat-container` with your own verified server alias and running production
+browser container; the examples contain no operator-specific SSH target.
+Complete setup at the production browser URL above. Dev tokens and accounts are
+separate. Azure console instructions apply to separately provisioned Azure
+containers; this production promotion workflow remains the Linux delivery path.
 
 ## Verification and recovery
 

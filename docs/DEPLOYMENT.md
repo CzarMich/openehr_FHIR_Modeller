@@ -119,7 +119,7 @@ GitHub validation runs on PRs and main pushes. The deployment workflow follows a
 
 ## Development server with Codex
 
-Development URL: `https://dev-openehr-modelling.sandbox.hygeoniq.com/`; MCP endpoint: `/mcp`. The development LAN address is `192.168.178.20`. A client hosts entry can map the hostname to that address when local DNS does not. HTTPS uses the development certificate authority, which each connecting machine must trust. Never disable certificate verification. The root page describes the service; use an MCP client for modelling conversations.
+Development URL: `https://dev-openehr-modelling.sandbox.hygeoniq.com/`; MCP endpoint: `/mcp`. Use the configured development server address; a client hosts entry can map the development hostname to that address when local DNS does not. HTTPS uses the development certificate authority, which each connecting machine must trust. Never disable certificate verification. The root page describes the service; use an MCP client for modelling conversations.
 
 The development instance has its own API key, model volume and Git history. Its shared authoring connection uses a private model-content Git remote with a scoped SSH deploy key; a separate local Git cache from the initial offline test is retained. External terminology is deliberately unconfigured, demonstrating that it is optional. The server deployment continues to use its existing filesystem model volume. These are separate datasets; switching provider is not an implicit migration.
 
@@ -139,7 +139,7 @@ For the configured private model remote, also supply `MODEL_GIT_KEY_HOST_PATH` a
 
 ## Optional browser chat
 
-See [browser chat deployment](BROWSER_CHAT.md#deployment) for the workspace identity, personal provider connections, private conversation storage, environment variables and browser acceptance tests. Default deployments keep chat disabled until those dependencies are configured. Enabling it does not change MCP API-key authentication or require a terminology server. Apply the upload route in `deploy/nginx-vps.conf` when upgrading the managed gateway: it allows 10 MiB only for chat attachment uploads, retaining the ordinary 2 MiB request limit elsewhere.
+For the first native account, follow [owner setup on Linux or Azure](REVIEW_DEPLOYMENT.md#generate-the-one-time-owner-setup-token). See [browser chat deployment](BROWSER_CHAT.md#deployment) for the workspace identity, personal provider connections, private conversation storage, environment variables and browser acceptance tests. Default deployments keep chat disabled until those dependencies are configured. Enabling it does not change MCP API-key authentication or require a terminology server. Apply the upload route in `deploy/nginx-vps.conf` when upgrading the managed gateway: it allows 10 MiB only for chat attachment uploads, retaining the ordinary 2 MiB request limit elsewhere.
 
 File uploads have a two-minute request deadline. The Nginx upload route streams the body to the chat service and allows 120-second body/send timeouts. With Traefik, set `entryPoints.websecure.transport.respondingTimeouts.readTimeout: 120s` in the gateway's static configuration and restart the gateway after validation; its default 60-second read timeout otherwise cuts off slower transfers first. This setting applies to the whole HTTPS entrypoint.
 
