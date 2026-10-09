@@ -71,6 +71,38 @@ IG platform. Version probes remain available; the lock releases on process exit.
 Browser, app and ingress limits are 512, 256 and 64 MiB. These limits require
 capacity monitoring alongside existing server workloads.
 
+## First platform owner setup
+
+After deployment, an operator creates the one-time setup token in the production
+browser container. Native identity must already be enabled and its encryption
+key configured in the protected `config/chat.env`. From a workstation with the
+configured `amcdr-vps` SSH alias:
+
+```bash
+ssh amcdr-vps 'docker exec openehr-fhir-modeller-prod-chat-1 node src/bootstrap-identity.mjs'
+install -d -m 700 "$HOME/.config/openehr-fhir-modeller-prod"
+(umask 077; ssh amcdr-vps 'docker exec openehr-fhir-modeller-prod-chat-1 cat /data/chat/owner-bootstrap.token' > "$HOME/.config/openehr-fhir-modeller-prod/bootstrap-token")
+chmod 600 "$HOME/.config/openehr-fhir-modeller-prod/bootstrap-token"
+```
+
+If the alias is unavailable, use `amcdr@82.165.59.171` with the configured operator
+SSH key and verified host key. Open the protected local token file, then open
+<https://openehr-fhir-modeller.sandbox.hygeoniq.com/#chat>, choose **Set up the
+platform owner** and enter the token. Complete account creation, authenticator
+enrollment and recovery-code storage. Delete the local token copy after use.
+
+The token expires 15 minutes after generation. If the existing token has expired
+or was rejected, replace it and repeat the retrieval command:
+
+```bash
+ssh amcdr-vps 'docker exec openehr-fhir-modeller-prod-chat-1 node src/bootstrap-identity.mjs --rotate'
+```
+
+Rotation invalidates the earlier token. These commands cannot create another
+owner once an account exists. See [owner setup and token generation](REVIEW_DEPLOYMENT.md#generate-the-one-time-owner-setup-token)
+for generation details and [owner recovery](REVIEW_DEPLOYMENT.md#owner-recovery-without-email)
+for an existing account. Dev has separate identity storage and tokens.
+
 ## Verification and recovery
 
 Promotion waits for container health, checks loopback and certificate-verified

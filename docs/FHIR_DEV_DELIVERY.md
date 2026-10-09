@@ -68,6 +68,11 @@ release if verification fails.
 
 ## Access and verification
 
+For a new native identity installation, follow [owner token generation](REVIEW_DEPLOYMENT.md#generate-the-one-time-owner-setup-token)
+using the Dev browser container `openehr-fhir-modeller-chat-1` with
+`docker exec`, or the recorded Dev Compose configuration. Complete setup at the
+Dev browser URL above. Dev tokens and accounts are separate from production.
+
 Clients on the Dev LAN/VPN need DNS or a hosts entry mapping the public hostname
 to `192.168.178.20`, plus trust in the development CA. Use the existing browser
 account and MFA. MCP uses its configured credential. Delivery never prints it.

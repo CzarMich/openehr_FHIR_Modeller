@@ -35,7 +35,7 @@ Defaults map `modeller`, `reviewer`, `approver` and `publisher` to `modelling-mo
 
 Existing `CHAT_PUBLIC_URL`, `CHAT_OIDC_ISSUER`, `CHAT_OIDC_CLIENT_ID`, `CHAT_OIDC_CLIENT_SECRET`, optional `CHAT_ALLOWED_GROUPS` and `CHAT_MCP_URL` configure organisation sign-in and the core location. Native accounts are separately enabled with `CHAT_LOCAL_IDENTITY_ENABLED=true`; configure `CHAT_LOCAL_IDENTITY_ISSUER` to the same exact value as the core's `GOVERNANCE_LOCAL_IDENTITY_ISSUER`, and set `CHAT_LOCAL_IDENTITY_ENCRYPTION_KEY` to a dedicated 32-byte random key encoded as 64 lowercase hexadecimal characters. The review API uses the origin of `CHAT_MCP_URL`, and does not forward its normal MCP API key.
 
-The first native owner is created without a shipped account or password. Enable the option and encryption key in the protected chat environment, start the browser service, then run `docker compose exec chat node src/bootstrap-identity.mjs`. The command writes a 15-minute, single-use token to `/data/chat/owner-bootstrap.token` with private permissions and logs only the file path. Retrieve it into a protected file outside the checkout (for example with `docker compose cp chat:/data/chat/owner-bootstrap.token "$HOME/.config/openehr-modelling/bootstrap-token"`) and enter it at `/chat/`; successful bootstrap deletes the token file. The owner chooses a username and password and must enroll TOTP before using the workspace. No default username or password exists.
+The first native owner is created without a shipped account or password. Follow [Generate the one-time owner setup token](#generate-the-one-time-owner-setup-token), then choose a username and password and enroll TOTP before using the workspace. No default username or password exists.
 
 Invitations, password resets and account recovery produce one-time links for delivery through an approved operator channel; no email is sent. Account recovery replaces the password and TOTP seed and requires MFA enrollment again. TOTP recovery codes are shown once. Local account data lives under `CHAT_DATA_DIR/identity`, separate from conversations; MFA seeds are AES-GCM encrypted with the external encryption key, and the key must be backed up separately. This JSON backend is designed for one chat instance on one host with persistent local storage. Do not run multiple chat replicas against it; use OIDC or a future shared transactional identity backend for horizontally scaled deployments. Back up and restore the identity directory and encryption key together, and test recovery in isolation.
 
@@ -54,6 +54,47 @@ Invitations, password resets and account recovery produce one-time links for del
 | `CHAT_REVIEW_SESSION_MAX_AGE` | `900` | Browser-side maximum sign-in age; match the core policy |
 | `CHAT_ENABLED` | `false` | Conversational chat; may remain false for human review |
 | `MODELLING_BROWSER_TARGET` | `reviews` | Compose build target; use `chat` only when its provider adapter is needed |
+
+### Generate the one-time owner setup token
+
+An operator with access to the running browser container generates the token.
+First enable `CHAT_LOCAL_IDENTITY_ENABLED=true` and configure
+`CHAT_LOCAL_IDENTITY_ENCRYPTION_KEY` in the protected chat environment, then start
+the browser service with its persistent identity storage. Run these commands
+using the Compose project and configuration for the intended environment:
+
+```bash
+docker compose exec -T chat node src/bootstrap-identity.mjs
+install -d -m 700 "$HOME/.config/openehr-modelling"
+docker compose cp chat:/data/chat/owner-bootstrap.token "$HOME/.config/openehr-modelling/bootstrap-token"
+chmod 600 "$HOME/.config/openehr-modelling/bootstrap-token"
+```
+
+The command uses Node's `crypto.randomBytes(32)`, encodes those 256 random bits as
+Base64url and adds the `boot_` prefix. It persists the token's SHA-256 digest and
+a 15-minute expiry in the identity store, audits `OWNER_BOOTSTRAP_CREATED`, and
+writes the actual token to `CHAT_DATA_DIR/owner-bootstrap.token` (default
+`/data/chat/owner-bootstrap.token`) with mode `0600`. Command output contains only
+the event and file path. A manually invented random string will not work because
+its digest has not been registered in the identity store.
+
+Open the protected local file and enter its contents in **One-time setup token**
+under **Set up the platform owner** in the browser. Choose a username and a
+password of at least 12 characters, complete authenticator enrollment and save
+the recovery codes. Successful account creation consumes the token and deletes
+the server token file; remove the retrieved local copy after use.
+
+If a token file already exists, retrieve it rather than issuing another token.
+If it has expired or was rejected, generate a replacement:
+
+```bash
+docker compose exec -T chat node src/bootstrap-identity.mjs --rotate
+```
+
+Retrieve the replacement using the same copy commands. Rotation immediately
+invalidates the previous token and starts a new 15-minute window. Once an owner
+account exists, bootstrap is permanently closed, including with `--rotate`.
+For a lost owner login, use [owner recovery](#owner-recovery-without-email) instead.
 
 ### Managed VPS configuration
 
