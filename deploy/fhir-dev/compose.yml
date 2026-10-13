@@ -64,7 +64,12 @@ services:
     environment:
       XDG_CONFIG_HOME: /tmp/caddy
       XDG_DATA_HOME: /tmp/caddy
-    networks: [default, proxy]
+      MODELLING_APP_UPSTREAM: openehr-fhir-modeller-app-1:9000
+      MODELLING_CHAT_UPSTREAM: openehr-fhir-modeller-chat-1:8350
+    networks:
+      default: {}
+      proxy:
+        ipv4_address: 172.18.0.241
     labels:
       org.opencontainers.image.revision: ${REVISION:?A revision is required}
       traefik.enable: "true"
@@ -72,6 +77,7 @@ services:
       traefik.http.routers.openehr-fhir-modeller-dev.rule: Host(`dev-openehr-fhir-modeller.sandbox.hygeoniq.com`)
       traefik.http.routers.openehr-fhir-modeller-dev.entrypoints: websecure
       traefik.http.routers.openehr-fhir-modeller-dev.tls: "true"
+      traefik.http.routers.openehr-fhir-modeller-dev.service: openehr-fhir-modeller-dev
       traefik.http.services.openehr-fhir-modeller-dev.loadbalancer.server.port: "8343"
     depends_on:
       app: {condition: service_healthy}

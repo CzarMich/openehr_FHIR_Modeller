@@ -237,8 +237,8 @@ requirements:
     canonical: docs/requirements.md
     status: draft
     implementation: landed
-    packages: [docs/MICROSOFT_AGENT_INTEGRATION.md, docs/MCP_CLIENTS.md, Dockerfile, docker-compose.yml, scripts/mcp-smoke.py]
-    tests: [tests/Content/InstallDocContractTest.php]
+    packages: [docs/MICROSOFT_AGENT_INTEGRATION.md, docs/MCP_CLIENTS.md, Dockerfile, docker-compose.yml, scripts/mcp-smoke.py, .docker/Caddyfile, deploy/fhir-dev/compose.yml]
+    tests: [tests/Content/InstallDocContractTest.php, scripts/test-fhir-dev-delivery.py]
     adr: ["0008"]
 
   - id: REQ-F15
