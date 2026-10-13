@@ -21,9 +21,21 @@ class LegacyArchetypeTest {
         assertEquals(source.identifier(), withBom.identifier());
         assertEquals(NativeEngine.sha256("\ufeff" + content), withBom.sourceSha256());
     }
+    @Test void routesLegacyVersionDeclarationsToTheirExplicitCompatibilityProfile() throws Exception {
+        for (String version : new String[] { "1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "1.91.37", "9.8.7" }) {
+            String source = NativeEngineTest.fixture("legacy/cluster.adl").replace("adl_version=1.4", "adl_version=" + version);
+            for (String operation : new String[] { "validate/archetype", "inspect/archetype" }) {
+                var report = NativeEngineTest.run(operation, source, java.util.List.of());
+                assertEquals(true, report.get("valid"), report.toString());
+                assertEquals(version, report.get("adl_version"));
+                assertEquals("ADL14_PARSE_RM_STRUCTURE", report.get("profile"));
+                assertEquals("NOT_EXECUTED", ((java.util.Map<?, ?>) report.get("checks")).get("full_aom_semantics"));
+            }
+        }
+    }
     @Test void rejectsParseRecoveryDuplicateCodesAndDifferentLanguageVersions() throws Exception {
         String content = NativeEngineTest.fixture("legacy/cluster.adl");
-        for (String invalid : new String[] { content + " garbage", content.replace("adl_version=1.4", "adl_version=2.0.6"),
+        for (String invalid : new String[] { content + " garbage", content.replace("adl_version=1.4", "adl_version=not_a_version"),
                 content.replace("[\"at0001\"] = <text = <\"Text element\">", "[\"at0000\"] = <text = <\"Text element\">") }) {
             assertThrows(EngineException.class, () -> LegacyArchetype.parse(invalid));
         }

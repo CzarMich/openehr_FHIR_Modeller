@@ -47,6 +47,29 @@ final class TemplateAuthoringTest extends TestCase
         ];
     }
 
+    public function test_specialised_sources_include_exact_ancestors_in_the_retained_package(): void
+    {
+        $parent = 'openEHR-EHR-COMPOSITION.report.v1';
+        $child = 'openEHR-EHR-COMPOSITION.report-result.v1';
+        $entry = self::ARCHETYPES['evaluation']['id'];
+        $sources = [
+            ['identifier' => $child, 'content' => "archetype (adl_version=1.4)\n$child\nspecialise\n    $parent\nconcept\n[at0000.1]\n"],
+            ['identifier' => $parent, 'content' => "archetype (adl_version=1.4)\n$parent\nconcept\n[at0000]\n"],
+            ['identifier' => $entry, 'content' => "archetype (adl_version=1.4)\n$entry\nconcept\n[at0000]\n"],
+        ];
+        $ckm = new class implements ArchetypeSource {
+            public function fetch(string $identifier, ?string $source = null): array
+            {
+                throw new \RuntimeException('Supplied ancestor must take precedence over CKM.');
+            }
+        };
+        $result = (new TemplateAuthoringService($ckm, new ModelValidator()))->generateOet('Specialised report', $child, [$entry], archetypes: $sources);
+        self::assertSame([$child, $entry, $parent], array_column($result['dependencies'], 'identifier'));
+        self::assertSame($sources[1]['content'], $result['dependencies'][2]['content']);
+        self::assertArrayHasKey($parent, $result['provenance']);
+        self::assertFalse($result['clinical_approval']);
+    }
+
     public function test_supplied_repository_sources_override_ckm_and_reach_native_compilation(): void
     {
         $root = self::ARCHETYPES['composition']['id'];

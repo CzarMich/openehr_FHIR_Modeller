@@ -6,12 +6,12 @@ COPY LICENSE THIRD_PARTY_NOTICES.md /build/
 RUN mvn -B -ntp verify
 
 FROM eclipse-temurin:21-jre-alpine@sha256:51ab5e3302e7141ce665ca3ea85e8b5cd648eafbc3c0c90dd79d6537684e4555
-RUN addgroup -g 10001 engine && adduser -D -u 10001 -G engine engine
+RUN apk add --no-cache util-linux && addgroup -g 10001 engine && adduser -D -u 10001 -G engine engine
 WORKDIR /app
 LABEL org.opencontainers.image.authors="Michael Anywar" \
       org.opencontainers.image.vendor="Michael Anywar" \
       org.opencontainers.image.licenses="MIT"
-COPY --from=build /build/engine/target/engine-1.2.0.jar ./engine.jar
+COPY --from=build /build/engine/target/engine-1.3.0.jar ./engine.jar
 COPY --from=build /build/engine/target/lib ./lib
 COPY --from=build /build/engine/target/bom.json ./sbom.json
 COPY LICENSE THIRD_PARTY_NOTICES.md ./

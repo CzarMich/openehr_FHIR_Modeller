@@ -18,6 +18,7 @@ final class LegacyTemplateCompiler {
     private final List<Map<String, String>> actions = new ArrayList<>();
     private final List<Map.Entry<Element, String>> annotations = new ArrayList<>();
     private LegacyOptWriter writer;
+    private LegacyInheritance inheritance;
     private int placements;
     private final Set<Element> openAttributes = Collections.newSetFromMap(new IdentityHashMap<>());
 
@@ -33,6 +34,7 @@ final class LegacyTemplateCompiler {
             if (explicit != null && !RM_RELEASE.equals(explicit)) throw new EngineException("ENGINE_DEPENDENCY_RM_MISMATCH");
             source.model().setRmRelease(RM_RELEASE);
         }
+        inheritance = new LegacyInheritance(sources, used, actions);
         Element oet = parse(content).getDocumentElement();
         closed(oet, OET, Set.of("id", "name", "description", "definition"), Set.of());
         if (!"template".equals(oet.getLocalName())) throw new EngineException("ENGINE_DOCUMENT_KIND_MISMATCH");
@@ -40,7 +42,7 @@ final class LegacyTemplateCompiler {
         String name = scalar(one(oet, "name", true));
         if (uid.isBlank() || name.isBlank() || uid.length() > 200 || name.length() > 200) throw new EngineException("ENGINE_TEMPLATE_ID_INVALID");
         Element definition = one(oet, "definition", true);
-        var rootSource = source(definition);
+        var rootSource = inheritance.resolve(source(definition).identifier());
         String language = rootSource.model().getOriginalLanguage().getCodeString();
         writer = new LegacyOptWriter(language, BuiltinReferenceModels.getMetaModelProvider().getMetaModel(rootSource.model()));
         LegacyOptWriter.phrase(add(writer.template, "language"), rootSource.model().getOriginalLanguage());
@@ -72,7 +74,7 @@ final class LegacyTemplateCompiler {
         if (depth > 32 || ++placements > 1024) throw new EngineException("ENGINE_COMPONENT_LIMIT");
         closed(specification, OET, Set.of("Content", "Item", "Items", "Rule"),
                 Set.of("archetype_id", "path", "min", "max", "name", "annotation"));
-        var source = source(specification);
+        var source = inheritance.resolve(source(specification).identifier());
         if (!type(specification).equals(source.model().getDefinition().getRmTypeName())) throw new EngineException("ENGINE_OET_RM_TYPE_MISMATCH");
         used.add(source.identifier());
         Element root = writer.root(source, elementName);

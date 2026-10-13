@@ -403,6 +403,7 @@ export class WorkspaceTools {
                 independent: this.execution?.task?.mode === "independent",
             });
         }
+        let recoveredProvenance;
         if (this.draftTools?.has(name) && args?.draftId) {
             if (this.execution?.task?.mode === "independent")
                 throw problem(
@@ -421,6 +422,13 @@ export class WorkspaceTools {
                 this.draftTools.get(name).inputSchema.properties.dependencies
             )
                 args.dependencies = dependencies.map(({ identifier, content }) => ({ identifier, content }));
+            if (["template_compile", "template_validate"].includes(name) && args.dependencies?.length) {
+                recoveredProvenance = { ...this.packages.entry(draft.content)?.provenance };
+                const reader = this.conversation.repository && new RepositoryModels(this.connections, this.identity, this.signal);
+                const current = reader && ((ids) => reader.currentArchetypes(this.conversation.repository, this.conversation.folder || "", ids));
+                args.dependencies = (await this.packages.ancestors(args.dependencies, recoveredProvenance, this.mcp, current))
+                    .map(({ identifier, content }) => ({ identifier, content }));
+            }
         }
         if (CDR_BROWSER_ONLY_TOOLS.has(name))
             throw problem(
@@ -489,6 +497,13 @@ export class WorkspaceTools {
             }
             response = retainFhirDrafts(name, args, response, this.checkpoints);
             this.packages.capture(name, args, response);
+            if (recoveredProvenance && modelResult(response)?.valid === true) {
+                const retained = this.packages.entry(args.content);
+                this.packages.capture("template_build_oet", {}, { structuredContent: { success: true, result: {
+                    content: args.content, dependencies: args.dependencies, provenance: recoveredProvenance,
+                    ...(retained?.ckmUpgrades ? { ckmUpgrades: retained.ckmUpgrades } : {}),
+                } } });
+            }
             const result = name === "template_build_oet" ? modelResult(response) : null;
             if (result?.dependencies) {
                 const draftId = this.checkpoints.draft(result.content, "template.oet", name);

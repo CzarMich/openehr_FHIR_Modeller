@@ -39,6 +39,9 @@ export const modelResult = (result) => {
     return value?.result || value;
 };
 
+export const legacyParent = (content) =>
+    content.match(/^\ufeff?(?:\s|--[^\r\n]*(?:\r?\n|$))*archetype\b(?:\s*\([^)]*\))?\s+openEHR-[^\s;]+\s+speciali[sz]e\s+(openEHR-[^\s;]+)(?=\s|$)/)?.[1];
+
 function dependencies(value) {
     if (!Array.isArray(value) || !value.length || value.length > 64)
         throw problem(
@@ -120,7 +123,7 @@ export class TemplatePackages {
         if (typeof content !== "string" || !inputs?.length) return;
         const exact = dependencies(inputs);
         const retained = !generated && this.entry(content);
-        const previous = retained && JSON.stringify(retained.dependencies) === JSON.stringify(exact) ? retained : null;
+        const previous = retained && retained.dependencies.every((old) => exact.some((item) => item.identifier === old.identifier && item.sha256 === old.sha256)) ? retained : null;
         const entry = {
             ...(previous || {}),
             hash: hash(content),
@@ -134,6 +137,30 @@ export class TemplatePackages {
         while (entries.length > 1 && Buffer.byteLength(JSON.stringify(entries)) > 16 * 1024 * 1024) entries.pop();
         if (this.store) this.store.set(this.identity, "packages", entries);
         else this.memory = entries;
+    }
+    async ancestors(inputs, provenance, mcp, currentArchetypes) {
+        inputs = dependencies(inputs);
+        const found = new Map(inputs.map((item) => [item.identifier, item]));
+        for (const input of found.values()) {
+            const parent = legacyParent(input.content);
+            if (!parent || found.has(parent)) continue;
+            if (found.size >= 64) throw problem("The archetype inheritance package exceeds 64 dependencies.");
+            const local = currentArchetypes ? await currentArchetypes([parent]) : new Map();
+            for (const [id, saved] of local) if (!found.has(id)) {
+                found.set(id, { identifier: id, content: saved.content });
+                provenance[id] = { kind: "personal_repository", path: saved.path, ref: saved.ref, sha256: saved.sha256 };
+            }
+            if (found.has(parent)) continue;
+            const ckm = provenance[input.identifier]?.ckm;
+            const response = await mcp.call("ckm_archetype_get", { identifier: parent, format: "adl", ...(ckm ? { ckm } : {}) });
+            if (response?.isError) throw problem("The specialisation parent could not be retrieved: " + parent);
+            const content = response?.content?.find((item) => item.type === "text")?.text?.replace(/^```[^\n]*\n|\n```$/g, "");
+            const declaration = content?.match(/^\ufeff?(?:\s|--[^\r\n]*(?:\r?\n|$))*archetype\b(?:\s*\([^)]*\))?\s+(openEHR-[^\s;]+)/)?.[1];
+            if (declaration !== parent) throw problem("The retrieved specialisation parent does not match its exact identifier.");
+            found.set(parent, { identifier: parent, content });
+            provenance[parent] = { kind: "live_ckm", ...(ckm ? { ckm } : {}), requested_identifier: parent, sha256: hash(content) };
+        }
+        return dependencies([...found.values()]);
     }
     async files(args, folder, mcp, currentArchetypes) {
         const cached = this.entry(args.content);
@@ -173,7 +200,11 @@ export class TemplatePackages {
                 };
             return { identifier: input.identifier, content: saved.content, sha256: saved.sha256 };
         });
-        inputs = dependencies(inputs);
+        inputs = await this.ancestors(inputs, provenance, mcp, currentArchetypes);
+        if (currentArchetypes) {
+            const ancestors = await currentArchetypes(inputs.map((item) => item.identifier));
+            for (const [id, source] of ancestors) current.set(id, source);
+        }
         const report = modelResult(
             await mcp.call("template_compile", {
                 content: args.content,

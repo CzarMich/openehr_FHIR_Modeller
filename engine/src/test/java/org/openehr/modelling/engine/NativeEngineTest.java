@@ -19,6 +19,18 @@ class NativeEngineTest {
         return new Request.Dependency(id, content, NativeEngine.sha256(content));
     }
 
+    @Test void parsesVersionDeclarationsWithoutAProductionVersionAllowlist() throws Exception {
+        for (String version : List.of("2.0", "2.0.0", "2.0.1", "2.0.2", "2.0.3", "2.0.4", "2.0.5", "2.0.6", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.91.37", "3.0.0")) {
+            var report = run("validate/archetype", fixture("cluster.adls").replace("adl_version=2.0.6", "adl_version=" + version), List.of());
+            assertEquals(true, report.get("valid"), version + ": " + report);
+            assertEquals(version.equals("2.0") ? "2.0.0" : version, report.get("adl_version"));
+            String template = fixture("template.adlt").replace("adl_version=2.0.6", "adl_version=" + version);
+            var dependencies = List.of(dependency(fixture("composition.adls").replace("adl_version=2.0.6", "adl_version=" + version), "openEHR-EHR-COMPOSITION.engine_fixture.v1.0.0"));
+            assertEquals(true, run("compile/template", template, dependencies).get("valid"), version);
+        }
+
+    }
+
     @Test void nativeValidationFindsActualConstraints() throws Exception {
         var result = run("validate/archetype", fixture("cluster.adls"), List.of());
         assertEquals(true, result.get("valid"), result.toString());

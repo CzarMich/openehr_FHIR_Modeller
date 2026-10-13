@@ -259,3 +259,14 @@ test("assistant inspects, generates and validates using compiled exact repositor
     assert.equal(checked.validation.valid, false);
     assert(calls.includes("aql_validate"));
 });
+
+ test("current repository sources include exact specialisation ancestors from the same commit", async (t) => {
+    const { models, args, state, identifier } = fixture(t);
+    const parent = "openEHR-EHR-COMPOSITION.report.v1";
+    state.files["AKI/archetypes/" + identifier + ".adl"] = "archetype (adl_version=1.4)\n" + identifier + "\nspecialise\n" + parent + "\nconcept\n[at0000.1]\n";
+    state.files["AKI/archetypes/" + parent + ".adl"] = "exact designer edited parent";
+    const sources = await models.currentArchetypes(args.repository, "AKI", [identifier]);
+    assert.equal(sources.size, 2);
+    assert.equal(sources.get(parent).content, "exact designer edited parent");
+    assert.equal(sources.get(parent).ref, ref);
+});

@@ -34,10 +34,29 @@ final readonly class HttpOpenEhrEngine implements OpenEhrEngine
         ]);
     }
 
+    /** Check the configured private listener without starting a compiler worker. */
+    public function assertReady(): void
+    {
+        if ($this->settings->get('OPENEHR_ENGINE_URL') === '') {
+            return;
+        }
+        try {
+            $response = $this->client->get($this->settings->get('OPENEHR_ENGINE_URL') . '/health', ['timeout' => 3]);
+            $data = json_decode($response->getBody()->read(4096), true, 8, JSON_THROW_ON_ERROR);
+            if ($response->getStatusCode() !== 200 || !is_array($data) || ($data['status'] ?? null) !== 'alive'
+                || !is_string($data['adapter'] ?? null) || !preg_match('/^[0-9]+\.[0-9]+\.[0-9]+$/D', $data['adapter'])) {
+                throw new \RuntimeException('ENGINE_UNAVAILABLE');
+            }
+            EngineConfiguration::key($this->settings);
+        } catch (\Throwable) {
+            throw new \RuntimeException('ENGINE_UNAVAILABLE');
+        }
+    }
+
     public function validate(string $content, string $format, array $dependencies = []): array
     {
         $operation = match ($format) {
-            'adl2' => 'validate/archetype', 'adlt2' => 'validate/template',
+            'adl', 'adl14', 'adl2' => 'validate/archetype', 'adlt2' => 'validate/template',
             'opt2', 'opt14' => 'validate/opt', 'aql' => 'validate/aql',
             default => throw new \InvalidArgumentException('ENGINE_FORMAT_UNSUPPORTED'),
         };
@@ -52,7 +71,7 @@ final readonly class HttpOpenEhrEngine implements OpenEhrEngine
     public function inspect(string $content, string $format, array $dependencies = []): array
     {
         $operation = match ($format) {
-            'adl2' => 'inspect/archetype', 'opt2', 'opt14' => 'inspect/opt',
+            'adl', 'adl14', 'adl2' => 'inspect/archetype', 'opt2', 'opt14' => 'inspect/opt',
             default => throw new \InvalidArgumentException('ENGINE_FORMAT_UNSUPPORTED'),
         };
         if (($format === 'opt14') !== self::legacyXml($content)) {
@@ -65,6 +84,7 @@ final readonly class HttpOpenEhrEngine implements OpenEhrEngine
      * @return array<string, mixed> */
     private function request(string $operation, string $content, array $dependencies): array
     {
+        $archetypeOperation = str_ends_with($operation, '/archetype');
         $legacy = self::legacyXml($content) && (str_ends_with($operation, '/template') || str_ends_with($operation, '/opt'));
         if ($this->settings->get('OPENEHR_ENGINE_URL') === '') {
             throw new \RuntimeException('ENGINE_NOT_CONFIGURED');
@@ -170,8 +190,9 @@ final readonly class HttpOpenEhrEngine implements OpenEhrEngine
         } elseif ($operation === 'validate/aql' && $dependencies !== [] && $data['valid']) {
             throw new \RuntimeException('ENGINE_RESPONSE_INVALID');
         }
-        if ($legacy) {
-            $profile = str_ends_with($operation, '/opt') ? 'OPT14_XML_RM_STRUCTURE' : 'OET14_COMPILATION_RM_STRUCTURE';
+        $legacyAdl = $archetypeOperation && ($data['profile'] ?? null) === 'ADL14_PARSE_RM_STRUCTURE';
+        if ($legacy || $legacyAdl) {
+            $profile = $legacyAdl ? 'ADL14_PARSE_RM_STRUCTURE' : (str_ends_with($operation, '/opt') ? 'OPT14_XML_RM_STRUCTURE' : 'OET14_COMPILATION_RM_STRUCTURE');
             if (($data['checks']['full_aom_semantics'] ?? null) !== 'NOT_EXECUTED'
                 || ($data['checks']['clinical_review'] ?? null) !== 'NOT_EXECUTED'
                 || ($data['rm_release_basis'] ?? null) !== 'explicit_legacy_compatibility_profile'

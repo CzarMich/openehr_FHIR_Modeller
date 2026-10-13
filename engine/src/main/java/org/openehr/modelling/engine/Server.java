@@ -15,8 +15,13 @@ import java.util.concurrent.*;
 /** Loopback-only service. A companion application/proxy must share the network namespace. */
 public final class Server {
     private final byte[] key;
-    private final Semaphore capacity = new Semaphore(2);
-    Server(byte[] key) { this.key = key.clone(); }
+    private final Semaphore capacity;
+    Server(byte[] key) {
+        this.key = key.clone();
+        String workers = System.getenv().getOrDefault("ENGINE_MAX_WORKERS", "2");
+        if (!workers.matches("[12]")) throw new IllegalArgumentException("ENGINE_WORKER_LIMIT_INVALID");
+        capacity = new Semaphore(Integer.parseInt(workers));
+    }
 
     public static void main(String[] args) throws Exception {
         String location = System.getenv().getOrDefault("ENGINE_KEY_FILE", "/run/secrets/engine-key");
@@ -46,7 +51,7 @@ public final class Server {
                 send(request, 403, error("ENGINE_ORIGIN_REJECTED")); return;
             }
             if (request.getRequestURI().toString().equals("/health") && request.getRequestMethod().equals("GET")) {
-                send(request, 200, Json.MAPPER.writeValueAsBytes(Map.of("status", "alive", "adapter", "1.0.0"))); return;
+                send(request, 200, Json.MAPPER.writeValueAsBytes(Map.of("status", "alive", "adapter", NativeEngine.ADAPTER_VERSION))); return;
             }
             var tokens = request.getRequestHeaders().get("X-Engine-Key");
             if (tokens == null || tokens.size() != 1 || !MessageDigest.isEqual(key, tokens.getFirst().getBytes(StandardCharsets.UTF_8))) {

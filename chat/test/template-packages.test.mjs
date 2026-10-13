@@ -554,3 +554,22 @@ test("repository source selection rejects duplicates and guards edits between co
     );
     assert.equal(f.state.writes.length, 0);
 });
+
+test("retained legacy packages recover exact ancestors without replacing child source bytes", async () => {
+    const packages = new TemplatePackages({}, "alice", "recovery");
+    const parent = "openEHR-EHR-COMPOSITION.report.v1";
+    const child = "openEHR-EHR-COMPOSITION.report-result.v1";
+    const original = { identifier: child, content: "archetype (adl_version=1.4)\n" + child + "\nspecialise\n" + parent + "\nconcept\n[at0000.1]\n" };
+    const exactParent = "archetype (adl_version=1.4)\n" + parent + "\nconcept\n[at0000]\n";
+    const provenance = {};
+    const mcp = { call: async () => { throw new Error("A repository parent must take precedence over CKM"); } };
+    const resolved = await packages.ancestors([original], provenance, mcp, async () => new Map([[parent, { content: exactParent, path: "AKI/archetypes/" + parent + ".adl", ref: "a".repeat(40), sha256: hash(exactParent) }]]));
+    assert.equal(resolved.length, 2);
+    assert.equal(resolved.find((item) => item.identifier === child).content, original.content);
+    assert.equal(resolved.find((item) => item.identifier === parent).content, exactParent);
+    assert.equal(provenance[parent].kind, "personal_repository");
+    const ckm = { call: async (name, args) => { assert.equal(name, "ckm_archetype_get"); assert.equal(args.identifier, parent); return { content: [{ type: "text", text: "```\n" + exactParent + "\n```" }] }; } };
+    const recovered = await packages.ancestors([original], {}, ckm, async () => new Map());
+    assert.equal(recovered.find((item) => item.identifier === parent).sha256, hash(exactParent));
+    await assert.rejects(packages.ancestors([original], {}, { call: async () => ({ content: [{ type: "text", text: "wrong archetype" }] }) }), /does not match/);
+});

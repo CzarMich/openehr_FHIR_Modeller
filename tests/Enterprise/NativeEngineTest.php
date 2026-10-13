@@ -49,6 +49,33 @@ final class NativeEngineTest extends TestCase
         return new Response(200, ['Content-Type' => 'application/json'], json_encode(['ok' => true, 'data' => $report], JSON_THROW_ON_ERROR));
     }
 
+    public function test_readiness_probes_listener_without_starting_a_compiler_worker(): void
+    {
+        $engine = new HttpOpenEhrEngine($this->settings(), new Client(['handler' => new MockHandler([
+            new Response(200, ['Content-Type' => 'application/json'], '{"status":"alive","adapter":"1.3.0"}'),
+            new Response(503, [], '{}'),
+        ])]));
+        $engine->assertReady();
+        $this->expectExceptionMessage('ENGINE_UNAVAILABLE');
+        $engine->assertReady();
+    }
+
+    public function test_legacy_archetype_profile_is_checked_without_claiming_full_aom_conformance(): void
+    {
+        $source = "archetype (adl_version=1.4)\nopenEHR-EHR-CLUSTER.fixture.v1\n";
+        $report = self::report($source);
+        $report['profile'] = 'ADL14_PARSE_RM_STRUCTURE';
+        $report['checks'] = ['full_aom_semantics' => 'NOT_EXECUTED', 'clinical_review' => 'NOT_EXECUTED'];
+        $report['rm_release_basis'] = 'explicit_legacy_compatibility_profile';
+        $report['limitations'] = ['Legacy compatibility profile.'];
+        $engine = new HttpOpenEhrEngine($this->settings(), new Client(['handler' => new MockHandler([self::response($report)])]));
+        self::assertTrue($engine->validate($source, 'adl')['valid']);
+        $report['checks']['full_aom_semantics'] = 'PASS';
+        $engine = new HttpOpenEhrEngine($this->settings(), new Client(['handler' => new MockHandler([self::response($report)])]));
+        $this->expectExceptionMessage('ENGINE_RESPONSE_INVALID');
+        $engine->validate($source, 'adl14');
+    }
+
     public function test_request_is_bound_to_fixed_operation_and_rotated_secret(): void
     {
         $history = [];
