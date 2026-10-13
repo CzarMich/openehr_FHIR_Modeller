@@ -40,7 +40,9 @@ export const modelResult = (result) => {
 };
 
 export const legacyParent = (content) =>
-    content.match(/^\ufeff?(?:\s|--[^\r\n]*(?:\r?\n|$))*archetype\b(?:\s*\([^)]*\))?\s+openEHR-[^\s;]+\s+speciali[sz]e\s+(openEHR-[^\s;]+)(?=\s|$)/)?.[1];
+    content.match(
+        /^\ufeff?(?:\s|--[^\r\n]*(?:\r?\n|$))*archetype\b(?:\s*\([^)]*\))?\s+openEHR-[^\s;]+\s+speciali[sz]e\s+(openEHR-[^\s;]+)(?=\s|$)/,
+    )?.[1];
 
 function dependencies(value) {
     if (!Array.isArray(value) || !value.length || value.length > 64)
@@ -123,7 +125,13 @@ export class TemplatePackages {
         if (typeof content !== "string" || !inputs?.length) return;
         const exact = dependencies(inputs);
         const retained = !generated && this.entry(content);
-        const previous = retained && retained.dependencies.every((old) => exact.some((item) => item.identifier === old.identifier && item.sha256 === old.sha256)) ? retained : null;
+        const previous =
+            retained &&
+            retained.dependencies.every((old) =>
+                exact.some((item) => item.identifier === old.identifier && item.sha256 === old.sha256),
+            )
+                ? retained
+                : null;
         const entry = {
             ...(previous || {}),
             hash: hash(content),
@@ -146,19 +154,39 @@ export class TemplatePackages {
             if (!parent || found.has(parent)) continue;
             if (found.size >= 64) throw problem("The archetype inheritance package exceeds 64 dependencies.");
             const local = currentArchetypes ? await currentArchetypes([parent]) : new Map();
-            for (const [id, saved] of local) if (!found.has(id)) {
-                found.set(id, { identifier: id, content: saved.content });
-                provenance[id] = { kind: "personal_repository", path: saved.path, ref: saved.ref, sha256: saved.sha256 };
-            }
+            for (const [id, saved] of local)
+                if (!found.has(id)) {
+                    found.set(id, { identifier: id, content: saved.content });
+                    provenance[id] = {
+                        kind: "personal_repository",
+                        path: saved.path,
+                        ref: saved.ref,
+                        sha256: saved.sha256,
+                    };
+                }
             if (found.has(parent)) continue;
             const ckm = provenance[input.identifier]?.ckm;
-            const response = await mcp.call("ckm_archetype_get", { identifier: parent, format: "adl", ...(ckm ? { ckm } : {}) });
+            const response = await mcp.call("ckm_archetype_get", {
+                identifier: parent,
+                format: "adl",
+                ...(ckm ? { ckm } : {}),
+            });
             if (response?.isError) throw problem("The specialisation parent could not be retrieved: " + parent);
-            const content = response?.content?.find((item) => item.type === "text")?.text?.replace(/^```[^\n]*\n|\n```$/g, "");
-            const declaration = content?.match(/^\ufeff?(?:\s|--[^\r\n]*(?:\r?\n|$))*archetype\b(?:\s*\([^)]*\))?\s+(openEHR-[^\s;]+)/)?.[1];
-            if (declaration !== parent) throw problem("The retrieved specialisation parent does not match its exact identifier.");
+            const content = response?.content
+                ?.find((item) => item.type === "text")
+                ?.text?.replace(/^```[^\n]*\n|\n```$/g, "");
+            const declaration = content?.match(
+                /^\ufeff?(?:\s|--[^\r\n]*(?:\r?\n|$))*archetype\b(?:\s*\([^)]*\))?\s+(openEHR-[^\s;]+)/,
+            )?.[1];
+            if (declaration !== parent)
+                throw problem("The retrieved specialisation parent does not match its exact identifier.");
             found.set(parent, { identifier: parent, content });
-            provenance[parent] = { kind: "live_ckm", ...(ckm ? { ckm } : {}), requested_identifier: parent, sha256: hash(content) };
+            provenance[parent] = {
+                kind: "live_ckm",
+                ...(ckm ? { ckm } : {}),
+                requested_identifier: parent,
+                sha256: hash(content),
+            };
         }
         return dependencies([...found.values()]);
     }
