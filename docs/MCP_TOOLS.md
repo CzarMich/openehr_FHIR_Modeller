@@ -96,7 +96,7 @@ Output schema:
 
 ## `archetype_validate`
 
-Validate ADL 2 grammar, AOM constraints and the declared supported RM profile with the configured native engine. Dependencies are explicit exact versions; no network retrieval or approval.
+Validate ADL 1.x through the explicit legacy grammar/RM structure profile, or ADL 2 through native grammar/AOM/RM checks. Legacy full AOM semantics remain unexecuted. Dependencies are explicit exact versions; no network retrieval or approval.
 
 External dependency: configured native openEHR engine; no terminology server or CDR required.
 
@@ -2708,7 +2708,7 @@ Interpretation and errors: [repository](MODEL_REPOSITORY.md), [governance](GOVER
 
 ## `model_inspect`
 
-Inspect native ADL 2, OPT 2 ADL or OPT 1.4 XML paths, RM types, multiplicities and original terminology. Explicit format and validation profile; no guessed paths or clinical approval.
+Inspect native ADL 1.x/2.x, OPT 2 ADL or OPT 1.4 XML paths, RM types, multiplicities and original terminology. Explicit format and validation profile; no guessed paths or clinical approval.
 
 External dependency: configured native openEHR engine; no terminology server or CDR required.
 
@@ -2726,6 +2726,8 @@ Input schema:
     "format": {
       "type": "string",
       "enum": [
+        "adl",
+        "adl14",
         "adl2",
         "opt2",
         "opt14"
@@ -4650,7 +4652,7 @@ Interpretation and errors: [repository](MODEL_REPOSITORY.md), [governance](GOVER
 
 ## `template_compile`
 
-Compile ADL 2 into OPT 2 ADL, or supported OET XML plus exact ADL 1.4 dependencies into OPT 1.4 XML. Returns native output, hashes, dependency evidence and explicit validation profile. Legacy nested placements, bounded rules and original terms are preserved; unsupported constructs fail closed. No repository write, clinical approval or CDR deployment.
+Compile ADL 2 into OPT 2 ADL, or supported OET XML plus exact ADL 1.4 dependencies into OPT 1.4 XML. Returns native output, hashes, dependency evidence and explicit validation profile. Legacy specialisation inheritance, nested placements, bounded rules and original terms are preserved; unsupported constructs fail closed. No repository write, clinical approval or CDR deployment.
 
 External dependency: configured native openEHR engine; no terminology server or CDR required.
 
@@ -4896,7 +4898,7 @@ Output schema:
 
 ## `template_validate`
 
-Validate an ADL 2 template or compile-check the explicit legacy OET compatibility profile with exact supplied archetypes. OET requires ADL 1.4 dependencies and uses RM 1.0.2; unsupported constructs fail. Read profile, checks and limitations; legacy checks are not full AOM conformance.
+Validate an ADL 2 template or compile-check the explicit legacy OET compatibility profile with exact supplied archetypes. OET requires legacy-grammar archetypes and their exact specialisation ancestors and uses RM 1.0.2; unsupported constructs fail. Read profile, checks and limitations; legacy checks are not full AOM conformance.
 
 External dependency: configured native openEHR engine; no terminology server or CDR required.
 

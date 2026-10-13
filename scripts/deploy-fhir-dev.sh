@@ -43,7 +43,7 @@ python3 scripts/fhir-dev-manifest.py "$revision" "$manifest_dir" "$release_dir"
 install -m 0644 deploy/fhir-dev/compose.yml "$release_dir/compose.yml"
 # Compose gives shell variables precedence over --env-file. Only the checked
 # manifest may select images/revision, including during rollback.
-unset APP_IMAGE CHAT_IMAGE INGRESS_IMAGE FHIR_IMAGE REVISION
+unset APP_IMAGE CHAT_IMAGE INGRESS_IMAGE FHIR_IMAGE ENGINE_IMAGE REVISION
 compose=(docker compose --project-name openehr-fhir-modeller --env-file "$release_dir/images.env" -f "$release_dir/compose.yml")
 retry_network() {
   local attempt
@@ -101,7 +101,7 @@ for line in Path(config).read_text().splitlines():
         if len(value)>=2 and value[0]==value[-1] and value[0] in ('"',"'"): value=value[1:-1]
         os.environ[key]=value
 evidence=Path(destination,'evidence/mcp-smoke.json')
-subprocess.run(['python3','scripts/mcp-smoke.py','--fhir','--url','https://'+hostname+'/mcp','--evidence',str(evidence)],check=True)
+subprocess.run(['python3','scripts/mcp-smoke.py','--fhir','--openehr-engine','--url','https://'+hostname+'/mcp','--evidence',str(evidence)],check=True)
 checks=json.loads(evidence.read_text())
 tools=next(c['detail'] for c in checks['checks'] if c['check']=='tools/list')
 assert {'fhir_project','fhir_artifact','fhir_fsh_compile','fhir_ig'} <= set(tools), 'FHIR capabilities absent after deployment'

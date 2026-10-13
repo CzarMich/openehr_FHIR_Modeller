@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { problem } from "./personal-http.mjs";
 import { ProjectMoves } from "./project-moves.mjs";
-import { modelResult } from "./template-packages.mjs";
+import { modelResult, legacyParent } from "./template-packages.mjs";
 import { ModelCache } from "./model-cache.mjs";
 
 const revision = (value) => typeof value === "string" && /^[a-f0-9]{40,64}$/.test(value);
@@ -177,7 +177,9 @@ export class RepositoryModels {
         const rows = await this.tree(repo, ref);
         const prefix = (folder ? folder + "/" : "") + "archetypes/";
         const found = new Map();
-        for (const identifier of new Set(identifiers)) {
+        const pending = new Set(identifiers);
+        for (const identifier of pending) {
+            if (pending.size > 64) throw problem("The archetype inheritance package exceeds 64 dependencies.");
             if (!/^openEHR-[A-Z_]+-[A-Z_]+\.[A-Za-z0-9_.-]+\.v[0-9]+(?:\.[0-9]+)*$/.test(identifier))
                 throw problem("Use full openEHR archetype identifiers when building from a personal repository.");
             const matches = rows.filter(
@@ -195,6 +197,8 @@ export class RepositoryModels {
                 );
             if (!matches.length) continue;
             const file = await this.get({ repository, path: matches[0].path, ref });
+            const parent = legacyParent(file.content);
+            if (parent) pending.add(parent);
             found.set(identifier, {
                 identifier,
                 content: file.content,

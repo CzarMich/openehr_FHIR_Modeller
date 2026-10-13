@@ -1,16 +1,16 @@
 # OPT compilation and native validation
 
-The assistant compiles **ADL 2 templates into OPT 2 in ADL serialization** using Archie 3.20.0. Compilation is deterministic computation, available to browser chat and any MCP client when the optional engine is configured. It needs neither an LLM nor a terminology server/CDR. An explicit [legacy compatibility adapter](LEGACY_OPT_COMPILATION.md) also compiles supported OET XML with ADL 1.4 dependencies into OPT 1.4 XML. Designer `.t.json` remains a separate authoring format.
+The assistant compiles **ADL 2 templates into OPT 2 in ADL serialization** using Archie 3.20.0. Legacy ADL archetypes and specialised OET dependencies use their separate [compatibility profile](LEGACY_OPT_COMPILATION.md#specialisation-and-language-versions). Compilation is deterministic computation, available to browser chat and any MCP client when the optional engine is configured. It needs neither an LLM nor a terminology server/CDR. An explicit [legacy compatibility adapter](LEGACY_OPT_COMPILATION.md) also compiles supported OET XML with ADL 1.4 dependencies into OPT 1.4 XML. Designer `.t.json` remains a separate authoring format.
 
 ## Operations
 
 | Tool | Input and result |
 |---|---|
-| `archetype_validate` | ADL 2 source plus explicit dependencies; native parse, AOM and declared RM checks |
+| `archetype_validate` | ADL 1.x legacy grammar/RM structure or ADL 2 native AOM/RM checks, with explicit dependencies |
 | `template_validate` | ADL 2 source/dependency validation, or supported OET compile checks |
 | `template_compile` | ADL 2 → OPT 2 ADL, or supported OET/ADL 1.4 → OPT 1.4 XML; hashes, profile and dependency evidence |
 | `opt_validate` | OPT 2 ADL native checks, or OPT 1.4 XML schema/RM structure profile |
-| `model_inspect` | ADL 2, OPT 2 or explicit `opt14` format; actual paths, types, multiplicities and terminology |
+| `model_inspect` | ADL `adl`/`adl14`/`adl2`, OPT 2 or explicit `opt14` format; actual paths, types, multiplicities and terminology |
 | `aql_validate` | Native AQL grammar/AST and normalized query; no CDR required |
 | `template_compile_project` | Exact repository template and dependency revisions; new DRAFT OPT with build metadata in one atomic repository save |
 
@@ -104,3 +104,5 @@ Execution evidence lives in `docs/evidence/ci-engine-smoke.json`. The [evaluatio
 The production engine image includes `/app/sbom.json`. CI audits its pinned Maven runtime components against OSV using `scripts/audit-engine-dependencies.py`; known-advisory results are recorded separately from functional acceptance.
 
 The build report retains exact native terminology binding URIs with their archetype scope and local code/path. It does not infer a CodeSystem version from an opaque URI or contact a terminology server. External terminology validation is recorded as `NOT_EXECUTED`. Synthetic fixtures exercise nested CLUSTER terms, English/German definitions, annotations and binding preservation across compilation and native OPT reparsing; broader authoring-tool round-trip compatibility still needs separate evidence.
+
+The engine accepts `ENGINE_MAX_WORKERS=1` or `2` (default `2`). Production may set `ENGINE_WORKER_LOCK_FILE` to an existing readable/writable absolute shared lock. Disposable workers acquire it through nonblocking `flock`, return `ENGINE_BUSY` on contention, and release it on completion or cancellation. The HTTP service and health probes do not acquire this heavy-work lock.

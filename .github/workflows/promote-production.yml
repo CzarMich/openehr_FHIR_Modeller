@@ -41,7 +41,7 @@ jobs:
             const deployed = jobs.some(job => job.name === 'deploy' && job.conclusion === 'success' && job.steps.some(step => step.name === 'Deploy pinned images on the marked local Dev host' && step.conclusion === 'success'));
             if (!deployed) throw new Error('The Dev deployment step did not succeed');
             const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {...context.repo, run_id});
-            for (const name of [`fhir-dev-deployment-${run.head_sha}`, ...['app','chat','ingress','fhir'].map(service => `fhir-dev-image-${service}-${run.head_sha}`)]) {
+            for (const name of [`fhir-dev-deployment-${run.head_sha}`, ...['app','chat','ingress','fhir','engine'].map(service => `fhir-dev-image-${service}-${run.head_sha}`)]) {
               if (!artifacts.some(artifact => artifact.name === name && !artifact.expired)) throw new Error(`Missing Dev evidence: ${name}`);
             }
             core.setOutput('revision', run.head_sha);

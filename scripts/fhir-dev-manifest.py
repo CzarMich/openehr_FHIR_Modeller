@@ -10,7 +10,7 @@ def render(revision, source, destination):
     if not re.fullmatch(r"[0-9a-f]{40}", revision):
         raise ValueError("Invalid validated revision")
     records = {}
-    for component in ("app", "chat", "ingress", "fhir"):
+    for component in ("app", "chat", "ingress", "fhir", "engine"):
         item = json.loads((Path(source) / (component + ".json")).read_text())
         if item.get("service") != component or item.get("revision") != revision:
             raise ValueError("Image manifest revision mismatch")

@@ -13,7 +13,7 @@ Run **Promote FHIR Modeller Production** from `main`, providing the successful
 the live Dev browser and FHIR workflow checks before starting promotion.
 
 The workflow checks the source repository, current revision, successful actual
-Dev deployment step, four immutable digest manifests, and matching Dev readiness
+Dev deployment step, five immutable digest manifests, and matching Dev readiness
 and MCP evidence. A skipped or stale Dev delivery cannot supply the required
 evidence. It downloads the images' recorded digest references; it builds no new
 images and does not use mutable image tags.
@@ -84,3 +84,5 @@ data volumes remain intact. The first deployment has no previous managed release
 so repair the configuration and rerun promotion of a currently verified main
 revision. Offline tests cover mismatched image evidence, failed Dev checks,
 wrong-host rejection and separate production storage without contacting the VPS.
+
+Production also includes the private openEHR compiler, with one disposable worker, a 768 MiB container budget and the same Java admission lock used by the FHIR tooling/IG platform. Its listener and health checks do not acquire the lock. The total configured application container budget is 3,648 MiB; active heavy Java work remains serialized. The compiler shares only the app network namespace on loopback and mounts the existing internal service key read-only. Promotion verifies actual ADL parsing and specialised template compilation in Dev evidence and again after production deployment.

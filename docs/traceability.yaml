@@ -310,7 +310,7 @@ requirements:
     status: draft
     implementation: partial
     packages: [src/Domain/Modelling/OpenEhrEngine.php, src/Application/NativeModels.php, src/Application/TemplateBuilds.php, src/Integrations/Engine/*.php, src/Configuration/EngineConfiguration.php, src/Tools/NativeEngineTools.php, src/Tools/TemplateBuildTools.php, engine/src/main/java]
-    tests: [tests/Enterprise/NativeEngineTest.php, tests/Enterprise/TemplateBuildsTest.php, tests/Enterprise/JsonDocumentTest.php, tests/Tools/NativeEngineOutputCases.php, engine/src/test/java, scripts/test-engine-container.sh, scripts/engine-example-smoke.py]
+    tests: [tests/Enterprise/NativeEngineTest.php, tests/Enterprise/TemplateBuildsTest.php, tests/Enterprise/JsonDocumentTest.php, tests/Tools/NativeEngineOutputCases.php, engine/src/test/java, scripts/test-engine-container.sh, scripts/engine-example-smoke.py, chat/test/template-packages.test.mjs, chat/test/repository-models.test.mjs]
     adr: ["0020", "0022"]
 
   - id: REQ-F22

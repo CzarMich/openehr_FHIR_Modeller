@@ -36,7 +36,8 @@ final class LegacyOptWriter {
     Element root(LegacyArchetype source, String elementName) {
         currentSource = source;
         references = new LegacyReferences(source);
-        if (source.syntax().specialization_section() != null) throw new EngineException("ENGINE_ADL14_SPECIALIZATION_UNSUPPORTED");
+        if (source.syntax().specialization_section() != null && !source.inherited())
+            throw new EngineException("ENGINE_SPECIALIZATION_NOT_RESOLVED");
         if (source.syntax().rules_section() != null) throw new EngineException("ENGINE_ADL14_RULES_UNSUPPORTED");
         if (!"openehr".equalsIgnoreCase(source.model().getArchetypeId().getRmPublisher())
                 || !source.model().getArchetypeId().getRmClass().equals(source.model().getDefinition().getRmTypeName()))

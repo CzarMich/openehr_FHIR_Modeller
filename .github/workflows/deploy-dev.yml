@@ -62,6 +62,9 @@ jobs:
           - component: ingress
             dockerfile: Dockerfile
             target: fhir-dev-ingress
+          - component: engine
+            dockerfile: engine/Dockerfile
+            target: ''
           - component: fhir
             dockerfile: fhir/Dockerfile
             target: ''

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Deliver the private openEHR compiler alongside the FHIR engine with verified Dev-first promotion.
+
+- Support specialised legacy archetypes and broader ADL version declarations with exact dependency recovery.
+
 - Isolate Dev gateway addresses and upstreams on shared Docker networks.
 
 - Send empty FHIR engine parameters as a JSON object and verify live release-capability discovery during delivery.

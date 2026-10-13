@@ -21,6 +21,7 @@ os.environ.setdefault('AUTH_API_KEY', 'a' * 64)
 client = module.Client(args.url)
 client.rpc('initialize', {'protocolVersion': '2025-11-25', 'capabilities': {}, 'clientInfo': {'name': 'native-engine-fixture', 'version': '1'}})
 client.rpc('notifications/initialized', notify=True)
+module.verify_adl_compatibility(client)
 fixtures = Path(__file__).resolve().parent.parent / 'engine/src/test/resources'
 cluster = (fixtures / 'cluster.adls').read_text()
 template = (fixtures / 'template.adlt').read_text()

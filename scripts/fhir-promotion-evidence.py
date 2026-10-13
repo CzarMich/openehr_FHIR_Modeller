@@ -25,7 +25,7 @@ def verify(revision, images, evidence):
     if not checks or any(check.get("status") != "PASS" for check in checks):
         raise ValueError("Dev MCP evidence is incomplete or failed")
     names = {check.get("check") for check in checks}
-    if not {"initialize", "tools/list", "repository capability discovery"} <= names:
+    if not {"initialize", "tools/list", "repository capability discovery", "ADL version and specialisation compatibility"} <= names:
         raise ValueError("Required Dev MCP checks are absent")
     tools = next(check.get("detail", []) for check in checks if check.get("check") == "tools/list")
     if not {"fhir_project", "fhir_artifact", "fhir_fsh_compile", "fhir_ig"} <= set(tools):

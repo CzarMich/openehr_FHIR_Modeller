@@ -13,6 +13,7 @@ import java.util.*;
 
 /** Native processors only; no source retrieval, storage, workflow approval or query execution. */
 final class NativeEngine {
+    static final String ADAPTER_VERSION = "1.3.0";
     static final String ARCHIE_VERSION = "3.20.0";
     static final String SDK_VERSION = "2.35.0";
 
@@ -21,12 +22,13 @@ final class NativeEngine {
         result.put("schema_version", 1);
         result.put("operation", request.operation());
         result.put("content_sha256", sha256(request.content()));
-        result.put("engine", Map.of("adapter", "1.2.0", "archie", ARCHIE_VERSION, "aql", SDK_VERSION));
+        result.put("engine", Map.of("adapter", ADAPTER_VERSION, "archie", ARCHIE_VERSION, "aql", SDK_VERSION));
         result.put("clinical_approval", false);
         List<Map<String, Object>> findings = new ArrayList<>();
         result.put("findings", findings);
         if (request.operation().equals("validate/aql")) return aql(request, result, findings);
         if (LegacyEngine.xml(request.content())) return LegacyEngine.execute(request, result);
+        if (LegacyEngine.adl(request.content())) return LegacyEngine.archetype(request, result);
         result.put("profile", request.operation().endsWith("/opt") ? "OPT2_FLAT_AOM_BMM" : "ADL2_AOM2_BMM");
         PinnedRepository repository = new PinnedRepository();
         List<Map<String, Object>> manifest = new ArrayList<>();
@@ -40,6 +42,8 @@ final class NativeEngine {
             throw new EngineException("ENGINE_DOCUMENT_KIND_MISMATCH");
         }
         checkProfile(source);
+        result.put("adl_version", source.getAdlVersion());
+        result.put("version_selection", "source_grammar_not_version_allowlist");
         result.put("identifier", source.getArchetypeId().getFullId());
         result.put("rm_release", source.getRmRelease());
         if (source instanceof OperationalTemplate operational) {
@@ -117,7 +121,10 @@ final class NativeEngine {
     private static Archetype parse(String content, List<Map<String, Object>> findings, String location) {
         ADLParser parser = new ADLParser(BuiltinReferenceModels.getMetaModelProvider());
         Archetype model = null;
-        try { model = parser.parse(content); }
+        // N.M is permitted by the specification; Archie metadata requires N.M.P.
+        // Normalize only that header token for parsing; the input hash remains the exact source hash.
+        String input = content.replaceFirst("(?s)^(\\ufeff?(?:\\s|--[^\\r\\n]*(?:\\r?\\n|$))*(?:archetype|template|operational_template)\\s*\\([^)]*?\\badl_version\\s*=\\s*)([0-9]+\\.[0-9]+)(?=\\s*[;)])", "$1$2.0");
+        try { model = parser.parse(input); }
         catch (Exception e) {
             findings.add(finding("error", "ADL_PARSE_ERROR", "/", "Native parser rejected the document.", location));
         }
@@ -133,9 +140,6 @@ final class NativeEngine {
     }
 
     private static void checkProfile(Archetype source) {
-        if (!"2.0.6".equals(source.getAdlVersion()) && !"2.0.5".equals(source.getAdlVersion()) && !"2.0.0".equals(source.getAdlVersion()) && !"2.0".equals(source.getAdlVersion())) {
-            throw new EngineException("ENGINE_ADL_VERSION_UNSUPPORTED");
-        }
         if (source.getArchetypeId() == null || source.getDefinition() == null || source.getRmRelease() == null
                 || !source.getArchetypeId().getRmPublisher().equalsIgnoreCase("openehr")
                 || !Set.of("1.0.2", "1.0.3", "1.0.4", "1.1.0").contains(source.getRmRelease())) {
@@ -152,7 +156,7 @@ final class NativeEngine {
         if (report.getOverlayValidations() != null) for (var overlay : report.getOverlayValidations()) appendValidation(overlay, findings);
     }
 
-    private static Map<String, Object> inspect(Archetype model) {
+    static Map<String, Object> inspect(Archetype model) {
         List<Map<String, Object>> paths = new ArrayList<>();
         Deque<CObject> pending = new ArrayDeque<>();
         pending.add(model.getDefinition());
@@ -211,6 +215,7 @@ final class NativeEngine {
             checks.put("model_paths", "NOT_EXECUTED");
             checks.put("query_execution", "NOT_EXECUTED");
         } else {
+            checks.put("declared_language_release_qualification", "NOT_EXECUTED");
             checks.put("adl_parse", stage.equals("parse") ? "FAIL" : "PASS");
             checks.put("native_aom_rm_profile", stage.equals("parse") ? "NOT_EXECUTED"
                     : (valid || stage.startsWith("output_")) ? "PASS" : "FAIL");

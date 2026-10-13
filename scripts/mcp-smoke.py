@@ -100,6 +100,35 @@ class Client:
         return data
 
 
+def verify_adl_compatibility(client):
+    """Read-only computation against synthetic sources; no repository writes or clinical approval."""
+    parent = 'archetype (adl_version=1.4)\n    openEHR-EHR-COMPOSITION.engine_fixture.v1\nconcept\n    [at0000]\nlanguage\n    original_language = <[ISO_639-1::en]>\n    translations = <["de"] = <language = <[ISO_639-1::de]> author = <["name"] = <"Synthetic fixture">>>>\ndescription\n    lifecycle_state = <"unmanaged">\n    details = <["en"] = <language = <[ISO_639-1::en]> purpose = <"Synthetic non-clinical legacy compiler fixture.">>>\ndefinition\n    COMPOSITION[at0000] matches { content cardinality matches {0..*; unordered} matches { allow_archetype CONTENT_ITEM[at0001] occurrences matches {0..*} matches { include archetype_id/value matches {/openEHR-EHR-.*/} } } }\nontology\n    term_definitions = <\n        ["en"] = <items = <\n            ["at0000"] = <text = <"Fixture"> description = <"Synthetic cluster">>\n            ["at0001"] = <text = <"Text element"> description = <"Synthetic value">>\n        >>\n        ["de"] = <items = <\n            ["at0000"] = <text = <"Testgruppe"> description = <"Synthetische Gruppe">>\n            ["at0001"] = <text = <"Textelement"> description = <"Synthetischer Wert">>\n        >>\n    >\n    term_bindings = <\n        ["fixture"] = <items = <["at0001"] = <[fixture::EXAMPLE]>>>\n    >\n'
+    modern = 'archetype (adl_version=2.0.6; rm_release=1.0.4)\n    openEHR-EHR-CLUSTER.engine_fixture.v1.0.0\n\nlanguage\n    original_language = <[ISO_639-1::en]>\n\ndescription\n    lifecycle_state = <"unmanaged">\n    details = <\n        ["en"] = <\n            language = <[ISO_639-1::en]>\n            purpose = <"Synthetic non-clinical engine contract fixture.">\n        >\n    >\n\ndefinition\n    CLUSTER[id1] matches {\n        items cardinality matches {1..*; unordered} matches {\n            ELEMENT[id2] occurrences matches {1..1} matches {\n                value matches {\n                    DV_TEXT[id3]\n                }\n            }\n        }\n    }\n\nterminology\n    term_definitions = <\n        ["en"] = <\n            ["id1"] = <text = <"Fixture"> description = <"Synthetic cluster">>\n            ["id2"] = <text = <"Text element"> description = <"Synthetic value">>\n            ["id3"] = <text = <"Text"> description = <"Synthetic text">>\n        >\n    >\n'
+    versions = []
+    for version in ("1.0", "1.1", "1.2", "1.3", "1.4", "1.5"):
+        report = client.tool("archetype_validate", {"content": parent.replace("adl_version=1.4", "adl_version=" + version)})
+        assert report["valid"] and report["profile"] == "ADL14_PARSE_RM_STRUCTURE"
+        assert report["checks"]["full_aom_semantics"] == "NOT_EXECUTED"
+        assert report["clinical_approval"] is False
+        versions.append(version)
+    for version in ("2.0", "2.0.0", "2.0.1", "2.0.2", "2.0.3", "2.0.4", "2.0.5", "2.0.6", "2.1.0", "2.2.0", "2.3.0", "2.4.0"):
+        report = client.tool("archetype_validate", {"content": modern.replace("adl_version=2.0.6", "adl_version=" + version)})
+        assert report["valid"] and report["clinical_approval"] is False
+        versions.append(version)
+    parent_id = "openEHR-EHR-COMPOSITION.engine_fixture.v1"
+    child_id = "openEHR-EHR-COMPOSITION.engine_fixture-result.v1"
+    child = parent.replace(parent_id, child_id + "\nspecialise\n" + parent_id).replace("[at0000]", "[at0000.1]").replace('["at0000"]', '["at0000.1"]')
+    oet = '<template xmlns="openEHR/v1/Template" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><id>adl-compatibility-smoke</id><name>Specialisation compatibility smoke</name><definition xsi:type="COMPOSITION" archetype_id="' + child_id + '"/></template>'
+    dependencies = [{"identifier": parent_id, "content": parent}, {"identifier": child_id, "content": child}]
+    compiled = client.tool("template_compile", {"content": oet, "dependencies": dependencies})
+    assert compiled["valid"] and compiled["output"]["format"] == "opt14_xml"
+    assert compiled["checks"]["web_template_generation"] == "PASS"
+    assert any(action["code"] == "ADL14_SPECIALIZATION_FLATTENED" for action in compiled["compilation_actions"])
+    rejected = client.tool("template_compile", {"content": oet, "dependencies": dependencies[1:]}, error=True)
+    assert rejected["structuredContent"]["error"]["code"] == "ENGINE_DEPENDENCY_MISSING"
+    return {"version_declarations": versions, "legacy_specialisation": "PASS", "missing_parent_rejection": "PASS", "clinical_approval": False}
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", default="http://127.0.0.1:8343/mcp")
@@ -108,6 +137,7 @@ def main():
     parser.add_argument("--live-ckm", action="store_true")
     parser.add_argument("--live-terminology", action="store_true")
     parser.add_argument("--without-terminology", action="store_true", help="Assert optional external terminology is unconfigured")
+    parser.add_argument("--openehr-engine", action="store_true", help="Require actual ADL parsing and specialisation compilation")
     parser.add_argument("--fhir", action="store_true", help="Require the configured FHIR engine and inspect release capabilities")
     parser.add_argument("--governance", action="store_true", help="Exercise enabled governance persistence with --writes")
     parser.add_argument("--writes", action="store_true", help="Create an isolated smoke project; requires enabled writes")
@@ -130,6 +160,8 @@ def main():
         assert len({t['name'] for t in tools}) == len(tools)
         assert all(t['inputSchema'].get('additionalProperties') is False for t in tools)
         record("tools/list", [t['name'] for t in tools])
+        if args.openehr_engine:
+            record("ADL version and specialisation compatibility", verify_adl_compatibility(client))
         if args.fhir:
             assert 'fhir_project' in {t['name'] for t in tools}
             capabilities = client.tool('fhir_project', {'action': 'capabilities'})
