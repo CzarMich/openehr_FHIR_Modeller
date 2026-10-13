@@ -16,7 +16,7 @@ Production uses a separate, explicitly dispatched
 After `PR validation` succeeds for a push to current `main`, `Deploy FHIR Modeller
 Dev` builds app, chat, ingress, private openEHR engine and private FHIR images on GitHub-hosted runners.
 Each image records the exact validated commit and is pushed to
-`ghcr.io/czarmich/openehr-fhir-modeller-{app,chat,ingress,fhir}`. Digest manifests
+`ghcr.io/czarmich/openehr-fhir-modeller-{app,chat,ingress,fhir,engine}`. Digest manifests
 are transferred to the repository runner labelled
 `self-hosted,Linux,X64,hyq-dev,fhir-modeller-dev`.
 
