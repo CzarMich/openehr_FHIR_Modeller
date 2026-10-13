@@ -41,7 +41,9 @@ jobs:
         run: |
           mkdir -p fhir/acceptance-export
           chmod 777 fhir/acceptance-export
-          docker run --rm --memory=3g --cpus=2 -e FHIR_ACCEPTANCE_EXPORT=/evidence \
+          # This hosted, one-shot CLI has no listener; use runner DNS for the
+          # authoritative package download rather than Docker bridge DNS.
+          docker run --rm --network host --memory=3g --cpus=2 -e FHIR_ACCEPTANCE_EXPORT=/evidence \
             -v "$PWD/fhir/acceptance-export:/evidence" fhir-engine-ci node test/acceptance.mjs
       - name: Preserve FHIR validation evidence
         if: always()

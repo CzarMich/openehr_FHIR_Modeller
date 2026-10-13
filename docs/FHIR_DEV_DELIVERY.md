@@ -85,6 +85,9 @@ account and MFA. MCP uses its configured credential. Delivery never prints it.
 
 `scripts/test-fhir-dev-delivery.py` checks digest/revision rejection, host guards,
 immutable Compose settings and preserved storage without starting containers.
+The one-shot native acceptance CLI uses the GitHub-hosted runner network for
+authoritative package downloads; it opens no listener and retains package-source
+and TLS checks. Deployed service network boundaries remain unchanged.
 Delivery uploads exact-commit readiness/MCP evidence. The browser acceptance
 harness then exercises the HTTPS authoring and validation flow. These checks do
 not constitute clinical approval or IG publication.
