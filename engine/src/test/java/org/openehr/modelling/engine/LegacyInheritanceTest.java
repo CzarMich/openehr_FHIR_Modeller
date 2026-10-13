@@ -49,6 +49,21 @@ class LegacyInheritanceTest {
         // Slot constraint changes need exact qualified semantics; they cannot bypass inheritance.
         LegacyTemplateCompilerTest.rejected("ENGINE_SPECIALIZATION_CONSTRAINT_UNSUPPORTED", oet(), deps);
     }
+    @Test void rejectsWidenedOccurrencesAndDefaultExistenceOnInheritedNodes() throws Exception {
+        String parent = NativeEngineTest.fixture("legacy/cluster.adl");
+        String parentId = "openEHR-EHR-CLUSTER.engine_fixture.v1";
+        String childId = "openEHR-EHR-CLUSTER.engine_fixture-special.v1";
+        String child = parent.replace(parentId, childId + "\nspecialise\n" + parentId)
+                .replace("[at0000]", "[at0000.1]").replace("[\"at0000\"]", "[\"at0000.1\"]");
+        String template = NativeEngineTest.fixture("legacy/nested.oet").replace(parentId, childId);
+        for (String widened : List.of(child.replace("occurrences matches {1..1}", "occurrences matches {0..2}"),
+                child.replace("value matches", "value existence matches {0..1} matches"))) {
+            var deps = new ArrayList<>(LegacyTemplateCompilerTest.dependencies());
+            deps.add(NativeEngineTest.dependency(widened, childId));
+            LegacyTemplateCompilerTest.rejected("ENGINE_CONSTRAINT_WIDENING", template, deps);
+        }
+    }
+
     @Test void inheritsTypedBindingsAndTermsWithoutInventingExternalUrls() throws Exception {
         String parent = NativeEngineTest.fixture("legacy/composition.adl");
         String child = specialised(parent).replace("    term_bindings = <\n        [\"fixture\"] = <items = <[\"at0001\"] = <[fixture::EXAMPLE]>>>\n    >", "");

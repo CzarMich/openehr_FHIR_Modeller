@@ -94,7 +94,7 @@ final class LegacyInheritance {
     }
 
     private String attribute(Attribute parent, Attribute child, MetaModel rm, int depth) {
-        if (!child.model().existenceConformsTo(parent.model()) || !child.model().cardinalityConformsTo(parent.model()))
+        if ((child.syntax().c_existence() != null && !(parent.model().getExistence() == null ? new com.nedap.archie.base.MultiplicityInterval(1, 1) : parent.model().getExistence()).contains(child.model().getExistence())) || !child.model().cardinalityConformsTo(parent.model()))
             throw new EngineException("ENGINE_CONSTRAINT_WIDENING");
         var p = parent.syntax(); var c = child.syntax();
         String head = text(c.attribute_id());
