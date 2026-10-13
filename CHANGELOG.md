@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Isolate Dev gateway addresses and upstreams on shared Docker networks.
+
 - Send empty FHIR engine parameters as a JSON object and verify live release-capability discovery during delivery.
 
 - Add browser and home-screen icons to web deployments.

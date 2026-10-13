@@ -58,11 +58,22 @@ ownership changes or volume deletion occur. Only ingress joins `hygeoniq-proxy`;
 only the app joins IG Dev network `hyq-fhir-ig-dev_default`. FHIR port8094 stays
 private.
 
+The FHIR gateway reserves `172.18.0.241` on `hygeoniq-proxy`; the separate
+openEHR Modelling Assistant gateway reserves `172.18.0.242`. These are internal
+Docker addresses. LAN DNS still maps each distinct hostname to `192.168.178.20`.
+Caddy receives `MODELLING_APP_UPSTREAM` and `MODELLING_CHAT_UPSTREAM` with this
+project's unique container names. Generic `app`/`chat` aliases are ambiguous
+on a shared network and must not be used by the deployed Dev gateway: a wrong
+upstream fails readiness and causes Traefik to omit the route, returning 404.
+The default Caddy values remain suitable for isolated local Compose projects.
+
 The sibling `deployment/` directory records each revision, digest manifest,
 immutable Compose file and read-only health/MCP evidence. `current-revision`
 advances only after loopback and CA-verified public HTTPS checks pass and the
 expected FHIR MCP tools are present. On failure, a previous recorded pinned release
-is restored when available; volumes stay intact. First migration from a manual
+is restored when available; volumes stay intact. An existing protected
+`config/dev-ingress-recovery.yml` overlay is retained during rollback to older
+gateway images; new releases use their checked-in upstream configuration. First migration from a manual
 stack has no recorded image rollback yet, so repair or rerun the same validated
 release if verification fails.
 
@@ -74,6 +85,9 @@ account and MFA. MCP uses its configured credential. Delivery never prints it.
 
 `scripts/test-fhir-dev-delivery.py` checks digest/revision rejection, host guards,
 immutable Compose settings and preserved storage without starting containers.
+The one-shot native acceptance CLI uses the GitHub-hosted runner network for
+authoritative package downloads; it opens no listener and retains package-source
+and TLS checks. Deployed service network boundaries remain unchanged.
 Delivery uploads exact-commit readiness/MCP evidence. The browser acceptance
 harness then exercises the HTTPS authoring and validation flow. These checks do
 not constitute clinical approval or IG publication.

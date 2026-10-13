@@ -75,7 +75,10 @@ rollback() {
   trap - ERR
   echo 'Dev verification failed; preserving volumes and restoring previous pinned images when available.' >&2
   if [[ "$previous" =~ ^[0-9a-f]{40}$ && -f "$state_dir/releases/$previous/compose.yml" ]]; then
-    docker compose --project-name openehr-fhir-modeller --env-file "$state_dir/releases/$previous/images.env" -f "$state_dir/releases/$previous/compose.yml" up -d --no-build --wait --wait-timeout 300 || true
+    rollback_compose=(docker compose --project-name openehr-fhir-modeller --env-file "$state_dir/releases/$previous/images.env" -f "$state_dir/releases/$previous/compose.yml")
+    # Preserve the operator's gateway recovery when restoring pre-fix images.
+    if [[ -r "$config_dir/dev-ingress-recovery.yml" ]]; then rollback_compose+=(-f "$config_dir/dev-ingress-recovery.yml"); fi
+    "${rollback_compose[@]}" up -d --no-build --wait --wait-timeout 300 || true
   fi
   exit "$status"
 }

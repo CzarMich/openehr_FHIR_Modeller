@@ -72,6 +72,14 @@ class DevDeliveryTest(unittest.TestCase):
         self.assertEqual(config["services"]["fhir"]["user"], "10001:10001")
         self.assertEqual(set(config["services"]["app"]["networks"]), {"default", "ig-dev"})
         self.assertEqual(set(config["services"]["ingress"]["networks"]), {"default", "proxy"})
+        ingress = config["services"]["ingress"]
+        self.assertEqual(ingress["networks"]["proxy"]["ipv4_address"], "172.18.0.241")
+        self.assertEqual(ingress["environment"]["MODELLING_APP_UPSTREAM"], "openehr-fhir-modeller-app-1:9000")
+        self.assertEqual(ingress["environment"]["MODELLING_CHAT_UPSTREAM"], "openehr-fhir-modeller-chat-1:8350")
+        self.assertEqual(ingress["labels"]["traefik.http.routers.openehr-fhir-modeller-dev.service"], "openehr-fhir-modeller-dev")
+        caddy = (ROOT / ".docker/Caddyfile").read_text()
+        upstreams = [line.strip().split()[1] for line in caddy.splitlines() if line.strip().startswith("reverse_proxy ")]
+        self.assertEqual(set(upstreams), {"{$MODELLING_APP_UPSTREAM:app:9000}", "{$MODELLING_CHAT_UPSTREAM:chat:8350}"})
         for name, service in config["services"].items():
             self.assertNotIn("build", service)
             self.assertTrue(service["read_only"])
