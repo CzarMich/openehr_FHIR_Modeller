@@ -14,7 +14,7 @@ Production uses a separate, explicitly dispatched
 ## Delivery contract
 
 After `PR validation` succeeds for a push to current `main`, `Deploy FHIR Modeller
-Dev` builds app, chat, ingress and private FHIR images on GitHub-hosted runners.
+Dev` builds app, chat, ingress, private openEHR engine and private FHIR images on GitHub-hosted runners.
 Each image records the exact validated commit and is pushed to
 `ghcr.io/czarmich/openehr-fhir-modeller-{app,chat,ingress,fhir}`. Digest manifests
 are transferred to the repository runner labelled
@@ -91,3 +91,5 @@ and TLS checks. Deployed service network boundaries remain unchanged.
 Delivery uploads exact-commit readiness/MCP evidence. The browser acceptance
 harness then exercises the HTTPS authoring and validation flow. These checks do
 not constitute clinical approval or IG publication.
+
+The openEHR engine shares only the app network namespace and listens on loopback port 8090; no engine port is published. It reuses the existing protected internal service key via a separate read-only mount. Readiness checks its listener and delivery runs read-only ADL version/specialisation compilation checks before recording success. All five component digests are required for production promotion.

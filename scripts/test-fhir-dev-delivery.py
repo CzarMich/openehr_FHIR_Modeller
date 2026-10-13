@@ -13,7 +13,7 @@ spec = importlib.util.spec_from_file_location("manifest", ROOT / "scripts/fhir-d
 manifest = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(manifest)
 REVISION = "a" * 40
-SERVICES = ("app", "chat", "ingress", "fhir")
+SERVICES = ("app", "chat", "ingress", "fhir", "engine")
 
 
 class DevDeliveryTest(unittest.TestCase):
@@ -70,6 +70,8 @@ class DevDeliveryTest(unittest.TestCase):
         self.assertEqual(set(config["services"]), set(SERVICES))
         self.assertEqual(config["services"]["app"]["user"], "1000:1000")
         self.assertEqual(config["services"]["fhir"]["user"], "10001:10001")
+        self.assertEqual(config["services"]["engine"]["network_mode"], "service:app")
+        self.assertEqual(config["services"]["app"]["environment"]["OPENEHR_ENGINE_URL"], "http://127.0.0.1:8090")
         self.assertEqual(set(config["services"]["app"]["networks"]), {"default", "ig-dev"})
         self.assertEqual(set(config["services"]["ingress"]["networks"]), {"default", "proxy"})
         ingress = config["services"]["ingress"]

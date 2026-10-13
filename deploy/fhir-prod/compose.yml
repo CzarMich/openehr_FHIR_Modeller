@@ -9,6 +9,9 @@ services:
       MCP_ALLOWED_HOSTS: localhost,127.0.0.1,[::1],ingress,app,openehr-fhir-modeller.sandbox.hygeoniq.com
       PRODUCT_URL: https://openehr-fhir-modeller.sandbox.hygeoniq.com
       MODEL_REPOSITORY_PATH: /data/models/openehr
+      OPENEHR_ENGINE_URL: http://127.0.0.1:8090
+      OPENEHR_ENGINE_KEY_FILE: /run/secrets/fhir-engine-key
+      OPENEHR_ENGINE_TIMEOUT: "50"
       FHIR_ENGINE_URL: http://fhir:8094
       FHIR_ENGINE_KEY_FILE: /run/secrets/fhir-engine-key
       FHIR_REPOSITORY_PATH: /data/models/fhir-workspaces
@@ -67,6 +70,7 @@ services:
       app: {condition: service_healthy}
       chat: {condition: service_healthy}
       fhir: {condition: service_healthy}
+      engine: {condition: service_healthy}
     healthcheck:
       test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:8343/ready]
       interval: 15s
@@ -102,6 +106,36 @@ services:
     cpus: 2
     pids_limit: 256
     restart: unless-stopped
+  engine:
+    image: ${ENGINE_IMAGE:?A pinned openEHR engine image is required}
+    user: "10001:10001"
+    group_add: ["1000"]
+    network_mode: service:app
+    depends_on:
+      app: {condition: service_started}
+    environment:
+      ENGINE_KEY_FILE: /run/secrets/engine-key
+      ENGINE_MAX_WORKERS: "1"
+      ENGINE_WORKER_LOCK_FILE: /run/fhir-tooling/java.lock
+    volumes:
+      - /opt/hygeoniq/projects/openehr-fhir-modeller-prod/config/secrets/fhir-engine-key:/run/secrets/engine-key:ro
+      - /opt/hygeoniq/fhir-production-tooling/java.lock:/run/fhir-tooling/java.lock
+    labels:
+      org.opencontainers.image.revision: ${REVISION:?A revision is required}
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:8090/health]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+    tmpfs: ["/tmp:mode=1777,size=32m,noexec,nosuid,nodev"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 160
+    mem_limit: 768m
+    cpus: 2
+    restart: unless-stopped
+
 volumes:
   models: {external: true, name: openehr-fhir-modeller-prod_models}
   governance: {external: true, name: openehr-fhir-modeller-prod_governance}

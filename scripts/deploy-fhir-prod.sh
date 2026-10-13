@@ -49,7 +49,7 @@ chmod 700 "$docker_config"
 trap 'rm -rf -- "$docker_config"' EXIT
 export DOCKER_CONFIG="$docker_config"
 printf '%s\n' "$registry_token" | docker login ghcr.io --username "$registry_user" --password-stdin
-unset APP_IMAGE CHAT_IMAGE INGRESS_IMAGE FHIR_IMAGE REVISION
+unset APP_IMAGE CHAT_IMAGE INGRESS_IMAGE FHIR_IMAGE ENGINE_IMAGE REVISION
 export COMPOSE_PARALLEL_LIMIT=1
 compose=(docker compose --project-name openehr-fhir-modeller-prod --env-file "$release_dir/images.env" -f "$release_dir/compose.yml")
 "${compose[@]}" config --quiet
@@ -98,7 +98,7 @@ for line in Path(config).read_text().splitlines():
         if len(value)>=2 and value[0]==value[-1] and value[0] in ('"',"'"): value=value[1:-1]
         os.environ[key]=value
 evidence=Path(destination,'evidence/mcp-smoke.json')
-subprocess.run(['python3','scripts/mcp-smoke.py','--fhir','--url','https://'+hostname+'/mcp','--evidence',str(evidence)],check=True)
+subprocess.run(['python3','scripts/mcp-smoke.py','--fhir','--openehr-engine','--url','https://'+hostname+'/mcp','--evidence',str(evidence)],check=True)
 checks=json.loads(evidence.read_text())
 tools=next(c['detail'] for c in checks['checks'] if c['check']=='tools/list')
 if not {'fhir_project','fhir_artifact','fhir_fsh_compile','fhir_ig'} <= set(tools): raise ValueError('FHIR capabilities absent after production promotion')

@@ -13,7 +13,7 @@ spec = importlib.util.spec_from_file_location("promotion", ROOT / "scripts/fhir-
 promotion = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(promotion)
 REVISION = "a" * 40
-SERVICES = ("app", "chat", "ingress", "fhir")
+SERVICES = ("app", "chat", "ingress", "fhir", "engine")
 
 
 class ProductionPromotionTest(unittest.TestCase):
@@ -24,7 +24,7 @@ class ProductionPromotionTest(unittest.TestCase):
         promotion.manifest.render(REVISION, directory, directory)
         for name in ("loopback-ready.json", "https-ready.json"):
             Path(directory, name).write_text(json.dumps({"status": "ready"}))
-        checks = [{"check": name, "status": "PASS"} for name in ("initialize", "repository capability discovery")]
+        checks = [{"check": name, "status": "PASS"} for name in ("initialize", "repository capability discovery", "ADL version and specialisation compatibility")]
         checks.append({"check": "tools/list", "status": "PASS", "detail": ["fhir_project", "fhir_artifact", "fhir_fsh_compile", "fhir_ig"]})
         Path(directory, "mcp-smoke.json").write_text(json.dumps({"checks": checks}))
 
@@ -91,11 +91,17 @@ class ProductionPromotionTest(unittest.TestCase):
         for name, volume in config["volumes"].items():
             self.assertTrue(volume["external"])
             self.assertEqual(volume["name"], "openehr-fhir-modeller-prod_" + name)
+        legacy = config["services"]["engine"]
+        self.assertEqual(legacy["network_mode"], "service:app")
+        self.assertEqual(legacy["environment"]["ENGINE_MAX_WORKERS"], "1")
+        self.assertEqual(legacy["environment"]["ENGINE_WORKER_LOCK_FILE"], "/run/fhir-tooling/java.lock")
+        self.assertEqual(legacy["group_add"], ["1000"])
+        self.assertEqual(legacy["mem_limit"], str(768 * 1024 * 1024))
         engine = config["services"]["fhir"]
         self.assertEqual(engine["mem_limit"], str(2 * 1024 * 1024 * 1024))
         self.assertEqual(engine["group_add"], ["1000"])
         self.assertTrue(engine["environment"]["PATH"].startswith("/opt/fhir-runtime/bin:"))
-        self.assertLessEqual(sum(int(service["mem_limit"]) for service in config["services"].values()), 2880 * 1024 * 1024)
+        self.assertLessEqual(sum(int(service["mem_limit"]) for service in config["services"].values()), 3648 * 1024 * 1024)
 
 
 if __name__ == "__main__":

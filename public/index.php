@@ -243,6 +243,7 @@ try {
     if ($request->getUri()->getPath() === '/ready') {
         (new Terminologies())->readAll();
         (new \OpenEHR\Assistant\Integrations\Fhir\HttpFhirProvider($settings))->assertReady();
+        (new \OpenEHR\Assistant\Integrations\Engine\HttpOpenEhrEngine($settings))->assertReady();
         header('Content-Type: application/json');
         echo '{"status":"ready","external_dependencies":"not_probed"}';
         exit;

@@ -141,5 +141,5 @@ restore the inherited VPS workflow or build application images on shared Dev.
 Production promotion uses the separate manually dispatched workflow described in
 [`docs/FHIR_PRODUCTION_DELIVERY.md`](docs/FHIR_PRODUCTION_DELIVERY.md). It promotes
 the exact successfully verified Dev digests through GitHub-hosted SSH delivery,
-with separate production configuration/storage and a shared Java admission lock.
+with separate production configuration/storage and a shared Java admission lock for both private engines.
 Keep builds off both deployment hosts and preserve the Dev-first promotion gate.
