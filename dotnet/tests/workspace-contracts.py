@@ -80,6 +80,16 @@ with tempfile.TemporaryDirectory(prefix='modeller-workspace-contracts-') as temp
                 assert len((job/'export.ndjson').read_text().splitlines())==2
                 assert len((job/'quarantine.ndjson').read_text().splitlines())==1
                 checks+=3
+                # External SDs may legitimately omit a business version: pin bytes, never invent one.
+                unversioned=dict(profile);unversioned.pop('version');content=compact(unversioned)
+                exact=request('/api/v1/integration/projects/synthetic/models',{'id':'external-unversioned','standard':'FHIR','version':'sha256-'+digest(content),'origin':'externally-provided','content':content,'provenance':{'source':'Synthetic unversioned external SD'}})
+                unversioned_mapping=dict(mapping,name='unversioned-synthetic-patients')
+                selected=request('/api/v1/integration/projects/synthetic/mappings',{'modelKeys':[exact['key']],'executionMapping':compact(unversioned_mapping)})
+                request('/api/v1/integration/mappings/'+selected['subject']+'/decisions',{'decision':'CONFIRMED','expectedSequence':0,'comment':'Reviewed the exact unversioned SD content hash'})
+                second=fixture/'unversioned-job';second.mkdir();second_request=json.loads((job/'request.json').read_text());second_request['subject']=selected['subject'];(second/'request.json').write_text(compact(second_request))
+                subprocess.run(base+[args.sdk_image,'dotnet',str(ROOT/'dotnet/Modeller.Processing/bin/Release/net10.0/Modeller.Processing.dll'),'run',str(fixture/'config.json'),str(second)],check=True,capture_output=True,text=True,timeout=660)
+                second_state=json.loads((second/'state.json').read_text());assert (second_state['exported'],second_state['rejected'],second_state['emitted'])==(2,1,0),second_state
+                checks+=1
             request(target,{'decision':'REVOKED','expectedSequence':1,'comment':'Withdraw synthetic acceptance selection'})
             print(compact({'workspaceHttpChecks':checks,'status':'PASS','installedFhirJob':'PASS' if args.installed_fhir else 'NOT_EXECUTED','clinicalApproval':False}))
         finally:

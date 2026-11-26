@@ -79,12 +79,13 @@ public sealed class ModelStore
     public JsonObject ProvideModel(string projectId, JsonObject input, ModelActor actor) {
         var project = GetProject(projectId, actor); actor.Project(projectId, true);
         Data.Keys(input, "id", "standard", "version", "origin", "content", "provenance");
-        var id = Data.Required(input, "id"); Id(id); var version = Data.Required(input, "version"); Version(version);
+        var id = Data.Required(input, "id"); Id(id); var version = Data.Required(input, "version");
+        if (version.Length > 100 || version.Any(char.IsWhiteSpace) || version.Any(char.IsControl) || version.IndexOfAny(['|', '"', '\'', '<', '>', '\\']) >= 0 || version == "*") throw new ProcessingException("MODEL_VERSION_INVALID");
         var standard = Data.Required(input, "standard"); var content = Data.Required(input, "content"); var origin = Data.Required(input, "origin");
         if (Encoding.UTF8.GetByteCount(content) > 2097152 || origin is not ("externally-provided" or "agent-modelled") || standard is not ("FHIR" or "openEHR")) throw new ProcessingException("MODEL_INPUT_INVALID");
         if (standard == "FHIR") {
             var resource = Data.ParseStrict(Encoding.UTF8.GetBytes(content)) as JsonObject ?? throw new ProcessingException("STRUCTURE_DEFINITION_REQUIRED");
-            if (resource["resourceType"]?.GetValue<string>() != "StructureDefinition" || resource["version"]?.GetValue<string>() != version) throw new ProcessingException("STRUCTURE_DEFINITION_VERSION_REQUIRED");
+            if (resource["resourceType"]?.GetValue<string>() != "StructureDefinition" || (resource["version"]?.GetValue<string>() ?? "sha256-" + Data.Hash(content)) != version) throw new ProcessingException("STRUCTURE_DEFINITION_VERSION_REQUIRED");
             Canonical(Data.Required(resource, "url")); _ = Data.Required(resource, "type");
             var declared = resource["fhirVersion"]?.GetValue<string>();
             if (declared is not null && declared != project["fhirVersion"]?.GetValue<string>() && !(declared == "4.0.0" && project["fhirVersion"]?.GetValue<string>() == "4.0.1")) throw new ProcessingException("MODEL_RELEASE_MISMATCH");
@@ -115,9 +116,13 @@ public sealed class ModelStore
         if (selected.Count is < 1 or > 20 || selected.Any(s => s?.GetValueKind() != System.Text.Json.JsonValueKind.String)) throw new ProcessingException("MODELS_REQUIRED");
         var modelKeys = selected.Select(s => s!.GetValue<string>()).Order(StringComparer.Ordinal).ToArray();
         if (modelKeys.Distinct().Count() != modelKeys.Length) throw new ProcessingException("DUPLICATE_MODEL");
-        var standards = new List<string>(); var bytes = 0; var modelPins = new JsonArray();
+        var standards = new List<string>(); var bytes = 0; var modelPins = new JsonArray(); var canonicals = new HashSet<string>(StringComparer.Ordinal);
         foreach (var key in modelKeys) {
             var model = GetModel(key, actor); if (model["projectId"]?.GetValue<string>() != projectId) throw new ProcessingException("MODEL_PROJECT_MISMATCH");
+            if (model["standard"]?.GetValue<string>() == "FHIR") {
+                var profile = (JsonObject)JsonNode.Parse(Data.Required(model, "content"))!;
+                if (!canonicals.Add(Data.Required(profile, "url") + "|" + profile["version"]?.GetValue<string>())) throw new ProcessingException("MODELS_CANONICAL_CONFLICT");
+            }
             modelPins.Add(new JsonObject { ["key"] = model["key"]!.DeepClone(), ["sha256"] = model["sha256"]!.DeepClone(), ["version"] = model["version"]!.DeepClone(), ["standard"] = model["standard"]!.DeepClone(), ["origin"] = model["origin"]!.DeepClone() });
             standards.Add(Data.Required(model, "standard")); bytes += Encoding.UTF8.GetByteCount(Data.Required(model, "content"));
         }

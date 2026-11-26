@@ -746,7 +746,7 @@ export function createApplication(
                             match[3] === "quarantine" ? "quarantine" : "export",
                         );
                         res.writeHead(200, {
-                            "Content-Type": "application/fhir+ndjson",
+                            "Content-Type": "application/x-ndjson",
                             "Content-Disposition": "attachment; filename=integration-output.ndjson",
                         });
                         return (await import("node:fs")).createReadStream(file).pipe(res);

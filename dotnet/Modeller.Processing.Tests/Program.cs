@@ -65,6 +65,11 @@ try {
     store.CreateProject("synthetic", project, actor);
     var profile = new JsonObject { ["id"] = "synthetic-profile", ["standard"] = "FHIR", ["version"] = "1.0.0", ["origin"] = "externally-provided", ["content"] = "{\"resourceType\":\"StructureDefinition\",\"url\":\"https://example.invalid/profile\",\"version\":\"1.0.0\",\"type\":\"Observation\",\"fhirVersion\":\"4.0.1\"}", ["provenance"] = new JsonObject { ["source"] = "Synthetic test fixture" } };
     var model = store.ProvideModel("synthetic", profile, actor);
+    var dated = (JsonObject)profile.DeepClone(); dated["version"] = "20261126"; dated["content"] = Data.Required(profile, "content").Replace("1.0.0", "20261126");
+    Check(store.ProvideModel("synthetic", dated, actor)["version"]!.GetValue<string>() == "20261126", "FHIR business versions need not be SemVer");
+    var unversioned = (JsonObject)profile.DeepClone(); var unversionedContent = (JsonObject)JsonNode.Parse(Data.Required(profile, "content"))!; unversionedContent.Remove("version");
+    unversioned["content"] = unversionedContent.ToJsonString(); unversioned["version"] = "sha256-" + Data.Hash(unversionedContent.ToJsonString());
+    Check(store.ProvideModel("synthetic", unversioned, actor)["version"]!.GetValue<string>().StartsWith("sha256-"), "Unversioned FHIR models pin actual content without inventing a business version");
     var direct = (JsonObject)plan.DeepClone(); direct["name"] = "direct-lab"; direct["direction"] = "source-direct-to-fhir";
     direct["stages"] = new JsonArray(new JsonObject { ["seed"] = new JsonObject { ["resourceType"] = "Observation" }, ["rules"] = new JsonArray(Rule("/value", "/value", "number")) });
     direct["examples"] = new JsonArray(new JsonObject { ["synthetic"] = true, ["input"] = new JsonObject { ["value"] = "0" }, ["expected"] = new JsonArray(new JsonObject { ["resourceType"] = "Observation", ["value"] = 0m }) });

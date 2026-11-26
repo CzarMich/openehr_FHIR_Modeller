@@ -32,15 +32,16 @@ public sealed class Validation(Configuration config, JobRequest job, ModelContex
     }
     public async Task Fhir(JsonObject resource, string evidencePrefix, CancellationToken cancellation) {
         var type = resource["resourceType"]?.GetValue<string>() ?? throw new ProcessingException("RECORD_FHIR_TYPE_REQUIRED");
-        var profiles = new JsonArray();
+        var profiles = new JsonArray(); var targets = new List<JsonObject>();
         foreach (var input in ((JsonArray)models.Selection["items"]!).OfType<JsonObject>().Where(i => i["pin"]?["standard"]?.GetValue<string>() == "FHIR")) {
             var definition = JsonNode.Parse(input["content"]!.GetValue<string>()) as JsonObject ?? throw new ProcessingException("PROFILE_REQUIRED");
-            if (definition["type"]?.GetValue<string>() == type) profiles.Add(definition);
+            profiles.Add(definition);
+            if (definition["type"]?.GetValue<string>() == type) targets.Add(definition);
         }
-        if (profiles.Count == 0) throw new ProcessingException("EXACT_RESOURCE_PROFILE_REQUIRED");
-        for (var i = 0; i < profiles.Count; i++) {
-            var profile = (JsonObject)profiles[i]!;
-            var canonical = Data.Required(profile, "url") + "|" + Data.Required(profile, "version");
+        if (targets.Count == 0) throw new ProcessingException("EXACT_RESOURCE_PROFILE_REQUIRED");
+        for (var i = 0; i < targets.Count; i++) {
+            var profile = targets[i];
+            var canonical = Data.Required(profile, "url") + (profile["version"]?.GetValue<string>() is { Length: > 0 } businessVersion ? "|" + businessVersion : "");
             using var request = new HttpRequestMessage(HttpMethod.Post, config.FhirUrl.TrimEnd('/') + "/execute") {
                 Content = JsonContent.Create(new { operation = "artifact.validate", tenant = job.Owner, parameters = new { project = models.Project, content = resource, profiles, profile = canonical } })
             };

@@ -250,6 +250,15 @@ $("model-file").onchange = () =>
         if (!file) return;
         if (file.size > 2097152) throw new Error("Model files must be within 2 MiB.");
         $("model-content").value = await file.text();
+        if ($("model-standard").value === "FHIR") {
+            const model = JSON.parse($("model-content").value);
+            if (model.resourceType === "StructureDefinition") {
+                const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode($("model-content").value));
+                $("model-version").value =
+                    model.version ||
+                    "sha256-" + [...new Uint8Array(hash)].map((value) => value.toString(16).padStart(2, "0")).join("");
+            }
+        }
     });
 $("provide-model").onclick = () =>
     run(async () => {
