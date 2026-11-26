@@ -29,6 +29,7 @@ class GitOpsTest(unittest.TestCase):
         script=(ROOT/'scripts/promote-fhir-gitops.sh').read_text()
         self.assertIn('--preserve-digests',script)
         self.assertIn('--dest-cert-dir /registry-certs',script)
+        self.assertIn('--add-host registry.hygeoniq.com:192.168.178.30',script)
         self.assertNotIn('--dest-tls-verify=false',script)
         self.assertIn('fhir-promotion-evidence.py',script)
         self.assertNotIn('docker build ',script)

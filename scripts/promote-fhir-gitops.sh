@@ -25,7 +25,7 @@ for service in app chat ingress fhir engine; do
   image=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["image"])' "$stage/images/$service.json")
   digest=${image##*@}
   destination="registry.hygeoniq.com/openehr-fhir-modeller/$service"
-  docker run --rm -v "$auth:/auth.json:ro" -v "$registry_ca:/registry-certs/ca.crt:ro" "$skopeo" copy --dest-cert-dir /registry-certs --all --preserve-digests --authfile /auth.json "docker://$image" "docker://$destination:sha-$revision"
+  docker run --rm --add-host registry.hygeoniq.com:192.168.178.30 -v "$auth:/auth.json:ro" -v "$registry_ca:/registry-certs/ca.crt:ro" "$skopeo" copy --dest-cert-dir /registry-certs --all --preserve-digests --authfile /auth.json "docker://$image" "docker://$destination:sha-$revision"
   docker run --rm -v "$auth:/auth.json:ro" "$skopeo" inspect --raw --authfile /auth.json "docker://$image" > "$stage/$service-manifest.json"
   python3 - "$stage/production-runtime-digests.json" "$service" "$digest" "$stage/$service-manifest.json" <<'PY_RUNTIME'
 import json,sys

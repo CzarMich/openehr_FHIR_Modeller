@@ -24,7 +24,9 @@ Protected environment credentials are `HARBOR_USERNAME`/`HARBOR_PASSWORD` (scope
 publisher), `PROD_CLUSTER_SSH_KEY` and `PROD_CLUSTER_KNOWN_HOSTS` (direct cluster
 verification from Dev). The delivery runner uses its existing infrastructure Git
 SSH identity. Registry auth and temporary SSH files are removed after the job.
-Skopeo verifies the destination with the existing registry CA at
+The copy container resolves the configured registry name directly to the production
+registry at `192.168.178.30`, preserving its TLS server name rather than using the
+unrelated public-edge fallback certificate. Skopeo verifies it with the existing CA at
 `/etc/docker/certs.d/registry.hygeoniq.com/ca.crt`; TLS verification stays enabled.
 The cluster has its own pull-only `modeller-pull` secret; the previous pull
 identity remains available for rollback. Rotate the scoped registry robots before
