@@ -24,7 +24,7 @@ function leaves(value, prefix = '', output = {}) {
   return output;
 }
 function recordsCheck(records) {
-  if (!Array.isArray(records) || records.length === 0 || records.length > 100 || !records.every(plain) || JSON.stringify(records).length > 262144) fail('SOURCE_BOUND', 'Provide 1 to 100 synthetic records, at most 256 KiB.');
+  if (!Array.isArray(records) || records.length === 0 || records.length > 100 || !records.every(plain) || Buffer.byteLength(JSON.stringify(records)) > 262144) fail('SOURCE_BOUND', 'Provide 1 to 100 synthetic records, at most 256 KiB.');
   records.forEach(record => leaves(record));
 }
 export function describe(records, sourceId, sourceVersion) {

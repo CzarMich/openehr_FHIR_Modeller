@@ -55,7 +55,7 @@ record values. Clinical interpretation stays unresolved until explicitly supplie
 `fhir_mapping(action="context", ...)` takes modelInputs: an array containing at
 least one openEHR and one FHIR entry. Each requires standard, projectId, path,
 revision, sha256, version and optionally reviewSubject. It returns current content,
-actual hashes and approval blockers. Imported copies do not inherit approval.
+actual hashes and approval blockers. Combined model content is limited to 4 MiB. Imported copies do not inherit approval.
 
 `fhir_mapping(action="preview", ...)` takes synthetic:true, records, sourceId,
 sourceVersion, mapping and modelInputs. Mapping has schemaVersion:1, version,

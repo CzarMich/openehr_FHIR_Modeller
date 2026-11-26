@@ -60,3 +60,7 @@ test('numeric conversion rejects unsafe integer precision',()=>{
   const map={schemaVersion:1,version:'1',direction:'fhir-to-openehr',reversibility:'unresolved',sourceSchemaSha256:describe(input,'lab','1').schemaSha256,stages:[{rules:[rule('/value','/value',{operation:'number'})]}]};
   assert.equal(preview(map,input).rejected[0].code,'RECORD_NUMBER');
 });
+
+test('preview record bounds count UTF-8 bytes, including multibyte values',()=>{
+  assert.throws(()=>describe([{value:'é'.repeat(140000)}],'lab','1'),{code:'SOURCE_BOUND'});
+});

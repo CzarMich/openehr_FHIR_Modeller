@@ -199,7 +199,7 @@ final readonly class FhirModelling
         if (!is_array($bindings) || !array_is_list($bindings) || count($bindings) < 2 || count($bindings) > 20) {
             throw new \InvalidArgumentException('MAPPING_MODELS_REQUIRED');
         }
-        $items = []; $standards = []; $ready = true;
+        $items = []; $standards = []; $ready = true; $contentBytes = 0;
         foreach ($bindings as $binding) {
             if (!is_array($binding) || !in_array($binding['standard'] ?? null, ['openEHR', 'FHIR'], true)) {
                 throw new \InvalidArgumentException('MAPPING_MODEL_INVALID');
@@ -211,6 +211,8 @@ final readonly class FhirModelling
             if ($standard === 'FHIR' && $binding['projectId'] !== $projectId) { throw new \DomainException('MAPPING_MODEL_PROJECT_MISMATCH'); }
             $repository = $standard === 'FHIR' ? $this->repository : ($this->models ?? throw new \RuntimeException('MAPPING_MODEL_REPOSITORY_UNAVAILABLE'));
             $artifact = $repository->getArtifact($binding['projectId'], $binding['path']);
+            $contentBytes += strlen($artifact['content']);
+            if ($contentBytes > 4194304) { throw new \InvalidArgumentException('MAPPING_MODEL_CONTEXT_LIMIT'); }
             $current = $artifact['revision'] === $binding['revision'] && hash_equals($artifact['sha256'], $binding['sha256']);
             $blockers = $current ? [] : ['MODEL_CHANGED'];
             if ($standard === 'FHIR') {

@@ -160,6 +160,18 @@ final class FhirModellingTest extends TestCase
         $service->operation('mapping', 'preview', 'synthetic', json_encode(['modelInputs' => $bindings]));
     }
 
+    public function testCombinedModelContentIsBoundedBeforeReturningContext(): void
+    {
+        $this->project();
+        $service = new FhirModelling($this->repository, new AccessPolicy(new Settings(['MODEL_REPOSITORY_WRITE_ENABLED' => 'true'])),
+            $this->provider, $this->audit, new Actor('test', 'shared', ['modeller']), $this->connections, $this->repository, $this->audit);
+        $artifact = $this->repository->saveArtifact('synthetic', 'templates/large.opt', str_repeat('x', 2097152), [], null);
+        $binding = ['standard' => 'openEHR', 'projectId' => 'synthetic', 'path' => $artifact['path'],
+            'revision' => $artifact['revision'], 'sha256' => $artifact['sha256'], 'version' => '1'];
+        $this->expectExceptionMessage('MAPPING_MODEL_CONTEXT_LIMIT');
+        $service->operation('mapping', 'context', 'synthetic', json_encode(['modelInputs' => [$binding, $binding, $binding]]));
+    }
+
     public function testMappingWithoutBothModelInputsFailsClosed(): void
     {
         $service = $this->project();
