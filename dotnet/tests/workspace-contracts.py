@@ -5,8 +5,9 @@ Only synthetic fixture files are used. No clinical DB connection is made.
 import argparse,base64,hashlib,hmac,json,os,socket,subprocess,tempfile,time,urllib.request,urllib.error
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
-p=argparse.ArgumentParser();p.add_argument('--sdk-image');p.add_argument('--dll',type=Path);p.add_argument('--installed-fhir',action='store_true');args=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--sdk-image');p.add_argument('--dll',type=Path);p.add_argument('--installed-fhir',action='store_true');p.add_argument('--installed-native',action='store_true');p.add_argument('--export-fixture',type=Path);args=p.parse_args()
 assert bool(args.sdk_image)!=bool(args.dll)
+assert not args.installed_native or args.installed_fhir and args.sdk_image, 'Native acceptance requires the isolated SDK fixture and installed FHIR engine'
 def digest(value):return hashlib.sha256(value.encode()).hexdigest()
 def compact(value):return json.dumps(value,separators=(',',':'),ensure_ascii=False)
 def canonical(value):return json.dumps(value,separators=(',',':'),ensure_ascii=False,sort_keys=True)
@@ -19,11 +20,16 @@ with tempfile.TemporaryDirectory(prefix='modeller-workspace-contracts-') as temp
         address=subprocess.check_output(['docker','inspect','--format','{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}','openehr-fhir-modeller-fhir-1'],text=True).strip()
         config['fhirUrl']='http://'+address+':8094'
         config['fhirKeyFile']='/run/installed-fhir-key'
+        if args.installed_native:
+            app_inspect=json.loads(subprocess.check_output(['docker','inspect','openehr-fhir-modeller-app-1'],text=True))[0]
+            app_address=app_inspect['NetworkSettings']['Networks']['openehr-fhir-modeller_default']['IPAddress']
+            config['nativeUrl']='http://app:8090';config['nativeKeyFile']='/run/installed-fhir-key'
     (fixture/'config.json').write_text(compact(config))
     environment={'GUIDE_ROOT':str(ROOT/'resources/guides'),'DOTNET_MCP_API_KEY_FILE':str(fixture/'key'),'ASPNETCORE_URLS':f'http://127.0.0.1:{port}','MODELLER_WORKSPACE_ENABLED':'true','MODELLER_PROCESSING_CONFIG':str(fixture/'config.json'),'MODELLER_APPROVAL_KEYS':compact({'active':signing}),'MODELLER_APPROVAL_KEY_ID':'active','MODELLER_BROWSER_ORIGIN':'https://browser.example','MODELLER_IDENTITY_ISSUERS':'https://identity.example','MODELLER_DRAFT_WRITES_ENABLED':'true','DOTNET_EnableDiagnostics':'0'}
     if args.sdk_image:
         base=['docker','run','--rm','--network','host','--user',f'{os.getuid()}:{os.getgid()}','-v',f'{fixture}:{fixture}','-v',f'{ROOT}:{ROOT}:ro']
         if args.installed_fhir:base+=['-v','/opt/hygeoniq/projects/openehr-fhir-modeller/config/secrets/fhir-engine-key:/run/installed-fhir-key:ro']
+        if args.installed_native:base+=['--add-host','app:'+app_address]
         for name,value in environment.items():base+=['-e',name+'='+value]
         command=base+[args.sdk_image,'dotnet',str(ROOT/'dotnet/Modeller.Mcp/bin/Release/net10.0/Modeller.Mcp.dll')]
     else:command=['dotnet',str(args.dll.resolve())]
@@ -99,8 +105,68 @@ with tempfile.TemporaryDirectory(prefix='modeller-workspace-contracts-') as temp
                 subprocess.run(base+[args.sdk_image,'dotnet',str(ROOT/'dotnet/Modeller.Processing/bin/Release/net10.0/Modeller.Processing.dll'),'run',str(fixture/'config.json'),str(blocked)],check=True,capture_output=True,text=True,timeout=660)
                 blocked_state=json.loads((blocked/'state.json').read_text());assert (blocked_state['status'],blocked_state['error'],blocked_state['exported'],blocked_state['emitted'])==('BLOCKED','MODEL_FHIR_VALIDATION',0,0),blocked_state
                 checks+=1
+                if args.installed_native:
+                    # Compile an existing non-clinical test fixture through the real C# engine adapter.
+                    archetype=(ROOT/'engine/src/test/resources/legacy/composition.adl').read_text()
+                    archetype=archetype[:archetype.index('definition')]+'definition\n COMPOSITION[at0000] matches {*}\n'+archetype[archetype.index('ontology'):]
+                    archetype=archetype[:archetype.index('    term_bindings')]
+                    oet='<template xmlns="openEHR/v1/Template" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><id>33826b37-78c6-4796-9b4b-6e6e926e4375</id><name>Synthetic legacy test</name><definition xsi:type="COMPOSITION" archetype_id="openEHR-EHR-COMPOSITION.engine_fixture.v1"/></template>'
+                    compiled=request('/api/v1/integration/execute',{'tool':'modelling_engine','action':'openehr','projectId':'synthetic','arguments':{'operation':'compile/template','parameters':{'content':oet,'dependencies':[{'identifier':'openEHR-EHR-COMPOSITION.engine_fixture.v1','content':archetype,'sha256':digest(archetype)}]}}})
+                    assert 'output' in compiled,compiled
+                    opt=compiled['output']['content']
+                    template_model=request('/api/v1/integration/projects/synthetic/models',{'id':'synthetic-opt','standard':'openEHR','version':'1.0.0','origin':'agent-modelled','content':opt,'provenance':{'source':'Compiled existing non-clinical SDK test fixture'}})
+                    java=(ROOT/'engine/src/test/java/org/openehr/modelling/engine/CompositionValidationTest.java').read_text()
+                    composition=json.loads(java.split('static final String COMPOSITION = """')[1].split('"""')[0])
+                    first={'seed':composition,'rules':[rule('/id','/composer/name'),rule('/name','/name/value')]}
+                    second_stage={'seed':seed,'rules':[rule('/composer/name','/identifier/0/value'),rule('/name/value','/name/0/text')]}
+                    via=dict(mapping,name='native-synthetic-patients',direction='source-to-fhir',stages=[first,second_stage])
+                    via['requirements']=[{'id':'SYNTHETIC-1','originalText':'Create a non-clinical persistent composition, then preserve the synthetic ID and display label in Patient.','basis':'user-instruction'}]
+                    via_view=request('/api/v1/integration/projects/synthetic/mappings',{'modelKeys':[model['key'],template_model['key']],'executionMapping':compact(via)})
+                    request('/api/v1/integration/mappings/'+via_view['subject']+'/decisions',{'decision':'CONFIRMED','expectedSequence':0,'comment':'Synthetic acceptance only; inspected exact OPT, SD and two-stage rules'})
+                    def run_job(name,job_request):
+                        directory=fixture/name;directory.mkdir();(directory/'request.json').write_text(compact(job_request))
+                        subprocess.run(base+[args.sdk_image,'dotnet',str(ROOT/'dotnet/Modeller.Processing/bin/Release/net10.0/Modeller.Processing.dll'),'run',str(fixture/'config.json'),str(directory)],check=True,capture_output=True,text=True,timeout=660)
+                        state=json.loads((directory/'state.json').read_text());return directory,state
+                    native_request=json.loads((job/'request.json').read_text());native_request['subject']=via_view['subject']
+                    native_job,native_state=run_job('native-job',native_request)
+                    assert (native_state['exported'],native_state['rejected'],native_state['emitted'])==(2,1,0),native_state
+                    native_evidence=[json.loads(file.read_text()) for file in (native_job/'evidence').glob('*-openehr.json')]
+                    assert len(native_evidence)==2 and all(report['valid'] and report['status']=='PASS' and not report['clinical_approval'] for report in native_evidence)
+                    forward=[json.loads(line) for line in (native_job/'export.ndjson').read_text().splitlines()]
+                    incoming=compact(forward);(source/'incoming-fhir.json').write_text(incoming)
+                    config['sources'].append({'id':'incoming-fhir','root':str(source),'format':'fhir-json','projects':['synthetic'],'owners':[owner]});(fixture/'config.json').write_text(compact(config))
+                    field_types={}
+                    def fields(value,path=''):
+                        if isinstance(value,dict):
+                            if path:field_types.setdefault(path,set()).add('object')
+                            for key,item in value.items():fields(item,path+'/'+key.replace('~','~0').replace('/','~1'))
+                        elif isinstance(value,list):
+                            field_types.setdefault(path,set()).add('array')
+                            for item in value:fields(item,path+'/*')
+                        else:field_types.setdefault(path,set()).add('null' if value is None else 'boolean' if isinstance(value,bool) else 'number' if isinstance(value,(int,float)) else 'string')
+                    for record in forward:fields(record)
+                    reverse_schema=[{'path':path,'types':sorted(types)} for path,types in sorted(field_types.items())]
+                    reverse_expected=json.loads(compact(composition));reverse_expected['composer']['name']='syn-1';reverse_expected['name']['value']='Synthetic One'
+                    reverse=dict(via,name='native-reverse-synthetic-patients',direction='fhir-to-openehr',sourceSchema=reverse_schema,sourceSchemaSha256=digest(canonical(reverse_schema)),stages=[{'seed':composition,'rules':[rule('/identifier/0/value','/composer/name'),rule('/name/0/text','/name/value')]}],examples=[{'synthetic':True,'input':forward[0],'expected':[reverse_expected]}])
+                    reverse['requirements']=[{'id':'SYNTHETIC-REVERSE-1','originalText':'Separately map the synthetic Patient identifier and display label back to a persistent composition.','basis':'user-instruction'}]
+                    reverse_view=request('/api/v1/integration/projects/synthetic/mappings',{'modelKeys':[model['key'],template_model['key']],'executionMapping':compact(reverse)})
+                    request('/api/v1/integration/mappings/'+reverse_view['subject']+'/decisions',{'decision':'CONFIRMED','expectedSequence':0,'comment':'Synthetic reverse mapping with explicitly bounded round-trip assertions'})
+                    reverse_request=dict(native_request,subject=reverse_view['subject'],sourceId='incoming-fhir',file='incoming-fhir.json',sourceSha256=digest(incoming))
+                    reverse_job,reverse_state=run_job('native-reverse-job',reverse_request)
+                    assert (reverse_state['exported'],reverse_state['rejected'],reverse_state['emitted'])==(2,0,0),reverse_state
+                    backward=[json.loads(line) for line in (reverse_job/'export.ndjson').read_text().splitlines()]
+                    assert [(r['identifier'][0]['value'],r['name'][0]['text']) for r in forward]==[(r['composer']['name'],r['name']['value']) for r in backward]
+                    from concurrent.futures import ThreadPoolExecutor
+                    with ThreadPoolExecutor(max_workers=2) as pool:
+                        concurrent=list(pool.map(lambda name:run_job(name,native_request),['native-concurrent-one','native-concurrent-two']))
+                    assert all((state['exported'],state['rejected'],state['emitted'])==(2,1,0) for directory,state in concurrent),[state for directory,state in concurrent]
+                    checks+=6
             request(target,{'decision':'REVOKED','expectedSequence':1,'comment':'Withdraw synthetic acceptance selection'})
-            print(compact({'workspaceHttpChecks':checks,'status':'PASS','installedFhirJob':'PASS' if args.installed_fhir else 'NOT_EXECUTED','clinicalApproval':False}))
+            if args.export_fixture:
+                import shutil
+                assert not args.export_fixture.exists(), 'Refuse to overwrite an existing fixture export'
+                shutil.copytree(fixture,args.export_fixture);(args.export_fixture/'acceptance-keys.json').write_text(compact({'active':signing}));(args.export_fixture/'acceptance-keys.json').chmod(0o600)
+            print(compact({'workspaceHttpChecks':checks,'status':'PASS','installedFhirJob':'PASS' if args.installed_fhir else 'NOT_EXECUTED','nativeForwardAndReverse':'PASS' if args.installed_native else 'NOT_EXECUTED','roundTripScope':'Synthetic identifier and display label only' if args.installed_native else None,'clinicalApproval':False}))
         finally:
             process.terminate()
             try:process.wait(timeout=15)

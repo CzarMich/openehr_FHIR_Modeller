@@ -64,7 +64,7 @@ public sealed class Workspace(ModelStore models, Configuration configuration)
                 parameters["project"] = project;
                 using var request = new HttpRequestMessage(HttpMethod.Post, configuration.FhirUrl.TrimEnd('/') + "/execute") { Content = JsonContent.Create(new { operation, parameters, tenant = "dotnet-modelling" }) };
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Network.Key(configuration.FhirKeyFile));
-                using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
+                using var response = await Network.Compute(http, request, cancellation);
                 if (!response.IsSuccessStatusCode) throw new ProcessingException("FHIR_ENGINE_UNAVAILABLE");
                 return await Network.Object(response, cancellation, 12 * 1048576);
             }
@@ -74,9 +74,9 @@ public sealed class Workspace(ModelStore models, Configuration configuration)
                 Data.Keys(parameters, "content", "dependencies");
                 using var request = new HttpRequestMessage(HttpMethod.Post, configuration.NativeUrl.TrimEnd('/') + "/v1/" + operation) { Content = JsonContent.Create(parameters) };
                 request.Headers.Add("X-Engine-Key", Network.Key(configuration.NativeKeyFile));
-                using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
+                using var response = await Network.Compute(http, request, cancellation);
                 if (!response.IsSuccessStatusCode) throw new ProcessingException("OPENEHR_ENGINE_UNAVAILABLE");
-                return await Network.Object(response, cancellation, 12 * 1048576);
+                return Network.NativeData(await Network.Object(response, cancellation, 12 * 1048576));
             }
         }
         throw new ProcessingException("TOOL_UNSUPPORTED");

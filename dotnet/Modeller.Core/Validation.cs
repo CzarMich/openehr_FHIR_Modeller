@@ -30,9 +30,10 @@ public sealed class Validation(Configuration config, JobRequest job, ModelContex
         if (dependency.sha256 != template["pin"]?["sha256"]?.GetValue<string>()) throw new ProcessingException("TEMPLATE_HASH_MISMATCH");
         using var request = new HttpRequestMessage(HttpMethod.Post, config.NativeUrl.TrimEnd('/') + "/v1/validate/composition") { Content = JsonContent.Create(new { content = composition.ToJsonString(), dependencies = new[] { dependency } }) };
         request.Headers.Add("X-Engine-Key", Network.Key(config.NativeKeyFile));
-        using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
+        using var response = await Network.Compute(http, request, cancellation);
         if (!response.IsSuccessStatusCode) throw new ProcessingException("OPENEHR_VALIDATION_UNAVAILABLE");
-        var result = await Network.Object(response, cancellation); Data.Write(evidenceFile, result);
+        var envelope = await Network.Object(response, cancellation); Data.Write(evidenceFile, envelope);
+        var result = Network.NativeData(envelope); Data.Write(evidenceFile, result);
         if (result["template_sha256"]?.GetValue<string>() != dependency.sha256) throw new ProcessingException("OPENEHR_VALIDATION_PIN_MISMATCH");
         if (result["status"]?.GetValue<string>() != "PASS" || result["valid"]?.GetValue<bool>() != true) throw new ProcessingException("RECORD_OPENEHR_VALIDATION");
         if (config.RequireTerminology && result["terminology"]?.GetValue<string>() == "EXTERNAL_NOT_EXECUTED") throw new ProcessingException("OPENEHR_TERMINOLOGY_NOT_EXECUTED");
@@ -47,7 +48,7 @@ public sealed class Validation(Configuration config, JobRequest job, ModelContex
                 Content = JsonContent.Create(new { operation = "artifact.validate", tenant = job.Owner, parameters = new { project = models.Project, content = profiles[index], profiles } })
             };
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Network.Key(config.FhirKeyFile));
-            using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
+            using var response = await Network.Compute(http, request, cancellation);
             if (!response.IsSuccessStatusCode) throw new ProcessingException("FHIR_MODEL_VALIDATION_UNAVAILABLE");
             var result = await Network.Object(response, cancellation); Data.Write(Path.Combine(evidenceDirectory, index + ".json"), result);
             RequireFhirCompleted(result, config.RequireTerminology);
@@ -70,7 +71,7 @@ public sealed class Validation(Configuration config, JobRequest job, ModelContex
                 Content = JsonContent.Create(new { operation = "artifact.validate", tenant = job.Owner, parameters = new { project = models.Project, content = resource, profiles, profile = canonical } })
             };
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Network.Key(config.FhirKeyFile));
-            using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
+            using var response = await Network.Compute(http, request, cancellation);
             if (!response.IsSuccessStatusCode) throw new ProcessingException("FHIR_VALIDATION_UNAVAILABLE");
             var result = await Network.Object(response, cancellation); Data.Write(evidencePrefix + "-" + i + ".json", result);
             RequireFhirCompleted(result, config.RequireTerminology);

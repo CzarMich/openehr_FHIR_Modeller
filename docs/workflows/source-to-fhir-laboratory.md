@@ -1,5 +1,7 @@
 # First workflow: laboratory source to FHIR
 
+This walkthrough uses the retained `fhir_*` compatibility tools on `/mcp`. For new C# modelling, private runs and channels, follow the [integration guide](../INTEGRATION_ENGINE.md). The C# review API does not automatically enable the separate legacy review API or change existing identity issuers.
+
 Use this walkthrough to learn the implemented inspection and mapping-preview
 workflow. It uses invented records only. It does not configure a patient-data
 integration or send data to a clinical system.

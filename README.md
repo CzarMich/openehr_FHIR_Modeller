@@ -85,11 +85,13 @@ Upload a private file or select a registered folder. Inspect its field schema, s
 4. **Reuse or model FHIR.** Supply the actual StructureDefinitions from the chosen
    IG, or draft and compile profiles. Preserve canonical URLs, versions,
    dependencies, terminology and the original source.
-5. **Review model selection and rules.** Both standards must be present before
-   mapping. Agent-modelled templates and profiles require human confirmation.
-   Externally sourced models must be supplied with their content and provenance.
-   Inspect mappings, assumptions, missing/null behaviour and information loss.
-   A changed source or model invalidates its earlier pins.
+5. **Review model selection and rules.** A route through openEHR or a reverse
+   mapping needs both standards; direct source-to-FHIR needs its actual FHIR SDs.
+   Supply external models with content and provenance, then confirm the exact
+   models and rules, including agent-modelled proposals. Inspect assumptions,
+   missing/null behaviour and information loss. Changes to the declared schema,
+   model selection or rules require a new confirmed mapping version; channels
+   retain their assigned version.
 6. **Preview and validate.** Execute explicit rules on synthetic records, inspect
    rejected/unmapped fields, then run the actual applicable validators. A preview
    alone does not prove openEHR composition or FHIR profile conformance.
@@ -110,7 +112,8 @@ Start with this request in browser chat or your connected MCP agent:
 > send resources to a destination from this preview.
 
 For a reproducible first tool call and expected results, follow the
-[laboratory walkthrough](docs/workflows/source-to-fhir-laboratory.md).
+[compatibility laboratory preview walkthrough](docs/workflows/source-to-fhir-laboratory.md).
+Use the [C# integration guide](docs/INTEGRATION_ENGINE.md) for new mappings, private jobs and channels; its human confirmation is independent of legacy PHP review configuration.
 
 ## Available today and remaining work
 

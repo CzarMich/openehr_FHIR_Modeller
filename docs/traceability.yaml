@@ -402,9 +402,12 @@ requirements:
     title: Private processing and authorised FHIR destination delivery
     canonical: docs/requirements.md
     status: draft
-    implementation: planned
-    plans: [docs/decisions/0029-mapping-selection-and-runtime-delivery.md]
-    adr: ["0029"]
+    implementation: partial
+    packages: [dotnet/Modeller.Core/*.cs, dotnet/Modeller.Processing/*.cs, chat/src/processing.mjs]
+    tests: [dotnet/Modeller.Processing.Tests/*.cs, dotnet/tests/workspace-contracts.py, chat/test/integration.test.mjs]
+    plans: [docs/INTEGRATION_ENGINE.md]
+    adr: ["0029", "0030"]
+    verification: Bounded private file runs and HTTPS conditional-create delivery; SQL drivers and additional transports are not implemented.
 
   - id: REQ-F32
     title: Versioned integration channels
