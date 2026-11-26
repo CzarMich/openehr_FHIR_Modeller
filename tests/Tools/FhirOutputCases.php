@@ -35,7 +35,7 @@ trait FhirOutputCases
                 'project' => ['get', 'synthetic'], 'compile', 'example' => ['synthetic', '{}'],
                 'source' => ['inspect', 'synthetic', '{"url":"https://example.org/profile.json"}'], 'package' => ['search', 'synthetic'], 'artifact' => ['inspect', 'synthetic', '{"content":{}}'],
                 'profile' => ['discover', 'synthetic'], 'fhirpath' => ['validate', 'synthetic'],
-                'mapping' => ['list', 'synthetic'], 'connection' => ['list', 'synthetic'], 'ig' => ['test', 'synthetic'],
+                'dataset' => ['inspect', 'synthetic'], 'mapping' => ['list', 'synthetic'], 'connection' => ['list', 'synthetic'], 'ig' => ['test', 'synthetic'],
             };
             $tool = new FhirTools($service);
             self::assertTrue($tool->$method(...$args)['success']);
@@ -54,6 +54,7 @@ trait FhirOutputCases
     public function test_fhir_artifact_result_matches_output_schema(): void { $this->fhirCase('artifact'); }
     public function test_fhir_profile_result_matches_output_schema(): void { $this->fhirCase('profile'); }
     public function test_fhir_fhirpath_result_matches_output_schema(): void { $this->fhirCase('fhirpath'); }
+    public function test_fhir_dataset_result_matches_output_schema(): void { $this->fhirCase('dataset'); }
     public function test_fhir_mapping_result_matches_output_schema(): void { $this->fhirCase('mapping'); }
     public function test_fhir_connection_result_matches_output_schema(): void { $this->fhirCase('connection'); }
     public function test_fhir_ig_result_matches_output_schema(): void { $this->fhirCase('ig'); }

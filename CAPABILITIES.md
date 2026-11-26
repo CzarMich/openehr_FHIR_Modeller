@@ -67,3 +67,7 @@ PostgreSQL governance storage and optional Valkey/Redis model retrieval caching 
 The [browser workspace](docs/BROWSER_WORKSPACE.md) integrates Chat, exact-revision model browsing, Governance and local account administration in one responsive interface with keyboard navigation. This is a model browser and review workspace; full visual model editing remains separate implementation work.
 
 Browser AI tasks use configurable context budgets, selective tool schemas and lossless result paging. Private project task records, exact drafts, dependency packages and validation evidence persist separately from chat history. Independent review excludes generator transcripts and recovery tools; Git, the existing decision graph and human governance remain authoritative. Provider token counts are approximate unless reported; this adds no unsupported FHIR profile/IG engine or external-client session management. See [task execution](docs/TASK_EXECUTION.md).
+
+## Source-driven mapping increment
+
+Bounded synthetic CSV/custom JSON inspection, explicit forward/reverse mapping previews and supplied template/profile context are available through MCP and browser chat. Clinical meaning, model confirmation, full conformance and operational processing remain separate. See [implemented scope and backlog](docs/SOURCE_MODELLING.md).

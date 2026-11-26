@@ -106,3 +106,7 @@ Git workspaces and the existing IG adapter to PHP invariants, Node semantic/secu
 tests and browser journeys. See ADR-0026 and [Dev verification](FHIR_DEV.md).
 
 REQ-F25 maps bounded provider context, session rotation, persistent project task/draft state and independent review to `task-execution`, `context-budget` and `tool-context`, their unit/HTTP/browser tests and [ADR-0025](decisions/0025-bounded-ai-execution.md).
+
+REQ-F28 connects bounded source inspection, exact model-input readiness and
+explicit synthetic transformations to `fhir/lib/pipeline.mjs`, FhirModelling,
+FhirTools and `fhir/test/pipeline.test.mjs`; see ADR-0027 and SOURCE_MODELLING.md.

@@ -14,7 +14,8 @@ export const FHIR_ACTIONS = Object.freeze({
     fhir_fsh_compile: { read: ["compile"], write: [] },
     fhir_example_generate: { read: ["generate"], write: [] },
     fhir_fhirpath: { read: ["validate", "evaluate"], write: [] },
-    fhir_mapping: { read: ["list", "get", "analyse"], write: ["save"] },
+    fhir_dataset: { read: ["inspect"], write: [] },
+    fhir_mapping: { read: ["list", "get", "analyse", "context", "preview"], write: ["save"] },
     fhir_connection: { read: ["list", "get", "test", "metadata", "search", "read", "validate"], write: [] },
     fhir_ig: { read: ["test", "projects", "status"], write: ["submit", "sync"] },
 });

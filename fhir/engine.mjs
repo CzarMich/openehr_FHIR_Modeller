@@ -4,9 +4,10 @@ import { inspectArtifact, semanticDiff } from './lib/artifacts.mjs';
 import { discover, generate, analyseMapping } from './lib/modelling.mjs';
 import { compile, validate, fhirpathOperation } from './lib/tooling.mjs';
 import { generateExample } from './lib/examples.mjs';
+import {inspectDataset, previewMapping} from './lib/pipeline.mjs';
 import {sourceOperation} from './lib/sources.mjs';
 
-export const OPERATIONS=['capabilities.get','source.inspect','source.import','package.search','package.get','package.install','package.dependencies','package.artifacts','package.resolve','artifact.inspect','artifact.diff','artifact.validate','profile.discover','profile.generate','fsh.compile','fhirpath.validate','fhirpath.evaluate','mapping.analyse','examples.generate'];
+export const OPERATIONS=['capabilities.get','source.inspect','source.import','package.search','package.get','package.install','package.dependencies','package.artifacts','package.resolve','artifact.inspect','artifact.diff','artifact.validate','profile.discover','profile.generate','fsh.compile','fhirpath.validate','fhirpath.evaluate','mapping.analyse','dataset.inspect','mapping.preview','examples.generate'];
 export async function execute(operation,parameters={},context={}) {
   if(!OPERATIONS.includes(operation))fail('OPERATION','Unsupported FHIR engine operation.',404);
   if(!parameters||typeof parameters!=='object'||Array.isArray(parameters))fail('PARAMETERS','Parameters must be an object.');
@@ -25,6 +26,8 @@ export async function execute(operation,parameters={},context={}) {
   if(operation==='profile.generate')return generate(parameters,project,context);
   if(operation==='fsh.compile')return compile(parameters,project,context);
   if(operation.startsWith('fhirpath.'))return fhirpathOperation(operation,parameters,project,context);
+  if(operation==='dataset.inspect')return inspectDataset(parameters);
+  if(operation==='mapping.preview')return previewMapping(parameters);
   if(operation==='mapping.analyse')return analyseMapping(parameters,project,context);
   if(operation==='examples.generate')return generateExample(parameters,project);
 }

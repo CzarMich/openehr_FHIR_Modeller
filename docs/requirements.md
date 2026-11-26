@@ -100,3 +100,5 @@ configured MCP principal/project permissions; a shared service credential create
 a shared workspace, not per-browser-user isolation.
 
 | **REQ-F25** | Execute browser AI tasks with configurable context budgets, selective tool/source retrieval, bounded session affinity and independent-review isolation; persist project task handoffs, exact drafts, dependency packages and usage/evidence outside chat history while preserving repository/decision authority, identity boundaries and revision-conditional writes. | [Task execution](TASK_EXECUTION.md), browser task orchestrator and provider adapters |
+
+| **REQ-F28** | Inspect bounded synthetic CSV/custom JSON, retrieve pinned mapping templates/profiles and protected approval status, and execute explicit deterministic two-stage forward or separately defined reverse previews with provenance, missingness, stale-input rejection and information-loss findings. Require model inputs for reuse as well as authoring; keep operational processing and conformance claims outside previews. | `fhir_dataset`, `fhir_mapping context/preview`; [scope and backlog](SOURCE_MODELLING.md) |

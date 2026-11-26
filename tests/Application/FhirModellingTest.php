@@ -120,6 +120,48 @@ final class FhirModellingTest extends TestCase
         self::assertCount(2, $this->audit->subjects('shared', 'synthetic'));
     }
 
+    public function testMappingRequiresSuppliedModelsAndIgConfirmationCannotBeForged(): void
+    {
+        $this->project();
+        $service = new FhirModelling($this->repository, new AccessPolicy(new Settings(['MODEL_REPOSITORY_WRITE_ENABLED' => 'true'])),
+            $this->provider, $this->audit, new Actor('test', 'shared', ['modeller']), $this->connections, $this->repository, $this->audit);
+        $template = $this->repository->saveArtifact('synthetic', 'templates/lab.opt', '<template/>', [], null);
+        $profile = $this->repository->saveArtifact('synthetic', 'fhir/lab.json', '{"resourceType":"StructureDefinition","version":"1.0.0"}', [], null);
+        $bindings = [];
+        foreach (['openEHR' => $template, 'FHIR' => $profile] as $standard => $artifact) {
+            $bindings[] = ['standard' => $standard, 'projectId' => 'synthetic', 'path' => $artifact['path'],
+                'revision' => $artifact['revision'], 'sha256' => $artifact['sha256'], 'version' => '1.0.0', 'clinicalApproval' => true];
+        }
+        $args = ['modelInputs' => $bindings];
+        $result = $service->operation('mapping', 'context', 'synthetic', json_encode($args));
+        self::assertFalse($result['ready']);
+        self::assertSame('<template/>', $result['items'][0]['content']);
+        self::assertFalse($result['items'][0]['clinicalApproval']);
+        self::assertSame(['FHIR_IG_CONFIRMATION_NOT_VERIFIED'], $result['items'][1]['blockers']);
+        $this->repository->saveArtifact('synthetic', 'templates/lab.opt', '<template changed="true"/>', [], $template['revision']);
+        $result = $service->operation('mapping', 'context', 'synthetic', json_encode($args));
+        self::assertContains('MODEL_CHANGED', $result['items'][0]['blockers']);
+        $this->expectExceptionMessage('MAPPING_MODELS_STALE');
+        $service->operation('mapping', 'preview', 'synthetic', json_encode($args));
+    }
+
+    public function testMappingWithoutBothModelInputsFailsClosed(): void
+    {
+        $service = $this->project();
+        $this->expectExceptionMessage('MAPPING_MODELS_REQUIRED');
+        $service->operation('mapping', 'context', 'synthetic', '{}');
+    }
+
+    public function testDatasetInspectionDoesNotAuditOrPersistSourceValues(): void
+    {
+        $service = $this->project();
+        $before = $this->audit->subjects('shared', 'synthetic');
+        $artifacts = $this->repository->listArtifacts('synthetic');
+        $service->operation('dataset', 'inspect', 'synthetic', '{"synthetic":true,"format":"json","content":"[{\"value\":0}]"}');
+        self::assertSame($before, $this->audit->subjects('shared', 'synthetic'));
+        self::assertSame($artifacts, $this->repository->listArtifacts('synthetic'));
+    }
+
     public function testInvalidArtefactNeverReachesIgServer(): void
     {
         $service = $this->project();

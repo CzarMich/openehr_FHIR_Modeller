@@ -66,3 +66,13 @@ validated publication lifecycle. `fhir_ig` stores engineering artefacts, while
 ### Bounded AI execution (REQ-F25)
 
 `TaskOrchestrator` reconstructs task context from current project settings, repository identity/revision, selected artefact metadata and relevant persisted handoffs. `ContextBuilder` budgets priority classes and complete recent turns. `SessionManager` bounds logical context affinity while the existing provider adapters continue creating disposable native runtimes. `executionContext` provides demand-driven tool schemas, duplicate-free paged results and shared budget accounting without bypassing existing tool dispatch or write confirmation. `TaskLedger` extends encrypted browser persistence with separate task records and project draft/package archives; Git, traceability, deterministic validation and human governance remain authoritative. Independent review omits generator history and its retrieval tools. See [Task execution](TASK_EXECUTION.md) and [ADR-0025](decisions/0025-bounded-ai-execution.md).
+
+## Source-driven modelling (REQ-F28)
+
+The FHIR computational engine owns bounded, stateless synthetic dataset inspection
+and deterministic mapping previews. The PHP application resolves exact model
+inputs from authorised repositories and protected review events before invoking
+preview. It never accepts caller approval flags as evidence. Retrieval connectors
+and patient processing remain separate from parsers and model storage.
+See [ADR-0027](decisions/0027-source-driven-mapping.md) and the
+[audit and increment backlog](SOURCE_MODELLING.md).

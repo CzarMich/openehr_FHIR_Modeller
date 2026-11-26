@@ -367,3 +367,14 @@ requirements:
     tests: [chat/test/task-execution.test.mjs, chat/test/security.test.mjs, chat/test/providers.test.mjs, chat/test/copilot.test.mjs, chat/test/browser.spec.mjs]
     adr: ["0025"]
     verification: npm --prefix chat test and npm --prefix chat run test:browser
+
+  - id: REQ-F28
+    title: Source-driven mapping inputs and deterministic previews
+    canonical: docs/requirements.md
+    status: draft
+    implementation: partial
+    packages: [src/Application/FhirModelling.php, src/Tools/FhirTools.php, fhir/lib/pipeline.mjs]
+    tests: [tests/Application/FhirModellingTest.php, tests/Tools/FhirOutputCases.php, fhir/test/pipeline.test.mjs]
+    adr: ["0027"]
+    plans: [docs/SOURCE_MODELLING.md]
+    verification: Bounded synthetic previews; operational processing and full conformance not delivered.
