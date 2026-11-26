@@ -123,8 +123,10 @@ export function previewMapping(parameters) {
           let value=input.value;
           if (value !== null && rule.operation === 'number') {
             if ((typeof value !== 'number' && typeof value !== 'string') || (typeof value === 'string' && !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(value.trim()))) fail('RECORD_NUMBER','Expected explicit numeric value.');
-            value=Number(value)*(rule.factor ?? 1)+(rule.offset ?? 0);
-            if (!Number.isFinite(value)) fail('RECORD_NUMBER','Numeric conversion is not finite.');
+            const numeric=Number(value);
+            if (Number.isInteger(numeric) && !Number.isSafeInteger(numeric)) fail('RECORD_NUMBER','Integer exceeds exact numeric precision.');
+            value=numeric*(rule.factor ?? 1)+(rule.offset ?? 0);
+            if (!Number.isFinite(value) || (Number.isInteger(value) && !Number.isSafeInteger(value))) fail('RECORD_NUMBER','Numeric conversion is not finite.');
           }
           if (value !== null && rule.operation === 'translate') {
             if (!['string','number'].includes(typeof value) || !Object.hasOwn(rule.dictionary,String(value))) fail('RECORD_TERMINOLOGY','Unmapped terminology value.');

@@ -54,3 +54,9 @@ test('source boundaries fail closed and custom FHIR-like JSON remains custom',()
   assert.throws(()=>describe(Array.from({length:101},()=>({a:1})),'lab','1'),{code:'SOURCE_BOUND'});
   const result=describe([{resourceType:'Observation'}],'lab','1');assert.equal(result.classification,'custom-source');
 });
+
+test('numeric conversion rejects unsafe integer precision',()=>{
+  const input=[{value:'9007199254740993'}];
+  const map={schemaVersion:1,version:'1',direction:'fhir-to-openehr',reversibility:'unresolved',sourceSchemaSha256:describe(input,'lab','1').schemaSha256,stages:[{rules:[rule('/value','/value',{operation:'number'})]}]};
+  assert.equal(preview(map,input).rejected[0].code,'RECORD_NUMBER');
+});
