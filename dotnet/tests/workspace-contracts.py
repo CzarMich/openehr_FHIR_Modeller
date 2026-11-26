@@ -90,6 +90,15 @@ with tempfile.TemporaryDirectory(prefix='modeller-workspace-contracts-') as temp
                 subprocess.run(base+[args.sdk_image,'dotnet',str(ROOT/'dotnet/Modeller.Processing/bin/Release/net10.0/Modeller.Processing.dll'),'run',str(fixture/'config.json'),str(second)],check=True,capture_output=True,text=True,timeout=660)
                 second_state=json.loads((second/'state.json').read_text());assert (second_state['exported'],second_state['rejected'],second_state['emitted'])==(2,1,0),second_state
                 checks+=1
+                invalid=dict(profile);invalid.pop('differential')
+                bad=request('/api/v1/integration/projects/synthetic/models',{'id':'invalid-synthetic-profile','standard':'FHIR','version':'1.0.0','origin':'externally-provided','content':compact(invalid),'provenance':{'source':'Intentionally invalid synthetic SD'}})
+                bad_mapping=dict(mapping,name='invalid-sd-synthetic-patients')
+                bad_view=request('/api/v1/integration/projects/synthetic/mappings',{'modelKeys':[bad['key']],'executionMapping':compact(bad_mapping)})
+                request('/api/v1/integration/mappings/'+bad_view['subject']+'/decisions',{'decision':'CONFIRMED','expectedSequence':0,'comment':'Synthetic test: selection is not technical validation'})
+                blocked=fixture/'invalid-sd-job';blocked.mkdir();blocked_request=dict(second_request,subject=bad_view['subject']);(blocked/'request.json').write_text(compact(blocked_request))
+                subprocess.run(base+[args.sdk_image,'dotnet',str(ROOT/'dotnet/Modeller.Processing/bin/Release/net10.0/Modeller.Processing.dll'),'run',str(fixture/'config.json'),str(blocked)],check=True,capture_output=True,text=True,timeout=660)
+                blocked_state=json.loads((blocked/'state.json').read_text());assert (blocked_state['status'],blocked_state['error'],blocked_state['exported'],blocked_state['emitted'])==('BLOCKED','MODEL_FHIR_VALIDATION',0,0),blocked_state
+                checks+=1
             request(target,{'decision':'REVOKED','expectedSequence':1,'comment':'Withdraw synthetic acceptance selection'})
             print(compact({'workspaceHttpChecks':checks,'status':'PASS','installedFhirJob':'PASS' if args.installed_fhir else 'NOT_EXECUTED','clinicalApproval':False}))
         finally:

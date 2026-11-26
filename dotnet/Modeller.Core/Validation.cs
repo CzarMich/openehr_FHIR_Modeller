@@ -10,6 +10,14 @@ public sealed class Validation(Configuration config, JobRequest job, ModelContex
 {
     private readonly HttpClient http = Network.Client(TimeSpan.FromSeconds(650));
     public void Dispose() => http.Dispose();
+    public static void RequireFhirCompleted(JsonObject report, bool requireTerminology) {
+        if (report["status"]?.GetValue<string>() is not ("valid" or "invalid") || report["evidence"]?["executed"]?.GetValue<bool>() != true
+            || report["evidence"]?["timedOut"]?.GetValue<bool>() == true || report["evidence"]?["oversized"]?.GetValue<bool>() == true || report["outcome"] is not JsonObject)
+            throw new ProcessingException("FHIR_VALIDATION_NOT_EXECUTED");
+        var terminology = report["terminology"]?["status"]?.GetValue<string>();
+        if (terminology is not ("valid" or "failed" or "not-run") || requireTerminology && terminology == "not-run") throw new ProcessingException("FHIR_TERMINOLOGY_NOT_EXECUTED");
+        if (terminology == "failed" && report["valid"]?.GetValue<bool>() == true) throw new ProcessingException("FHIR_VALIDATION_EVIDENCE_INCONSISTENT");
+    }
     public async Task<JsonObject> Composition(JsonObject composition, string evidenceFile, CancellationToken cancellation) {
         var templates = ((JsonArray)models.Selection["items"]!).OfType<JsonObject>().Where(i => i["pin"]?["standard"]?.GetValue<string>() == "openEHR").ToArray();
         if (templates.Length != 1) throw new ProcessingException("EXACT_COMPOSITION_TEMPLATE_REQUIRED");
@@ -30,6 +38,22 @@ public sealed class Validation(Configuration config, JobRequest job, ModelContex
         if (config.RequireTerminology && result["terminology"]?.GetValue<string>() == "EXTERNAL_NOT_EXECUTED") throw new ProcessingException("OPENEHR_TERMINOLOGY_NOT_EXECUTED");
         return result;
     }
+    public async Task Profiles(string evidenceDirectory, CancellationToken cancellation) {
+        var profiles = new JsonArray(((JsonArray)models.Selection["items"]!).OfType<JsonObject>()
+            .Where(item => item["pin"]?["standard"]?.GetValue<string>() == "FHIR")
+            .Select(item => JsonNode.Parse(item["content"]!.GetValue<string>())).ToArray());
+        for (var index = 0; index < profiles.Count; index++) {
+            using var request = new HttpRequestMessage(HttpMethod.Post, config.FhirUrl.TrimEnd('/') + "/execute") {
+                Content = JsonContent.Create(new { operation = "artifact.validate", tenant = job.Owner, parameters = new { project = models.Project, content = profiles[index], profiles } })
+            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Network.Key(config.FhirKeyFile));
+            using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
+            if (!response.IsSuccessStatusCode) throw new ProcessingException("FHIR_MODEL_VALIDATION_UNAVAILABLE");
+            var result = await Network.Object(response, cancellation); Data.Write(Path.Combine(evidenceDirectory, index + ".json"), result);
+            RequireFhirCompleted(result, config.RequireTerminology);
+            if (result["valid"]?.GetValue<bool>() != true || result["success"]?.GetValue<bool>() != true) throw new ProcessingException("MODEL_FHIR_VALIDATION");
+        }
+    }
     public async Task Fhir(JsonObject resource, string evidencePrefix, CancellationToken cancellation) {
         var type = resource["resourceType"]?.GetValue<string>() ?? throw new ProcessingException("RECORD_FHIR_TYPE_REQUIRED");
         var profiles = new JsonArray(); var targets = new List<JsonObject>();
@@ -49,8 +73,8 @@ public sealed class Validation(Configuration config, JobRequest job, ModelContex
             using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
             if (!response.IsSuccessStatusCode) throw new ProcessingException("FHIR_VALIDATION_UNAVAILABLE");
             var result = await Network.Object(response, cancellation); Data.Write(evidencePrefix + "-" + i + ".json", result);
+            RequireFhirCompleted(result, config.RequireTerminology);
             if (result["valid"]?.GetValue<bool>() != true || result["success"]?.GetValue<bool>() != true) throw new ProcessingException("RECORD_FHIR_VALIDATION");
-            if (config.RequireTerminology && result["terminology"]?["status"]?.GetValue<string>() != "valid") throw new ProcessingException("FHIR_TERMINOLOGY_NOT_EXECUTED");
         }
     }
 }

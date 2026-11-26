@@ -1,3 +1,5 @@
+import { EventEmitter } from "node:events";
+import { PassThrough } from "node:stream";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
@@ -193,4 +195,61 @@ test("private C# requests require verified human identity and bind purpose, targ
     assert.equal(claims.owner_hash, hash(session.identity));
     assert.ok(claims.exp - claims.iat <= 60);
     await assert.rejects(core.request(session, "POST", "/api/v1/integration/../evil", {}), /Invalid integration/);
+});
+
+test("inspection reserves capacity before awaiting identity or file operations", async () => {
+    const f = fixture();
+    try {
+        const blocked = [];
+        f.core.request = () => new Promise((resolve, reject) => blocked.push(reject));
+        const first = f.workspace.inspect(f.session, { projectId: "lab", sourceId: "synthetic", file: "x.json" });
+        const second = f.workspace.inspect(f.session, { projectId: "lab", sourceId: "synthetic", file: "x.json" });
+        await assert.rejects(
+            f.workspace.inspect(f.session, { projectId: "lab", sourceId: "synthetic", file: "x.json" }),
+            /workers are busy/,
+        );
+        assert.equal(blocked.length, 2);
+        for (const reject of blocked) reject(new Error("Synthetic preflight rejection"));
+        await Promise.allSettled([first, second]);
+        assert.equal(f.workspace.inspectionRequests, 0);
+    } finally {
+        f.close();
+    }
+});
+test("a failed worker preflight cannot reuse an old successful job status", async () => {
+    const f = fixture();
+    try {
+        const source = await f.workspace.upload(
+            f.session,
+            { projectId: "lab", format: "csv", name: "synthetic.csv" },
+            Buffer.from("id\n1\n"),
+        );
+        const owner = hash(f.session.identity);
+        const job = f.workspace.createJob(owner, {
+            projectId: "lab",
+            subject: f.subject,
+            sourceId: source.id,
+            file: "source.bin",
+            sourceSha256: source.sha256,
+            mode: "export",
+        });
+        writeFileSync(join(job.directory, "state.json"), JSON.stringify({ status: "COMPLETED", read: 1, exported: 1 }));
+        f.workspace.launcher = () => {
+            const child = new EventEmitter();
+            child.stdout = new PassThrough();
+            child.stderr = new PassThrough();
+            child.kill = () => true;
+            queueMicrotask(() => {
+                child.stderr.write("SOURCE_CHANGED");
+                child.emit("exit", 1);
+            });
+            return child;
+        };
+        const result = await f.workspace.launch(job, true);
+        assert.equal(result.status, "BLOCKED");
+        assert.equal(result.error, "SOURCE_CHANGED");
+        assert.equal(result.read, 1);
+    } finally {
+        f.close();
+    }
 });

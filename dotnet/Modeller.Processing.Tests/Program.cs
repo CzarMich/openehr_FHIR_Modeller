@@ -112,6 +112,12 @@ try {
 Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new { coreChecks = count, status = "PASS" }));
 
 // Isolated synthetic HTTP destination: no production endpoint or clinical database.
+JsonObject ValidationReport(string status, string terminology = "not-run", bool timedOut = false) => new() { ["status"] = status, ["evidence"] = new JsonObject { ["executed"] = true, ["timedOut"] = timedOut }, ["terminology"] = new JsonObject { ["status"] = terminology }, ["outcome"] = new JsonObject { ["resourceType"] = "OperationOutcome" }, ["valid"] = status == "valid" };
+Reject(() => Validation.RequireFhirCompleted(ValidationReport("not-completed"), false), "FHIR_VALIDATION_NOT_EXECUTED");
+Reject(() => Validation.RequireFhirCompleted(ValidationReport("invalid", timedOut: true), false), "FHIR_VALIDATION_NOT_EXECUTED");
+Reject(() => Validation.RequireFhirCompleted(ValidationReport("valid"), true), "FHIR_TERMINOLOGY_NOT_EXECUTED");
+Reject(() => Validation.RequireFhirCompleted(ValidationReport("invalid", "incomplete"), false), "FHIR_TERMINOLOGY_NOT_EXECUTED");
+Validation.RequireFhirCompleted(ValidationReport("invalid", "failed"), true); Check(true, "Completed invalid validation is distinct from unavailable checks");
 new Mapping(MappingHelp.Document()["example"]!.ToJsonString()).VerifyExamples();
 Check(true, "Bundled agent mapping example is executable");
 var socket = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0); socket.Start();

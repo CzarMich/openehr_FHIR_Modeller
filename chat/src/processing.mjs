@@ -46,6 +46,7 @@ export class ProcessingWorkspace {
         this.launcher = launcher;
         this.clock = clock;
         this.inspectors = new Map();
+        this.inspectionRequests = 0;
         this.root = join(config.dataDir, "processing");
         this.active = new Map();
         this.pending = new Map();
@@ -274,82 +275,88 @@ export class ProcessingWorkspace {
     }
     async inspect(session, input) {
         fields(input, ["projectId", "sourceId", "file"]);
-        if (this.active.size + this.inspectors.size >= 2) throw problem("Processing workers are busy.", 429);
-        await this.core.request(session, "GET", "/api/v1/integration/projects/" + input.projectId);
-        if (!projectId.test(input.projectId)) throw problem("Choose a valid project.");
-        const owner = this.owner(session),
-            source = this.source(owner, input.projectId, input.sourceId),
-            file = await this.file(source, input.file);
-        const id = randomBytes(32).toString("hex"),
-            directory = join(this.directory(session, "inspections"), id);
-        mkdirSync(directory, { recursive: true, mode: 0o700 });
-        save(join(directory, "request.json"), {
-            owner,
-            projectId: input.projectId,
-            subject: "",
-            sourceId: input.sourceId,
-            file: input.file,
-            sourceSha256: file.sha256,
-            mode: "export",
-            destinationId: null,
-        });
-        save(join(directory, "configuration.json"), this.configuration(owner, input.projectId));
-        return new Promise((resolve, reject) => {
-            const child = this.launcher(
-                this.config.integrationWorker,
-                ["inspect", join(directory, "configuration.json"), directory],
-                {
-                    env: {
-                        PATH: process.env.PATH,
-                        LANG: "C.UTF-8",
-                        DOTNET_EnableDiagnostics: "0",
-                        DOTNET_GCHeapHardLimit: "0x20000000",
+        this.checkQuota(session);
+        if (this.active.size + this.inspectionRequests >= 2) throw problem("Processing workers are busy.", 429);
+        this.inspectionRequests++;
+        try {
+            await this.core.request(session, "GET", "/api/v1/integration/projects/" + input.projectId);
+            if (!projectId.test(input.projectId)) throw problem("Choose a valid project.");
+            const owner = this.owner(session),
+                source = this.source(owner, input.projectId, input.sourceId),
+                file = await this.file(source, input.file);
+            const id = randomBytes(32).toString("hex"),
+                directory = join(this.directory(session, "inspections"), id);
+            mkdirSync(directory, { recursive: true, mode: 0o700 });
+            save(join(directory, "request.json"), {
+                owner,
+                projectId: input.projectId,
+                subject: "",
+                sourceId: input.sourceId,
+                file: input.file,
+                sourceSha256: file.sha256,
+                mode: "export",
+                destinationId: null,
+            });
+            save(join(directory, "configuration.json"), this.configuration(owner, input.projectId));
+            return await new Promise((resolve, reject) => {
+                const child = this.launcher(
+                    this.config.integrationWorker,
+                    ["inspect", join(directory, "configuration.json"), directory],
+                    {
+                        env: {
+                            PATH: process.env.PATH,
+                            LANG: "C.UTF-8",
+                            DOTNET_EnableDiagnostics: "0",
+                            DOTNET_GCHeapHardLimit: "0x20000000",
+                        },
+                        stdio: ["ignore", "pipe", "pipe"],
+                        shell: false,
                     },
-                    stdio: ["ignore", "pipe", "pipe"],
-                    shell: false,
-                },
-            );
-            this.inspectors.set(id, child);
-            let output = "",
-                error = "",
-                ended = false;
-            const timer = setTimeout(() => child.kill("SIGTERM"), 30000);
-            timer.unref();
-            child.stdout.on("data", (chunk) => {
-                output += chunk.toString();
-                if (output.length > 262144) child.kill("SIGKILL");
+                );
+                this.inspectors.set(id, child);
+                let output = "",
+                    error = "",
+                    ended = false;
+                const timer = setTimeout(() => child.kill("SIGTERM"), 30000);
+                timer.unref();
+                child.stdout.on("data", (chunk) => {
+                    output += chunk.toString();
+                    if (output.length > 262144) child.kill("SIGKILL");
+                });
+                child.stderr.on("data", (chunk) => {
+                    if (error.length < 256) error += chunk.toString();
+                });
+                const end = (code) => {
+                    if (ended) return;
+                    ended = true;
+                    this.inspectors.delete(id);
+                    clearTimeout(timer);
+                    if (code !== 0)
+                        return reject(
+                            problem(
+                                "Source inspection failed (" +
+                                    (/^[A-Z0-9_]+\s*$/.test(error) ? error.trim() : "SOURCE_INSPECTION_FAILED") +
+                                    ").",
+                                422,
+                            ),
+                        );
+                    try {
+                        resolve({
+                            ...JSON.parse(output),
+                            sourceId: input.sourceId,
+                            sourceSha256: file.sha256,
+                            recordValues: "NOT_INCLUDED",
+                        });
+                    } catch {
+                        reject(problem("Source inspection returned incomplete metadata.", 503));
+                    }
+                };
+                child.once("error", () => end(1));
+                child.once("exit", end);
             });
-            child.stderr.on("data", (chunk) => {
-                if (error.length < 256) error += chunk.toString();
-            });
-            const end = (code) => {
-                if (ended) return;
-                ended = true;
-                this.inspectors.delete(id);
-                clearTimeout(timer);
-                if (code !== 0)
-                    return reject(
-                        problem(
-                            "Source inspection failed (" +
-                                (/^[A-Z0-9_]+\s*$/.test(error) ? error.trim() : "SOURCE_INSPECTION_FAILED") +
-                                ").",
-                            422,
-                        ),
-                    );
-                try {
-                    resolve({
-                        ...JSON.parse(output),
-                        sourceId: input.sourceId,
-                        sourceSha256: file.sha256,
-                        recordValues: "NOT_INCLUDED",
-                    });
-                } catch {
-                    reject(problem("Source inspection returned incomplete metadata.", 503));
-                }
-            };
-            child.once("error", () => end(1));
-            child.once("exit", end);
-        });
+        } finally {
+            this.inspectionRequests--;
+        }
     }
     async previewJob(session, input) {
         fields(input, ["projectId", "subject", "sourceId", "file", "mode", "destinationId"]);
@@ -417,7 +424,7 @@ export class ProcessingWorkspace {
     }
     async commitJob(session, token) {
         this.checkQuota(session);
-        if (this.active.size + this.inspectors.size >= 2) throw problem("Processing workers are busy.", 429);
+        if (this.active.size + this.inspectionRequests >= 2) throw problem("Processing workers are busy.", 429);
         const input = this.take(session, token, "job"),
             owner = this.owner(session);
         await this.selection(session, input.projectId, input.subject);
@@ -458,7 +465,7 @@ export class ProcessingWorkspace {
         const owner = job.request.owner,
             key = owner + ":" + job.id;
         if (this.active.has(key)) return this.active.get(key).promise;
-        if (this.active.size + this.inspectors.size >= 2)
+        if (this.active.size + this.inspectionRequests >= 2)
             throw problem("Two processing workers are active. Retry shortly.", 429);
         const state = this.status(owner, job.id);
         if (terminal.has(state.status) && !force) return state;
@@ -712,7 +719,7 @@ export class ProcessingWorkspace {
                     channel.status !== "RUNNING" ||
                     channel.activeJob ||
                     channel.nextPoll > this.clock() ||
-                    this.active.size + this.inspectors.size >= 2
+                    this.active.size + this.inspectionRequests >= 2
                 )
                     continue;
                 channel.nextPoll = this.clock() + channel.pollSeconds * 1000;

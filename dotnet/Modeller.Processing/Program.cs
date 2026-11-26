@@ -57,6 +57,7 @@ try {
         }
         try {
             Progress();
+            await validation.Profiles(Path.Combine(directory, "evidence", "models"), cancellation.Token);
             for (var index = 0; index < groups.Count; index++) {
                 cancellation.Token.ThrowIfCancellationRequested(); await models.Refresh(cancellation.Token);
                 if (Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories).Sum(file => new FileInfo(file).Length) > 256L * 1048576) throw new ProcessingException("JOB_STORAGE_LIMIT");

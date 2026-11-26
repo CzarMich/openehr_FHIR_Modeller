@@ -689,27 +689,35 @@ export function createApplication(
                         processing.files(session, url.searchParams.get("projectId"), url.searchParams.get("sourceId")),
                     );
                 if (suffix === "sources/upload" && req.method === "POST") {
-                    const pieces = [];
-                    let size = 0;
-                    for await (const chunk of req) {
-                        size += chunk.length;
-                        if (size > 16 * 1024 * 1024)
-                            throw Object.assign(new Error("Private source limit is 16 MiB."), { status: 413 });
-                        pieces.push(chunk);
+                    const uploadKey = identity + ":integration-upload";
+                    if (uploading.has(uploadKey) || uploading.size >= 3)
+                        throw Object.assign(new Error("Private uploads are busy."), { status: 429 });
+                    uploading.add(uploadKey);
+                    try {
+                        const pieces = [];
+                        let size = 0;
+                        for await (const chunk of req) {
+                            size += chunk.length;
+                            if (size > 16 * 1024 * 1024)
+                                throw Object.assign(new Error("Private source limit is 16 MiB."), { status: 413 });
+                            pieces.push(chunk);
+                        }
+                        return json(
+                            res,
+                            200,
+                            await processing.upload(
+                                session,
+                                {
+                                    projectId: req.headers["x-model-project"],
+                                    format: req.headers["x-source-format"],
+                                    name: req.headers["x-source-name"],
+                                },
+                                Buffer.concat(pieces),
+                            ),
+                        );
+                    } finally {
+                        uploading.delete(uploadKey);
                     }
-                    return json(
-                        res,
-                        200,
-                        await processing.upload(
-                            session,
-                            {
-                                projectId: req.headers["x-model-project"],
-                                format: req.headers["x-source-format"],
-                                name: req.headers["x-source-name"],
-                            },
-                            Buffer.concat(pieces),
-                        ),
-                    );
                 }
                 if (suffix === "sources/inspect" && req.method === "POST")
                     return json(
