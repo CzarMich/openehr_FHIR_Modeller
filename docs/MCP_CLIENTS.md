@@ -62,8 +62,8 @@ this configuration. The endpoint and service credential are the same ones used b
 other authorised MCP clients; no second server or client plugin is needed.
 
 For the managed deployments, use either
-`https://openehr-modelling.sandbox.hygeoniq.com/mcp` or
-`https://dev-openehr-modelling.sandbox.hygeoniq.com/mcp` with that deployment's credential.
+`https://openehr-fhir-modeller.sandbox.hygeoniq.com/mcp` or
+`https://dev-openehr-fhir-modeller.sandbox.hygeoniq.com/mcp` with that deployment's credential.
 The development host requires network access and trust in its private CA. Hosted
 clients do not inherit your workstation's hosts file or VPN connection.
 

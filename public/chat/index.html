@@ -12,6 +12,7 @@
         <link rel="stylesheet" href="/chat/workspace.css" />
         <script src="/chat/app.js" type="module"></script>
         <script src="/chat/reviews.js" type="module"></script>
+        <script src="/chat/mapping-confirmations.js" type="module"></script>
         <script src="/chat/workspace.js" type="module"></script>
         <script src="/chat/identity.js" type="module"></script>
         <script src="/chat/aql.js" type="module"></script>
@@ -1591,6 +1592,45 @@
                             <option value="">Select a project</option>
                         </select></label
                     >
+                    <section class="fhir-card" aria-labelledby="mapping-confirmation-heading">
+                        <h2 id="mapping-confirmation-heading">Confirm models for mapping</h2>
+                        <p>
+                            Ask the agent to prepare a confirmation request containing the exact template and FHIR
+                            profiles. Inspect both supplied models below. Confirmation selects these revisions for
+                            mapping; clinical approval and publication remain separate.
+                        </p>
+                        <label
+                            >Confirmation request identifier<input
+                                id="mapping-confirmation-subject"
+                                maxlength="64"
+                                autocomplete="off"
+                        /></label>
+                        <button id="mapping-confirmation-load" type="button" class="secondary-button">
+                            Inspect model selections
+                        </button>
+                        <p id="mapping-confirmation-notice" role="status" aria-live="polite"></p>
+                        <div id="mapping-confirmation-detail" hidden>
+                            <p id="mapping-confirmation-state"></p>
+                            <div id="mapping-confirmation-models"></div>
+                            <label
+                                ><input id="mapping-confirmation-reviewed" type="checkbox" /> I have inspected the exact
+                                templates and profiles shown.</label
+                            >
+                            <label
+                                >Decision comment<textarea
+                                    id="mapping-confirmation-comment"
+                                    rows="3"
+                                    maxlength="4000"
+                                ></textarea>
+                            </label>
+                            <button id="mapping-confirmation-confirm" type="button">
+                                Confirm these model revisions
+                            </button>
+                            <button id="mapping-confirmation-revoke" type="button" class="secondary-button">
+                                Revoke this selection
+                            </button>
+                        </div>
+                    </section>
                     <section class="fhir-card">
                         <h2>Analyse source semantics</h2>
                         <label

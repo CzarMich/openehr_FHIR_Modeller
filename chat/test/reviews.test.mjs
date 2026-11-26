@@ -159,3 +159,18 @@ test("review response limits, upstream failure redaction and request purpose rem
     const large = new ReviewClient(config(), async () => new Response(new Uint8Array(16 * 1024 * 1024 + 1)));
     await assert.rejects(() => large.request(session(), "GET", "/api/v1/reviews?project=default"), /exceeds the limit/);
 });
+
+test("mapping-model confirmation assertions bind the exact human decision and reject arbitrary targets", async () => {
+    let captured;
+    const client = new ReviewClient(config(), async (_url, options) => {
+        captured = options;
+        return new Response('{"mappingConfirmed":true}');
+    });
+    const target = "/api/v1/reviews/confirmations/" + "a".repeat(64);
+    const input = { decision: "CONFIRMED", expectedSequence: 1, comment: "Inspected both exact models." };
+    assert.equal((await client.request(session(), "POST", target, input)).mappingConfirmed, true);
+    const claims = JSON.parse(Buffer.from(captured.headers.Authorization.slice(7).split(".")[1], "base64url"));
+    assert.equal(claims.target, target);
+    assert.equal(claims.body_sha256, createHash("sha256").update(JSON.stringify(input)).digest("hex"));
+    await assert.rejects(client.request(session(), "POST", target + "/forged", input), /Invalid review operation/);
+});

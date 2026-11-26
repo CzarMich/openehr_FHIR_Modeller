@@ -63,3 +63,13 @@ Use `fhir_mapping` to analyse or retain independently versioned proposals with e
 Use `fhir_source` to inspect public HTTPS IG/package/definition URLs or connected definitions, then import only after reviewing exact version, licence, original hash and project revision. `fhir_connection` search/read accepts definition types only. Check `fhir_project(action="capabilities")` before authoring: additional exact releases can be inspected but unsupported processors must return incomplete evidence. See `guide_get(category="howto", name="fhir-external-sources")`.
 
 For source-driven mappings, require supplied exact openEHR templates and FHIR StructureDefinitions, including externally obtained models. Retrieve their content using fhir_mapping context before mapping. Agent-modelled inputs require independent human confirmation. Compilation/validation and preview success do not grant confirmation. fhir_dataset and fhir_mapping preview accept synthetic fixtures only; unresolved clinical meaning must be surfaced. Operational records stay outside MCP/model storage.
+
+
+Mapping-model selection: always supply the actual pinned openEHR template and FHIR
+StructureDefinitions. Use fhir_mapping prepare-confirmation with both standards,
+exact revisions/hashes/versions and origins. The signed-in user inspects them in
+Cross-standard mappings → Confirm models for mapping. Include the returned
+confirmationSubject in context/preview. Agents cannot confirm/revoke or manufacture
+approval evidence. Human model selection, clinical approval, technical conformance
+and destination-write authorisation are separate. A changed model requires a new
+selection. Synthetic previews do not export or deliver records.

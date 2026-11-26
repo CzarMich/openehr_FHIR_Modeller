@@ -71,3 +71,21 @@ input records first to obtain sourceSchemaSha256. Unknown fields are reported.
 Preview is always unapproved and non-operational, with validation NOT_EXECUTED;
 readiness includes separate protected review status. Existing proposal save
 behaviour remains compatible. No preview records are persisted or audited.
+
+## Protected mapping-model selection
+
+`fhir_mapping(action="prepare-confirmation")` accepts `modelInputs` with both
+standards and exact pins as above, plus `origin` (`agent-modelled` or
+`externally-provided`) on every entry. It returns a protected subject identifier.
+In **Cross-standard mappings → Confirm models for mapping**, paste that identifier,
+inspect each supplied model/pin, acknowledge inspection, enter a comment and confirm.
+Only the signed-in human review API can confirm or revoke. The agent can read
+`fhir_mapping(action="confirmation", arguments={"subject":"..."})`.
+
+Include `confirmationSubject` with the same `modelInputs` in `context`/`preview`.
+`mappingConfirmed` and `ready` describe this exact selection; `clinicalReady` and
+per-model `clinicalApproval` remain separate governance evidence. Neither selection
+nor compilation grants clinical publication. A profile/template change makes the
+selection stale. Preview execution requires a current human-confirmed selection; context remains
+available for inspecting drafts before confirmation. All previews remain synthetic
+and non-operational. Agents cannot submit decisions using MCP/API keys.

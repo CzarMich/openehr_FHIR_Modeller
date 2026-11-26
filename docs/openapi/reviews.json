@@ -431,6 +431,86 @@
           }
         }
       }
+    },
+    "/api/v1/reviews/confirmations/{subject}": {
+      "parameters": [
+        {
+          "name": "subject",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getMappingModelSelection",
+        "summary": "Read exact supplied openEHR/FHIR models and protected selection state",
+        "responses": {
+          "200": {
+            "description": "Selection state, current model content/pins and audit events"
+          },
+          "401": {
+            "description": "Interactive human assertion required"
+          },
+          "404": {
+            "description": "Unknown subject in this tenant"
+          }
+        }
+      },
+      "post": {
+        "operationId": "decideMappingModelSelection",
+        "summary": "Human confirmation or revocation of exact mapping inputs; does not grant clinical approval",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "decision",
+                  "expectedSequence",
+                  "comment"
+                ],
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "CONFIRMED",
+                      "REVOKED"
+                    ]
+                  },
+                  "expectedSequence": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "comment": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Recorded human decision; mappingConfirmed and clinicalApproval are separate"
+          },
+          "401": {
+            "description": "Missing/expired/replayed assertion"
+          },
+          "403": {
+            "description": "Human role, project permission or writes disabled"
+          },
+          "409": {
+            "description": "Sequence conflict or stale model"
+          }
+        }
+      }
     }
   },
   "components": {

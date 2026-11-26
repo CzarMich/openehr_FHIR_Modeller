@@ -113,3 +113,6 @@ FhirTools and `fhir/test/pipeline.test.mjs`; see ADR-0027 and SOURCE_MODELLING.m
 
 REQ-F29 connects the .NET migration service, captured MCP contracts and independent
 HTTP/stdio compatibility/security probes to `dotnet/` and ADR-0028.
+
+| REQ-F30 | Exact cross-standard mapping-model confirmation | `src/Application/MappingModelConfirmations.php`, `src/Rest/ReviewApi.php` | `tests/Application/MappingModelConfirmationsTest.php` | ADR-0029 |
+| REQ-F31 | Private operational processing and authorised FHIR delivery | Planned private .NET runtime | Integration evidence required before delivery | ADR-0029 |

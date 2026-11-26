@@ -84,3 +84,12 @@ It reads the existing bundled guides directly, without PHP proxies. Fixed publis
 contracts and black-box tests provide the compatibility boundary. Existing PHP
 production, browser, private compiler engines, data stores and governance remain
 authoritative until each replacement passes its migration gates. See ADR-0028.
+
+## Cross-standard mapping selection and destination delivery
+
+ADR-0029 separates protected human selection of exact supplied templates/profiles
+from clinical approval/publication. MappingModelConfirmations uses the existing
+protected audit store and purpose-bound browser assertion; model repositories are
+rechecked at every decision/use. Agent tools prepare/read requests only.
+Operational extraction, validation and destination writes belong to the private
+.NET runtime and must pass independent delivery gates before being advertised.

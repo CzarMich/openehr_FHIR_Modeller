@@ -43,6 +43,24 @@ final readonly class ReviewApi
         try {
             $identity = new Principal($actor->id, $actor->tenant, $actor->roles,
                 [...$actor->projectScopes, 'governance.write'], true, 'interactive_oidc');
+            $confirmationPath = $request->getUri()->getPath();
+            if (preg_match('~^/api/v1/reviews/confirmations/([a-f0-9]{64})$~D', $confirmationPath, $confirmationMatch)) {
+                if ($request->getUri()->getQuery() !== '') { throw new \InvalidArgumentException('INVALID_REVIEW_QUERY'); }
+                $confirmation = new \OpenEHR\Assistant\Application\MappingModelConfirmations(
+                    RepositoryFactory::create($this->settings, $identity),
+                    RepositoryFactory::create($this->settings->with(['MODEL_REPOSITORY_PROVIDER' => 'filesystem',
+                        'MODEL_REPOSITORY_PATH' => $this->settings->get('FHIR_REPOSITORY_PATH')]), $identity),
+                    $this->audit, new AccessPolicy($this->settings, $identity), $actor);
+                if ($request->getMethod() === 'GET') { return $this->response(200, $confirmation->get($confirmationMatch[1])); }
+                if ($request->getMethod() !== 'POST') { return $this->error(405, 'METHOD_NOT_ALLOWED'); }
+                if (!preg_match('~^application/json(?:\s*;|$)~i', $request->getHeaderLine('Content-Type'))) { return $this->error(415, 'JSON_REQUIRED'); }
+                $input = json_decode((string) $request->getBody(), true, 16, JSON_THROW_ON_ERROR);
+                if (!is_array($input) || array_diff(array_keys($input), ['decision', 'expectedSequence', 'comment']) !== []
+                    || !is_string($input['decision'] ?? null) || !is_int($input['expectedSequence'] ?? null) || !is_string($input['comment'] ?? null)) {
+                    throw new \InvalidArgumentException('INVALID_REVIEW_INPUT');
+                }
+                return $this->response(200, $confirmation->decide($confirmationMatch[1], $input['expectedSequence'], $input['decision'], $input['comment']));
+            }
             $service = new ModelGovernance(
                 RepositoryFactory::create($this->settings, $identity),
                 $this->audit,
