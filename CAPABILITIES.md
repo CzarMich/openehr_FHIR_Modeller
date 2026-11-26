@@ -75,3 +75,11 @@ Bounded synthetic CSV/custom JSON inspection, explicit forward/reverse mapping p
 ## C# migration slice
 
 An independent read-only C# service implements guide retrieval/resources with published contract and content parity. HTTP/stdio and boundary tests cover this Dev slice. OIDC, clinical/stateful tools and production replacement remain unmigrated; see [the parity matrix](docs/DOTNET_MIGRATION.md).
+
+
+Mapping-model selection: `fhir_mapping prepare-confirmation/confirmation` supplies
+both standards with exact revisions/hashes and visible origins. The separate human
+API and browser control record confirmation/revocation in the protected ledger;
+previews require a current matching selection. This does not confer clinical
+approval or destination-write permission. Private operational runs and FHIR push
+remain tracked separately under REQ-F31.

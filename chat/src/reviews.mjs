@@ -13,7 +13,9 @@ export class ReviewClient {
         const maximumAge = method === "GET" ? this.config.sessionSeconds : this.config.reviewSessionSeconds;
         if (!identity || now - identity.started > maximumAge)
             throw Object.assign(new Error("Sign in again before reviewing a model."), { status: 401 });
-        if (!/^\/api\/v1\/reviews(?:\?|\/[a-f0-9]{64}(?:\/transitions)?$|$)/.test(target))
+        if (
+            !/^\/api\/v1\/reviews(?:\?|\/[a-f0-9]{64}(?:\/transitions)?$|\/confirmations\/[a-f0-9]{64}$|$)/.test(target)
+        )
             throw new Error("Invalid review operation");
         const body = input === undefined ? "" : JSON.stringify(input);
         const header = { alg: "HS256", typ: "openehr-review+jwt", kid: this.config.reviewKeyId };

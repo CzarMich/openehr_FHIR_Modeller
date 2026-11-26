@@ -1,10 +1,10 @@
-# Install openEHR Modelling Assistant
+# Install openEHR and FHIR Modeller
 
 ## Self-hosted deployment
 
 ```bash
-git clone https://github.com/CzarMich/openehr-modelling-assistant.git
-cd openehr-modelling-assistant
+git clone https://github.com/CzarMich/openehr_FHIR_Modeller.git
+cd openehr_FHIR_Modeller
 cp .env.example .env
 docker compose up -d --build
 curl --fail http://127.0.0.1:8343/ready

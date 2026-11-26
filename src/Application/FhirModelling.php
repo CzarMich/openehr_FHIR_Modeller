@@ -66,13 +66,21 @@ final readonly class FhirModelling
             'source' => ['inspect', 'import'],
             'artifact' => ['inspect', 'get', 'search', 'save', 'validate', 'diff', 'history'],
             'profile' => ['discover', 'generate', 'validate'], 'examples' => ['generate'], 'fsh' => ['compile'], 'fhirpath' => ['validate', 'evaluate'],
-            'mapping' => ['list', 'get', 'save', 'analyse', 'context', 'preview'], 'dataset' => ['inspect'], 'connection' => ['list', 'get', 'test', 'metadata', 'search', 'read', 'validate'],
+            'mapping' => ['list', 'get', 'save', 'analyse', 'context', 'preview', 'prepare-confirmation', 'confirmation'], 'dataset' => ['inspect'], 'connection' => ['list', 'get', 'test', 'metadata', 'search', 'read', 'validate'],
             'ig' => ['test', 'projects', 'status', 'submit', 'sync', 'build', 'publish'],
         ];
         if (!in_array($action, $allowed[$category] ?? [], true)) { throw new \InvalidArgumentException('FHIR_OPERATION_UNSUPPORTED'); }
         if (in_array($action, ['save', 'install', 'import', 'submit', 'sync', 'build', 'publish'], true)) { $this->access->assertProjectWrite($projectId); }
+        if ($category === 'mapping' && in_array($action, ['prepare-confirmation', 'confirmation'], true)) {
+            $confirmations = new MappingModelConfirmations($this->models ?? throw new \RuntimeException('MAPPING_MODEL_REPOSITORY_UNAVAILABLE'),
+                $this->repository, $this->reviews ?? throw new \RuntimeException('MAPPING_CONFIRMATION_UNAVAILABLE'), $this->access, $this->actor);
+            if ($action === 'prepare-confirmation') { return $confirmations->prepare($projectId, $args['modelInputs'] ?? []); }
+            $view = $confirmations->get(is_string($args['subject'] ?? null) ? $args['subject'] : '');
+            if ($view['project'] !== $projectId) { throw new \DomainException('MAPPING_MODEL_PROJECT_MISMATCH'); }
+            return $view;
+        }
         if ($category === 'mapping' && in_array($action, ['context', 'preview'], true)) {
-            $inputs = $this->mappingInputs($projectId, $args['modelInputs'] ?? []);
+            $inputs = $this->mappingInputs($projectId, $args['modelInputs'] ?? [], $args['confirmationSubject'] ?? null);
             if ($action === 'context') { return $inputs; }
             foreach ($inputs['items'] as $input) {
                 if (!$input['current']) { throw new \DomainException('MAPPING_MODELS_STALE'); }
@@ -80,6 +88,7 @@ final readonly class FhirModelling
                     throw new \DomainException('MAPPING_MODEL_INPUT_INVALID');
                 }
             }
+            if (!$inputs['mappingConfirmed']) { throw new \DomainException('MAPPING_HUMAN_CONFIRMATION_REQUIRED'); }
             $result = $this->provider->execute('mapping.preview', array_merge($args, ['project' => $project]));
             return $result + ['modelReadiness' => $inputs, 'operationalExecution' => 'NOT_SUPPORTED'];
         }
@@ -194,7 +203,7 @@ final readonly class FhirModelling
     /** Resolve supplied models, never caller approval assertions. Reuse and authoring use the same pins.
      * @param mixed $bindings
      * @return array<string, mixed> */
-    private function mappingInputs(string $projectId, mixed $bindings): array
+    private function mappingInputs(string $projectId, mixed $bindings, mixed $confirmationSubject = null): array
     {
         if (!is_array($bindings) || !array_is_list($bindings) || count($bindings) < 2 || count($bindings) > 20) {
             throw new \InvalidArgumentException('MAPPING_MODELS_REQUIRED');
@@ -238,7 +247,29 @@ final readonly class FhirModelling
                 'current' => $current, 'clinicalApproval' => $approved && $current, 'blockers' => $blockers];
         }
         if (!isset($standards['openEHR'], $standards['FHIR'])) { throw new \InvalidArgumentException('MAPPING_BOTH_STANDARDS_REQUIRED'); }
-        return ['items' => $items, 'ready' => $ready, 'scope' => 'Exact supplied model revisions; compiler success is not human confirmation.'];
+        $confirmed = false;
+        if (is_string($confirmationSubject) && $this->models !== null && $this->reviews !== null) {
+            $view = (new MappingModelConfirmations($this->models, $this->repository, $this->reviews, $this->access, $this->actor))->get($confirmationSubject);
+            $pins = static function (array $entries, bool $nested): array {
+                $result = [];
+                foreach ($entries as $entry) {
+                    $pin = $nested ? $entry['pin'] : $entry;
+                    $identity = [];
+                    foreach (['standard', 'projectId', 'path', 'revision', 'sha256', 'version'] as $field) { $identity[$field] = $pin[$field] ?? null; }
+                    $result[] = json_encode($identity, JSON_THROW_ON_ERROR);
+                }
+                sort($result, SORT_STRING); return $result;
+            };
+            $confirmed = $view['project'] === $projectId && $view['mappingConfirmed'] && $pins($bindings, false) === $pins($view['items'], true);
+        }
+        $validInputs = !in_array(false, array_column($items, 'current'), true);
+        foreach ($items as $item) {
+            if (array_intersect($item['blockers'], ['STRUCTURE_DEFINITION_VERSION_REQUIRED', 'TEMPLATE_REQUIRED']) !== []) { $validInputs = false; }
+        }
+        return ['items' => $items, 'ready' => $confirmed && $validInputs, 'mappingConfirmed' => $confirmed,
+            'clinicalReady' => $ready, 'confirmationSubject' => $confirmationSubject,
+            'mappingBlockers' => $confirmed ? [] : ['HUMAN_MAPPING_MODEL_CONFIRMATION_REQUIRED'],
+            'scope' => 'Exact supplied model revisions; mapping selection confirmation and clinical approval are separate.'];
     }
 
     /** @param array<string, mixed> $args

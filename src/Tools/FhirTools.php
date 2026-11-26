@@ -70,11 +70,11 @@ final readonly class FhirTools
         #[Schema(maxLength: 8388608)] string $arguments = '{}'): array
     { return ToolResult::run(fn (): array => $this->fhir->operation('fhirpath', $action, $projectId, $arguments)); }
 
-    /** Create mapping proposals; context retrieves supplied pinned template/profile content and confirmation blockers. preview executes explicit synthetic rules with modelInputs; requires both standards. No operational records, implicit reverse rules or automatic approval. See docs/SOURCE_MODELLING.md.
+    /** Create mapping proposals; context retrieves supplied pinned template/profile content and confirmation blockers. prepare-confirmation records both exact model selections for human review; confirmation reads its protected state. preview executes explicit synthetic rules with modelInputs; requires both standards. No operational records, implicit reverse rules or automatic approval. See docs/SOURCE_MODELLING.md.
      * @return array<string, mixed> */
     #[Schema(additionalProperties: false)]
     #[McpTool(name: 'fhir_mapping', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, openWorldHint: true), outputSchema: ToolResult::SCHEMA)]
-    public function mapping(#[Schema(enum: ['list', 'get', 'save', 'analyse', 'context', 'preview'])] string $action,
+    public function mapping(#[Schema(enum: ['list', 'get', 'save', 'analyse', 'context', 'preview', 'prepare-confirmation', 'confirmation'])] string $action,
         #[Schema(minLength: 1, maxLength: 80)] string $projectId,
         #[Schema(maxLength: 8388608)] string $arguments = '{}'): array
     { return ToolResult::run(fn (): array => $this->fhir->operation('mapping', $action, $projectId, $arguments)); }

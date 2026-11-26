@@ -1,6 +1,47 @@
 # Architecture
 
-openEHR Modelling Assistant is a PHP 8.4 application. MCP and a versioned human review REST API adapt shared application services; the modelling domain has no Microsoft, Claude, OpenAI, GitHub, GitLab or Graph SDK dependency. Clients supply the language model and orchestration. The application provides deterministic retrieval, persistence and bounded checks.
+The openEHR and FHIR Modeller exposes deterministic modelling operations through
+MCP and separate authenticated human review APIs. Clients supply their own model
+provider and orchestration. Model creation and operational record processing are
+separate: the former produces versioned templates, profiles and mapping rules;
+the latter must validate records, reconcile failures and export or deliver FHIR
+to an authorised configured destination.
+
+The compatibility application currently runs on the patched PHP runtime; the
+independent C#/.NET service has migrated guide retrieval only. See the exact
+[parity matrix](DOTNET_MIGRATION.md). This architecture does not claim a completed
+runtime migration or operational data-delivery implementation.
+
+## Product workflow and delivery boundary
+
+```mermaid
+flowchart LR
+    User[Modeller or integration engineer] --> Browser[Browser workspace]
+    Agent[MCP agent or client] --> MCP[Modelling MCP service]
+    Browser --> MCP
+    MCP --> Sources[Source structure and requirements]
+    MCP --> Models[openEHR templates and FHIR profiles]
+    Models --> Reuse[CKMs, packages and model repositories]
+    Models --> Engines[Native compilers and validators]
+    Browser --> Review[Authenticated human model confirmation]
+    Review --> Audit[Protected audit and exact model revisions]
+    Models --> Mapping[Explicit forward and reverse mapping rules]
+    Sources --> Mapping
+    Audit --> Mapping
+    Mapping --> Preview[Synthetic preview and findings]
+    Mapping -.-> Runtime[Private processing and per-record validation]
+    Runtime -.-> Export[Private file export]
+    Runtime -.-> Delivery[Authorised FHIR delivery]
+    Delivery -.-> Destination[Configured destination FHIR server]
+    Runtime -.-> Reconcile[Quarantine and reconciliation]
+```
+
+Solid paths describe implemented modelling/preview capabilities; dashed paths
+identify the operational processing, export and destination-delivery path still
+being implemented. Neither a diagram nor a successful preview is deployment
+or conformance evidence.
+
+## Existing modelling and identity adapters
 
 ```mermaid
 flowchart TB

@@ -389,3 +389,19 @@ requirements:
     adr: ["0028"]
     plans: [docs/DOTNET_MIGRATION.md]
     verification: Read-only guide retrieval first; clinical/stateful capabilities remain on the existing service.
+
+  - id: REQ-F30
+    title: Exact cross-standard mapping-model confirmation
+    canonical: docs/requirements.md
+    status: draft
+    implementation: partial
+    packages: [src/Application/MappingModelConfirmations.php, src/Rest/ReviewApi.php, src/Application/FhirModelling.php, chat/src/reviews.mjs]
+    tests: [tests/Application/MappingModelConfirmationsTest.php]
+    adr: ["0029"]
+  - id: REQ-F31
+    title: Private processing and authorised FHIR destination delivery
+    canonical: docs/requirements.md
+    status: draft
+    implementation: planned
+    plans: [docs/decisions/0029-mapping-selection-and-runtime-delivery.md]
+    adr: ["0029"]

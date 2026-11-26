@@ -158,6 +158,7 @@ export function createApplication(
                 "/chat/app.js": ["app.js", "text/javascript"],
                 "/chat/style.css": ["style.css", "text/css"],
                 "/chat/reviews.js": ["reviews.js", "text/javascript"],
+                "/chat/mapping-confirmations.js": ["mapping-confirmations.js", "text/javascript"],
                 "/chat/identity.js": ["identity.js", "text/javascript"],
                 "/chat/aql.js": ["aql.js", "text/javascript"],
                 "/chat/aql.css": ["aql.css", "text/css"],
@@ -529,6 +530,35 @@ export function createApplication(
                             "/api/v1/reviews?project=" + encodeURIComponent(project) + "&offset=" + Number(offset),
                         ),
                     );
+                }
+                if (/^\/confirmations\/[a-f0-9]{64}$/.test(suffix) && !url.search) {
+                    if (req.method === "GET")
+                        return json(res, 200, await reviews.request(session, "GET", "/api/v1/reviews" + suffix));
+                    if (req.method === "POST") {
+                        const input = await body(
+                            req,
+                            ["decision", "expectedSequence", "comment"],
+                            "Invalid mapping confirmation.",
+                            16384,
+                        );
+                        if (
+                            !["CONFIRMED", "REVOKED"].includes(input.decision) ||
+                            !Number.isSafeInteger(input.expectedSequence) ||
+                            input.expectedSequence < 1 ||
+                            typeof input.comment !== "string" ||
+                            !input.comment.trim() ||
+                            input.comment.length > 4000
+                        )
+                            throw Object.assign(new Error("Review the exact models and enter a comment."), {
+                                status: 400,
+                            });
+                        return json(
+                            res,
+                            200,
+                            await reviews.request(session, "POST", "/api/v1/reviews" + suffix, input),
+                        );
+                    }
+                    throw Object.assign(new Error("Method not allowed"), { status: 405 });
                 }
                 if (/^\/[a-f0-9]{64}$/.test(suffix) && req.method === "GET" && !url.search)
                     return json(res, 200, await reviews.request(session, "GET", "/api/v1/reviews" + suffix));

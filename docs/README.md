@@ -1,4 +1,4 @@
-# openEHR Modelling Assistant documentation
+# openEHR and FHIR Modeller documentation
 
 Independently maintained and developed by Michael Anywar.
 
@@ -9,6 +9,9 @@ material retains its respective terms; see the
 [third-party notices](../THIRD_PARTY_NOTICES.md).
 
 ## Setup and use
+
+- [Product purpose and first steps](../README.md) and [laboratory source-to-FHIR walkthrough](workflows/source-to-fhir-laboratory.md)
+- [Source-driven implementation status](SOURCE_MODELLING.md), [.NET migration status](DOTNET_MIGRATION.md) and [production delivery/rollback](FHIR_PRODUCTION_DELIVERY.md)
 
 - [Installation](install.md), [deployment](DEPLOYMENT.md) and [configuration](CONFIGURATION.md)
 - [Claude, Codex and other MCP clients](MCP_CLIENTS.md); [Microsoft clients](MICROSOFT_AGENT_INTEGRATION.md)

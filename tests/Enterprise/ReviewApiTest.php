@@ -34,7 +34,7 @@ final class ReviewApiTest extends TestCase
         $this->directory = sys_get_temp_dir() . '/review-api-' . bin2hex(random_bytes(8));
         $this->settings = new Settings(['GOVERNANCE_ENABLED' => 'true', 'GOVERNANCE_BROWSER_ORIGIN' => 'https://models.example',
             'GOVERNANCE_OIDC_ISSUER' => 'https://identity.example', 'GOVERNANCE_BROWSER_KEYS' => json_encode(['active' => self::KEY], JSON_THROW_ON_ERROR),
-            'MODEL_REPOSITORY_WRITE_ENABLED' => 'true', 'MODEL_REPOSITORY_PATH' => $this->directory, 'MCP_ALLOWED_HOSTS' => 'models.example',
+            'MODEL_REPOSITORY_WRITE_ENABLED' => 'true', 'MODEL_REPOSITORY_PATH' => $this->directory, 'FHIR_REPOSITORY_PATH' => $this->directory . '/fhir', 'MCP_ALLOWED_HOSTS' => 'models.example',
             'AUTH_MODE' => 'api_key', 'AUTH_API_KEY' => str_repeat('z', 64)]);
         $repository = new FileSystemRepository($this->directory); $repository->createProject('project', 'Synthetic', '');
         $source = $repository->saveArtifact('project', 'templates/test.oet', TerminologyBindingPlanTest::MODEL, [], null);
@@ -136,4 +136,38 @@ final class ReviewApiTest extends TestCase
         self::assertSame(405, $this->api->handle($this->request('DELETE', $this->target()))->getStatusCode());
         self::assertSame(415, $this->api->handle($this->request('POST', $this->target() . '/transitions', $this->input())->withHeader('Content-Type', 'text/plain'))->getStatusCode());
     }
+    public function test_mapping_selection_requires_exact_signed_human_decision_and_rejects_replay(): void
+    {
+        $models = new FileSystemRepository($this->directory);
+        $fhir = new FileSystemRepository($this->directory . '/fhir');
+        $fhir->createProject('project', 'Synthetic FHIR', '');
+        $template = $models->getArtifact('project', 'templates/test.oet');
+        $profile = $fhir->saveArtifact('project', 'fhir/profile.json', '{"resourceType":"StructureDefinition","version":"1.0.0"}', [], null);
+        $bindings = [];
+        foreach (['openEHR' => $template, 'FHIR' => $profile] as $standard => $artifact) {
+            $bindings[] = ['standard' => $standard, 'projectId' => 'project', 'path' => $artifact['path'], 'revision' => $artifact['revision'],
+                'sha256' => $artifact['sha256'], 'version' => '1.0.0', 'origin' => 'agent-modelled'];
+        }
+        $service = new \OpenEHR\Assistant\Application\MappingModelConfirmations($models, $fhir, $this->audit,
+            new AccessPolicy($this->settings), new Actor('service', 'shared', ['modeller']));
+        $view = $service->prepare('project', $bindings);
+        $target = '/api/v1/reviews/confirmations/' . $view['subject'];
+        $read = $this->api->handle($this->request('GET', $target));
+        self::assertSame(200, $read->getStatusCode());
+        self::assertFalse(json_decode((string) $read->getBody(), true)['mappingConfirmed']);
+        $input = ['decision' => 'CONFIRMED', 'expectedSequence' => 1, 'comment' => 'Inspected both supplied models.'];
+        $ordinary = $this->request('POST', $target, $input)->withoutHeader('Authorization')->withHeader('X-API-Key', str_repeat('z', 64));
+        self::assertSame(401, $this->api->handle($ordinary)->getStatusCode());
+        self::assertSame(400, $this->api->handle($this->request('POST', $target, $input + ['human' => true]))->getStatusCode());
+        $request = $this->request('POST', $target, $input);
+        $confirmed = $this->api->handle($request);
+        self::assertSame(200, $confirmed->getStatusCode());
+        self::assertTrue(json_decode((string) $confirmed->getBody(), true)['mappingConfirmed']);
+        self::assertFalse(json_decode((string) $confirmed->getBody(), true)['clinicalApproval']);
+        self::assertSame(401, $this->api->handle($request)->getStatusCode());
+        self::assertSame(409, $this->api->handle($this->request('POST', $target, $input))->getStatusCode());
+        $models->saveArtifact('project', 'templates/test.oet', '<template>changed</template>', [], $template['revision']);
+        self::assertSame(409, $this->api->handle($this->request('POST', $target, array_replace($input, ['expectedSequence' => 2])))->getStatusCode());
+    }
+
 }

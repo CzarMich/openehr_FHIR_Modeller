@@ -2146,3 +2146,79 @@ test("FHIR external definitions are inspected before a hash-bound import and can
     expect(mutations).toHaveLength(1);
     expect(JSON.parse(mutations[0].args.arguments).expectedSha256).toBe(source.sha256);
 });
+
+test("mapping selection displays both exact models and requires a human acknowledgement before a decision", async ({
+    page,
+}) => {
+    let decisions = 0;
+    const subject = "c".repeat(64);
+    const view = {
+        subject,
+        project: "synthetic",
+        sequence: 1,
+        state: "PENDING",
+        current: true,
+        mappingConfirmed: false,
+        clinicalApproval: false,
+        items: [
+            {
+                pin: {
+                    standard: "openEHR",
+                    path: "templates/lab.oet",
+                    revision: "template-revision",
+                    sha256: "a".repeat(64),
+                    version: "1",
+                    origin: "agent-modelled",
+                },
+                content: "<template><script>window.__selectionInjected=true</script></template>",
+                current: true,
+            },
+            {
+                pin: {
+                    standard: "FHIR",
+                    path: "fhir/lab.json",
+                    revision: "profile-revision",
+                    sha256: "b".repeat(64),
+                    version: "1",
+                    origin: "externally-provided",
+                },
+                content: '{"resourceType":"StructureDefinition"}',
+                current: true,
+            },
+        ],
+    };
+    await page.route("**/chat/api/reviews/confirmations/*", async (route) => {
+        if (route.request().method() === "POST") {
+            const input = route.request().postDataJSON();
+            expect(input).toEqual({
+                decision: "CONFIRMED",
+                expectedSequence: 1,
+                comment: "I inspected both exact synthetic models.",
+            });
+            expect(route.request().headers()["x-csrf-token"]).toBeTruthy();
+            decisions++;
+            view.sequence = 2;
+            view.state = "CONFIRMED";
+            view.mappingConfirmed = true;
+        }
+        return route.fulfill({ json: view });
+    });
+    await login(page);
+    await page.getByRole("tab", { name: "Cross-standard mappings" }).click();
+    await page.getByLabel("Confirmation request identifier").fill(subject);
+    await page.getByRole("button", { name: "Inspect model selections" }).click();
+    await expect(page.locator("#mapping-confirmation-state")).toContainText("PENDING");
+    await expect(page.locator("#mapping-confirmation-models summary")).toHaveCount(2);
+    await page.getByRole("button", { name: "Confirm these model revisions" }).click();
+    await expect(page.locator("#mapping-confirmation-notice")).toContainText("Inspect both models");
+    expect(decisions).toBe(0);
+    await page.locator("#mapping-confirmation-models details").first().locator("summary").click();
+    await expect(page.locator("#mapping-confirmation-models")).toContainText("template-revision");
+    expect(await page.evaluate(() => window.__selectionInjected)).toBeUndefined();
+    await page.getByLabel("I have inspected the exact templates and profiles shown.").check();
+    await page.getByLabel("Decision comment", { exact: true }).fill("I inspected both exact synthetic models.");
+    await page.getByRole("button", { name: "Confirm these model revisions" }).click();
+    await expect(page.locator("#mapping-confirmation-state")).toContainText("CONFIRMED");
+    expect(decisions).toBe(1);
+    await expect(page.locator("#mapping-confirmation-reviewed")).not.toBeChecked();
+});
