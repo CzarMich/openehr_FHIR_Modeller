@@ -10,6 +10,8 @@ material retains its respective terms; see the
 
 ## Setup and use
 
+- [Golden rule: clinical databases are read-only](CLINICAL_DATA_READ_ONLY.md)
+
 - [Product purpose and first steps](../README.md) and [laboratory source-to-FHIR walkthrough](workflows/source-to-fhir-laboratory.md)
 - [Source-driven implementation status](SOURCE_MODELLING.md), [.NET migration status](DOTNET_MIGRATION.md) and [production delivery/rollback](FHIR_PRODUCTION_DELIVERY.md)
 

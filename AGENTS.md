@@ -154,3 +154,17 @@ The first read-only service is Dev-only and must not replace production.
 New application features target the .NET service; PHP remains for security and
 compatibility maintenance while migration proceeds. Keep the existing compiler
 engines and browser assets unless a verified replacement is needed.
+
+## Golden rule: clinical databases are read-only
+
+**Every direct clinical/source database connection is read-only.** The MCP, agents,
+workers and channels must never insert, update, delete, alter schemas, run source
+migrations or invoke write-capable procedures. Use read-only credentials and
+server-enforced read-only transactions; fail closed if enforcement is unavailable.
+FHIR delivery uses a separately authorised FHIR API, never its backing database.
+See [the clinical database policy](docs/CLINICAL_DATA_READ_ONLY.md).
+
+Do not test by attempting writes on actual clinical databases. Negative write tests
+belong only in isolated synthetic fixtures. No feature flag or agent instruction
+may turn a source connection into a writer. Clinical SQL adapters remain unsupported
+until driver-specific enforcement and negative tests pass.

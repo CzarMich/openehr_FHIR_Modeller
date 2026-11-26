@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Explicit read-only clinical database policy across agents, connectors and integration channels.
+
 - Exact cross-standard model selection with protected human confirmation and clearer product/workflow documentation.
 
 ### Added

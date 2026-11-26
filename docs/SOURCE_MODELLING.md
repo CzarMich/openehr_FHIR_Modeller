@@ -89,3 +89,12 @@ nor compilation grants clinical publication. A profile/template change makes the
 selection stale. Preview execution requires a current human-confirmed selection; context remains
 available for inspecting drafts before confirmation. All previews remain synthetic
 and non-operational. Agents cannot submit decisions using MCP/API keys.
+
+## Golden rule: clinical databases are read-only
+
+**Every direct clinical/source database connection is read-only.** The MCP, agents,
+workers and channels must never insert, update, delete, alter schemas, run source
+migrations or invoke write-capable procedures. Use read-only credentials and
+server-enforced read-only transactions; fail closed if enforcement is unavailable.
+FHIR delivery uses a separately authorised FHIR API, never its backing database.
+See [the clinical database policy](CLINICAL_DATA_READ_ONLY.md).

@@ -1,6 +1,6 @@
 # Security model
 
-HTTP production startup requires API-key or native OIDC authentication. Generate a high-entropy secret of at least 32 characters, store it outside Git, configure clients through their credential store and rotate by recreating the application and updating clients. API keys represent one deployment service principal and do not provide user/tenant isolation. Native [OIDC](OIDC.md) verifies access tokens, isolates signed tenants and enforces draft-write scopes/roles; full project-level RBAC remains separate work. Stdio relies on local process permissions.
+HTTP production startup requires API-key or native OIDC authentication. Generate a high-entropy secret of at least 32 characters, store it outside Git, configure clients through their credential store and rotate by recreating the application and updating clients. API keys represent one deployment service principal and do not provide user/tenant isolation. Native [OIDC](OIDC.md) verifies access tokens, isolates signed tenants and enforces draft-write scopes/roles; project-scoped repository access additionally requires PROJECT_RBAC_ENABLED and assigned project scopes. Stdio relies on local process permissions.
 
 The guard validates Host and Origin independently, rejects unexpected body sizes and checks keys with constant-time comparison. SDK DNS-rebinding middleware remains active. CORS defaults to no browser origins. Production `AUTH_MODE=none` fails closed; native OIDC rejects missing configuration, invalid signatures, mismatched trust claims and unauthorized scopes/roles. An API gateway can add enterprise identity and rate limits while forwarding an application key. Health/readiness contain no model content and should remain on a restricted monitoring path.
 
@@ -14,7 +14,7 @@ Validation scope is a safety boundary: malformed/unavailable upstream responses 
 
 ## Browser chat
 
-The optional [chat service](BROWSER_CHAT.md) validates OIDC identity independently of MCP authentication. It uses same-origin CSRF checks, opaque secure cookies, private per-user conversations and a fixed tool allowlist. Its shared MCP service credential stays server-side. Each repository write requires a browser confirmation bound to the current user, conversation and exact proposed arguments; it is not clinical approval. Personal provider connections are encrypted and bound to the verified user; provider workers use a shared connection only when the native platform owner has explicitly granted usage. Registration starts without shared-provider access, private credentials take precedence, and shared management is separately authorised and audited. The isolated browser container has no host workspace or Docker socket and exposes no shell, image or delegation tools. Single-organisation model access is shared; per-project RBAC remains unfinished. Native MCP OIDC is implemented separately and does not turn the chat client's shared service key into a user token.
+The optional [chat service](BROWSER_CHAT.md) validates OIDC identity independently of MCP authentication. It uses same-origin CSRF checks, opaque secure cookies, private per-user conversations and a fixed tool allowlist. Its shared MCP service credential stays server-side. Each repository write requires a browser confirmation bound to the current user, conversation and exact proposed arguments; it is not clinical approval. Personal provider connections are encrypted and bound to the verified user; provider workers use a shared connection only when the native platform owner has explicitly granted usage. Registration starts without shared-provider access, private credentials take precedence, and shared management is separately authorised and audited. The isolated browser container has no host workspace or Docker socket and exposes no shell, image or delegation tools. The browser MCP client uses a deployment service principal: browser sign-in alone does not give it per-user repository scopes. Model visibility follows that service identity unless a separately verified user-scoped adapter is configured. Native MCP OIDC is implemented separately and does not turn the chat client's shared service key into a user token.
 
 Hosted repository APIs derive their repository identifier from the tenant-scoped Git remote. They use pinned HTTPS origins, bounded responses, no redirects and redacted errors. Tokens remain deployment secrets, separate from SSH keys. Metadata queries cannot enumerate other repositories. Draft review requests require authorized model-write access and do not create clinical approvals. See [hosted repository security](HOSTED_REPOSITORIES.md#failure-and-security-contract).
 
@@ -26,7 +26,7 @@ Binding-plan inputs are bounded and XML entity expansion is prohibited. Canonica
 
 Human decisions use a separate authentication purpose: the browser backend signs short-lived method/target/body-bound assertions after verified OIDC sign-in. The core consumes each nonce once in persistent storage. The signing key stays outside browser JavaScript and model-worker environments. Native MCP bearer/API-key identities remain non-human. Role claims alone do not promote an agent into a clinical approver; the review UI requires explicit confirmation, and approval additionally requires independent identity and qualified exact-source validation. See [the governance trust boundary](GOVERNANCE.md) and [review deployment](REVIEW_DEPLOYMENT.md).
 
-Audit events reside outside model repository paths, with append-only SQL triggers, sequence compare-and-swap and verified hash chains. These controls do not protect against a privileged operator replacing the database and recalculating its entire history. Backups must preserve SQLite consistency and be retained separately from model storage. Full external signed attestations and project/team ACLs remain explicit later work.
+Audit events reside outside model repository paths, with append-only SQL triggers, sequence compare-and-swap and verified hash chains. These controls do not protect against a privileged operator replacing the database and recalculating its entire history. Backups must preserve SQLite consistency and be retained separately from model storage. External signed attestations remain later work; project scopes are configurable and must be enabled rather than inferred from browser sign-in.
 
 Requirements graphs are bounded, typed draft records. Unknown fields, duplicate IDs/edges, incompatible links, cycles, unsafe paths and missing provenance fail validation. XML positions are not executed as XPath; JSON anchors reject duplicate-key ambiguity and invalid pointer tokens. References cannot supply network destinations. Audit lookups use the authenticated tenant/project and exact hashes, and validation/review links must identify the same model source. Graph content and declared coverage never grant authoritative validation or clinical approval. [Traceability limits and trust](REQUIREMENTS_TRACEABILITY.md#findings-and-trust) remain part of the API contract.
 
@@ -47,3 +47,40 @@ The native openEHR engine accepts fixed authenticated content-only operations, c
 The legacy compiler treats OET and ADL 1.4 as untrusted input inside the existing disposable engine workers. XML parsing rejects DTDs, external entities and external schema resolution; the pinned SDK supplies the output schema. Ambiguous paths/slots, widening and unsupported constructs fail closed. Large escaped XML in JSON uses a bounded linear duplicate-key scan rather than a recursive regex. Compiler profile success cannot approve a model.
 
 External originals remain untrusted, even with a claimed source-tool identity. Imports perform bounded local inspection, never fetch caller URLs or extract packages, reject unsafe filenames/forged provenance fields, and preserve syntax-failing source with findings. Protected receipts bind actual transport identity to exact stored bytes. Other Git clients remain a write trust boundary; mismatched revisions/hashes fail provenance verification. API-key and shared browser MCP calls remain service identities. [Import security and limits](MODEL_IMPORTS.md).
+
+## Golden rule: clinical databases are read-only
+
+**Every direct clinical/source database connection is read-only.** The MCP, agents,
+workers and channels must never insert, update, delete, alter schemas, run source
+migrations or invoke write-capable procedures. Use read-only credentials and
+server-enforced read-only transactions; fail closed if enforcement is unavailable.
+FHIR delivery uses a separately authorised FHIR API, never its backing database.
+See [the clinical database policy](CLINICAL_DATA_READ_ONLY.md).
+
+
+## Security and privacy control matrix
+
+These statements describe the current implementation and required deployment
+controls. They are not a certification or a claim of automatic regulatory compliance.
+
+| Boundary | Implemented behaviour or precise limitation |
+|---|---|
+| Clinical/source databases | Read-only is mandatory across MCP, agents and runtime. SQL extraction/drivers are not implemented yet; there is no claimed driver-specific read-only enforcement. Future adapters must pass the golden-rule contract before support is advertised. |
+| Existing CDR queries | Read-only query operations through configured connections; source access is not permission to write clinical records. |
+| FHIR destination delivery | A separately authorised FHIR HTTP API operation, not a direct backing-database connection. Operational delivery is still under implementation; synthetic previews emit zero records. |
+| API keys | One deployment service principal. They do not identify individual users or establish tenant isolation. |
+| Native MCP OIDC | Verified token/tenant boundaries; project repository scopes require explicit configuration. Browser sign-in does not turn its shared MCP credential into a user token. |
+| Human decisions | Purpose-bound, short-lived assertions, consumed nonces, roles and exact revisions. Model selection is distinct from independent clinical approval/publication. |
+| AI providers | The optional browser sends selected conversation/context/tool results to the configured provider. The provider connection, terms and deployment policy determine that external processing. Do not submit patient records as chat messages or modelling attachments. |
+| Processing data | Operational records, exports, validation detail and quarantine belong in a separate private runtime. This is a required boundary for the runtime under implementation, not proof that operational processing is already delivered. |
+| Encryption at rest | Personal provider credentials and selected identity/session stores use application encryption. Model snapshots and conversation/history files are not generally application-encrypted. Do not assume processing files, PVCs or backups are encrypted; volume/database/backup encryption is an operator responsibility. |
+| Network encryption | Hosted browser/MCP entry points require authenticated HTTPS. Some private compiler/service hops use authenticated HTTP on isolated networks; there is no blanket end-to-end TLS claim. Outbound public destinations must verify TLS. |
+| Logging | Application request logging allowlists metadata. Infrastructure/access logs, retention, backups and any external services need separate operator review. Avoid credentials or clinical values in URLs, filenames and diagnostic messages. |
+| Data lifecycle | Configure access, retention, deletion, backups and recovery for the actual deployment and provider. Private file permissions alone do not establish encryption, data residency or compliance. |
+| Compliance/security assurance | No HIPAA/GDPR certification, independent penetration-test completion or universal absence of vulnerabilities is claimed by these controls. Supported dependencies, audits and tested boundaries require ongoing maintenance. |
+
+The golden rule concerns direct clinical/source database access. The modeller
+still writes its own separate model and audit stores, and the integration design
+needs private queues/checkpoints. Those stores must not be placed inside a
+clinical/source database. Keep source-read and destination-write credentials and
+permissions separate. See [the full policy](CLINICAL_DATA_READ_ONLY.md).
