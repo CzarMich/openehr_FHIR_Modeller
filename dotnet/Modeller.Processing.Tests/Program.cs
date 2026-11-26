@@ -112,6 +112,9 @@ try {
 Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new { coreChecks = count, status = "PASS" }));
 
 // Isolated synthetic HTTP destination: no production endpoint or clinical database.
+Check(Network.NativeData(new JsonObject { ["ok"] = true, ["data"] = new JsonObject { ["valid"] = false, ["status"] = "FAIL" } })["valid"]!.GetValue<bool>() == false, "Native HTTP success does not imply a valid composition");
+Reject(() => Network.NativeData(new JsonObject { ["ok"] = false, ["error"] = new JsonObject { ["code"] = "ENGINE_PROCESSING_FAILED" } }), "ENGINE_PROCESSING_FAILED");
+Reject(() => Network.NativeData(new JsonObject { ["ok"] = true }), "OPENEHR_ENGINE_PROTOCOL_ERROR");
 JsonObject ValidationReport(string status, string terminology = "not-run", bool timedOut = false) => new() { ["status"] = status, ["evidence"] = new JsonObject { ["executed"] = true, ["timedOut"] = timedOut }, ["terminology"] = new JsonObject { ["status"] = terminology }, ["outcome"] = new JsonObject { ["resourceType"] = "OperationOutcome" }, ["valid"] = status == "valid" };
 Reject(() => Validation.RequireFhirCompleted(ValidationReport("not-completed"), false), "FHIR_VALIDATION_NOT_EXECUTED");
 Reject(() => Validation.RequireFhirCompleted(ValidationReport("invalid", timedOut: true), false), "FHIR_VALIDATION_NOT_EXECUTED");
@@ -137,6 +140,11 @@ try {
             try {
                 var path = context.Request.Url!.AbsolutePath; JsonObject result;
                 if (path == "/fhir/metadata") result = new JsonObject { ["resourceType"] = "CapabilityStatement", ["fhirVersion"] = "4.0.1", ["rest"] = new JsonArray(new JsonObject { ["mode"] = "server", ["resource"] = new JsonArray(new JsonObject { ["type"] = "Patient", ["conditionalCreate"] = true, ["interaction"] = new JsonArray(new JsonObject { ["code"] = "create" }) }) }) };
+                else if (path == "/compute") {
+                    attempts["compute"] = attempts.GetValueOrDefault("compute") + 1;
+                    context.Response.StatusCode = attempts["compute"] == 1 ? 429 : 200;
+                    result = new JsonObject { ["status"] = "synthetic-compute" };
+                }
                 else {
                     calls++; using var reader = new StreamReader(context.Request.InputStream); var resource = JsonNode.Parse(await reader.ReadToEndAsync()) as JsonObject ?? new JsonObject();
                     var value = resource["identifier"]?[0]?["value"]?.GetValue<string>() ?? "";
@@ -155,6 +163,11 @@ try {
     });
     JsonObject Patient(string id) => new() { ["resourceType"] = "Patient", ["identifier"] = new JsonArray(new JsonObject { ["system"] = "urn:uuid:991c7a7a-c903-4da4-944c-23329b16797a", ["value"] = id }), ["active"] = true };
     try {
+        using (var compute = Network.Client(TimeSpan.FromSeconds(10))) {
+            using var request = new HttpRequestMessage(HttpMethod.Post, $"http://127.0.0.1:{port}/compute") { Content = new StringContent("{}") };
+            using var computeResponse = await Network.Compute(compute, request, CancellationToken.None);
+            Check((int)computeResponse.StatusCode == 200 && attempts["compute"] == 2, "Private compute admission retries without advancing the source");
+        }
         using var delivery = new FhirDelivery(configuration, connection); await delivery.Check("4.0.1", CancellationToken.None);
         Check((await delivery.Send(Patient("created"), CancellationToken.None)).State == "CREATED", "Synthetic destination create");
         Check((await delivery.Send(Patient("created"), CancellationToken.None)).State == "ALREADY_PRESENT", "Idempotent existing representation");
