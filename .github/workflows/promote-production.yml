@@ -98,7 +98,7 @@ jobs:
           remote="/home/hyq/modeller-verification/${{ needs.verify.outputs.revision }}"
           ssh_args=(-i "$RUNNER_TEMP/fhir-prod-ssh/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/fhir-prod-ssh/known_hosts" -o ConnectTimeout=20)
           ssh "${ssh_args[@]}" hyq@192.168.178.30 "mkdir -p '$remote'"
-          tar -cf - scripts/verify-fhir-kubernetes.py scripts/mcp-smoke.py -C "$RUNNER_TEMP/promotion" production-images.json | ssh "${ssh_args[@]}" hyq@192.168.178.30 "tar -xf - -C '$remote'"
+          tar -cf - scripts/verify-fhir-kubernetes.py scripts/mcp-smoke.py -C "$RUNNER_TEMP/promotion" production-images.json production-runtime-digests.json | ssh "${ssh_args[@]}" hyq@192.168.178.30 "tar -xf - -C '$remote'"
           ssh "${ssh_args[@]}" hyq@192.168.178.30 "python3 '$remote/scripts/verify-fhir-kubernetes.py' '$remote/production-images.json'" | tee "$RUNNER_TEMP/promotion/production-verification.log"
       - uses: actions/upload-artifact@v4
         if: always()
@@ -106,6 +106,7 @@ jobs:
           name: fhir-production-deployment-${{ needs.verify.outputs.revision }}
           path: |
             ${{ runner.temp }}/promotion/production-images.json
+            ${{ runner.temp }}/promotion/production-runtime-digests.json
             ${{ runner.temp }}/promotion/infrastructure-revision
             ${{ runner.temp }}/promotion/production-verification.log
           if-no-files-found: warn

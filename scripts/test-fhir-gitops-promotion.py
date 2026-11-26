@@ -30,4 +30,15 @@ class GitOpsTest(unittest.TestCase):
         self.assertIn('--preserve-digests',script)
         self.assertIn('fhir-promotion-evidence.py',script)
         self.assertNotIn('docker build ',script)
+    def test_runtime_manifest_identity_handles_containerd_and_pinned_indexes(self):
+        spec=importlib.util.spec_from_file_location('verify',ROOT/'scripts/verify-fhir-kubernetes.py')
+        verify=importlib.util.module_from_spec(spec);spec.loader.exec_module(verify)
+        image='registry.hygeoniq.com/openehr-fhir-modeller/app@sha256:'+'a'*64
+        status={'ready':True,'image':'sha256:'+'b'*64,'imageID':'registry.hygeoniq.com/openehr-fhir-modeller/app@sha256:'+'a'*64}
+        self.assertTrue(verify.matches_image(status,image,[]))
+        status['imageID']='registry.hygeoniq.com/openehr-fhir-modeller/app@sha256:'+'c'*64
+        self.assertFalse(verify.matches_image(status,image,[]))
+        self.assertTrue(verify.matches_image(status,image,['sha256:'+'c'*64]))
+        status['ready']=False
+        self.assertFalse(verify.matches_image(status,image,['sha256:'+'c'*64]))
 if __name__=='__main__':unittest.main()
