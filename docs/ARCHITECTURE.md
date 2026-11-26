@@ -135,3 +135,12 @@ The main browser URL now opens one [tabbed modelling workspace](BROWSER_WORKSPAC
 The legacy engine pairs Archie-calculated original model paths with original ADL constraint syntax. It expands supported internal references without modifying source archetypes and narrows omitted/open RM attributes using bundled RM metadata. Each transformation is recorded in build actions; cycles, type mismatches and explicit slot restrictions remain enforced. Existing-model compilation is exercised by `scripts/engine-example-smoke.py`.
 
 [Manual imports](MODEL_IMPORTS.md) separate byte-preserving originals from editable models and compiler outputs. Protected intent/receipt streams bind the transport principal to exact stored hashes and revisions. Governance filters registration streams before pagination; ordinary model writes cannot mutate the original namespace. External source claims and detected types never certify external-tool origin or clinical validity.
+
+## Golden rule: clinical databases are read-only
+
+**Every direct clinical/source database connection is read-only.** The MCP, agents,
+workers and channels must never insert, update, delete, alter schemas, run source
+migrations or invoke write-capable procedures. Use read-only credentials and
+server-enforced read-only transactions; fail closed if enforcement is unavailable.
+FHIR delivery uses a separately authorised FHIR API, never its backing database.
+See [the clinical database policy](CLINICAL_DATA_READ_ONLY.md).

@@ -93,3 +93,12 @@ protected audit store and purpose-bound browser assertion; model repositories ar
 rechecked at every decision/use. Agent tools prepare/read requests only.
 Operational extraction, validation and destination writes belong to the private
 .NET runtime and must pass independent delivery gates before being advertised.
+
+## Golden rule: clinical databases are read-only
+
+**Every direct clinical/source database connection is read-only.** The MCP, agents,
+workers and channels must never insert, update, delete, alter schemas, run source
+migrations or invoke write-capable procedures. Use read-only credentials and
+server-enforced read-only transactions; fail closed if enforcement is unavailable.
+FHIR delivery uses a separately authorised FHIR API, never its backing database.
+See [the clinical database policy](CLINICAL_DATA_READ_ONLY.md).

@@ -13,6 +13,24 @@ governance platform remains responsible for publication and distribution.
 Independently maintained and developed by Michael Anywar. Licensed under the
 [MIT License](LICENSE); see [third-party notices](THIRD_PARTY_NOTICES.md).
 
+
+## Golden rule: clinical databases are read-only
+
+**Every direct clinical/source database connection is read-only.** The MCP, agents,
+workers and channels must never insert, update, delete, alter schemas, run source
+migrations or invoke write-capable procedures. Use read-only credentials and
+server-enforced read-only transactions; fail closed if enforcement is unavailable.
+FHIR delivery uses a separately authorised FHIR API, never its backing database.
+See [the clinical database policy](docs/CLINICAL_DATA_READ_ONLY.md).
+
+SQL extraction is not implemented yet; no driver-specific enforcement is claimed.
+Browser chat can send chosen conversation context to your configured AI provider.
+Keep patient records out of chat, model repositories and general MCP requests.
+Filesystem model/history data is not generally encrypted by the application;
+volume/backup encryption and retention are operator responsibilities. External
+HTTPS does not imply encryption on every private service hop. See the
+[security/privacy control matrix](docs/SECURITY.md#security-and-privacy-control-matrix).
+
 ## What you can use it for
 
 - Discover and reuse openEHR archetypes/templates and exact-version FHIR packages.
