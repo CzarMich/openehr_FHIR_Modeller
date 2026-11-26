@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OpenEHR\Assistant\Mcp;
 
+use Mcp\Server\Authorization\AccessToken;
 use Symfony\Component\Uid\Uuid;
 
 /** SDK integration only: preserve its authentication, sessions, dispatch and framing. */
@@ -12,10 +13,10 @@ trait CorrelatesRequestErrors
     /** @var list<string|int> */
     private array $unknownRequestIds = [];
 
-    protected function handleMessage(string $payload, ?Uuid $sessionId): void
+    protected function handleMessage(string $payload, ?Uuid $sessionId, ?AccessToken $accessToken = null): void
     {
         $this->unknownRequestIds = RequestErrors::unknownIds($payload);
-        parent::handleMessage($payload, $sessionId);
+        parent::handleMessage($payload, $sessionId, $accessToken);
     }
 
     /** @param array<string, mixed> $context */

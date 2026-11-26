@@ -17,6 +17,9 @@ const settings = new ConnectionSettings({
     enableDiagnostics: false,
 });
 const endpoint = new URL(getCopilotStudioConnectionUrl(settings));
+// Keep the existing, vetted endpoint contract when upgrading the SDK. Its new
+// discovery mode may select a different host/path outside this worker's scope.
+settings.directConnectUrl = endpoint.href;
 const transport = globalThis.fetch;
 const sent = new Set();
 let responseBytes = 0;

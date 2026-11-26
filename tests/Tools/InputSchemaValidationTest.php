@@ -103,6 +103,6 @@ final class InputSchemaValidationTest extends TestCase
     {
         $schema = (new SchemaGenerator(new DocBlockParser()))->generate(new ReflectionMethod($class, $method));
 
-        return (new SchemaValidator())->validateAgainstJsonSchema($arguments, $schema);
+        return (new SchemaValidator())->validateAgainstJsonSchema($arguments === [] ? new \stdClass() : $arguments, $schema);
     }
 }
