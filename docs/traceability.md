@@ -116,3 +116,7 @@ HTTP/stdio compatibility/security probes to `dotnet/` and ADR-0028.
 
 | REQ-F30 | Exact cross-standard mapping-model confirmation | `src/Application/MappingModelConfirmations.php`, `src/Rest/ReviewApi.php` | `tests/Application/MappingModelConfirmationsTest.php` | ADR-0029 |
 | REQ-F31 | Private operational processing and authorised FHIR delivery | Planned private .NET runtime | Integration evidence required before delivery | ADR-0029 |
+
+| REQ-F32 | Versioned integration channels | C# worker and private browser broker | Channel/delivery acceptance required | ADR-0030 |
+| REQ-F33 | Direct mapping to provided FHIR profiles | `dotnet/Modeller.Core` | Direct profile validation acceptance required | ADR-0030 |
+| REQ-F34 | Narrative-guided deterministic rules | `dotnet/Modeller.Core` | Synthetic example and ambiguity rejection checks | ADR-0030 |

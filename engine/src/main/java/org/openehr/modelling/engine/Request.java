@@ -8,7 +8,7 @@ import java.util.Set;
 
 record Request(String operation, String content, List<Dependency> dependencies) {
     static final Set<String> OPERATIONS = Set.of("validate/archetype", "validate/template", "validate/opt",
-            "compile/template", "inspect/archetype", "inspect/opt", "validate/aql");
+            "compile/template", "inspect/archetype", "inspect/opt", "validate/aql", "validate/composition");
     record Dependency(String identifier, String content, String sha256) {}
 
     static Request parse(JsonNode node) {

@@ -1,7 +1,18 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0.404@sha256:8c6edfb26c85153f236d26efebd9ad349aec403583f343f201ee67838b23658d AS integration-build
+WORKDIR /src/dotnet
+COPY dotnet/ ./
+RUN dotnet restore Modeller.Mcp -r linux-x64 --locked-mode \
+    && dotnet restore Modeller.Processing -r linux-x64 --locked-mode \
+    && dotnet publish Modeller.Mcp -c Release -r linux-x64 --self-contained true --no-restore -o /out/server \
+    && dotnet publish Modeller.Processing -c Release -r linux-x64 --self-contained true --no-restore -o /out/worker
+
 FROM node:22.22.1-bookworm-slim AS dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libicu72 libssl3 libstdc++6 zlib1g \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app/chat
+COPY --from=integration-build /out/ /app/integration/
+COPY resources/guides /app/integration/resources/guides
+COPY dotnet/notices /app/integration/notices
 COPY chat/package.json chat/package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 RUN mkdir -p /data/chat /workspace && chown -R node:node /data/chat /workspace

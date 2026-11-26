@@ -54,7 +54,7 @@ WORKING means the described subset is implemented; it does not imply clinical ap
 | AQL syntax parser | WORKING | Native openEHR SDK 2.35.0 grammar/AST, independent of a CDR |
 | Template-aware AQL paths | WORKING | Exact OPT 1.4/OPT 2 structural and RM paths; unsupported constructs explicitly INCOMPLETE, no value/function/clinical assurance |
 | AQL workspace and CDR query execution | WORKING | Private encrypted connections, read-only Query API, cancellation, table/JSON/raw views, saved queries and history; [scope](docs/CDR_WORKSPACE.md) |
-| Composition validation and CDR deployment | NOT IMPLEMENTED | No clinical data persistence or model deployment operations |
+| Composition validation and CDR deployment | PARTIAL | C# processing validates canonical RM JSON against one compiled OPT 1.4; CDR model deployment/persistence is not included |
 | Copilot Studio tenant connection | NOT TESTED | Current official deployment guide; no tenant available |
 | Visual editor | NOT IMPLEMENTED | Architecture prepared |
 | General REST application API and CLI | PARTIAL | Versioned project/artifact REST endpoints with OpenAPI, optimistic revisions, project archival, shared repository authorization, and a Composer model CLI; broader application operations and OIDC-interactive CLI support remain; see [API and CLI guide](docs/MODEL_API.md) and [isolated OIDC acceptance](docs/evidence/model-api-oidc-smoke.json) |
@@ -72,9 +72,9 @@ Browser AI tasks use configurable context budgets, selective tool schemas and lo
 
 Bounded synthetic CSV/custom JSON inspection, explicit forward/reverse mapping previews and supplied template/profile context are available through MCP and browser chat. Clinical meaning, model confirmation, full conformance and operational processing remain separate. See [implemented scope and backlog](docs/SOURCE_MODELLING.md).
 
-## C# migration slice
+## C# modelling and integration
 
-An independent read-only C# service implements guide retrieval/resources with published contract and content parity. HTTP/stdio and boundary tests cover this Dev slice. OIDC, clinical/stateful tools and production replacement remain unmigrated; see [the parity matrix](docs/DOTNET_MIGRATION.md).
+C#/.NET provides guide parity, an independent versioned project/model/rule registry, protected human confirmation, synthetic MCP operations and optional private file jobs/channels with export or scoped conditional-create FHIR delivery. The Node browser adapter and Java/Node standards engines are retained. The PHP `/mcp` endpoint and existing repositories remain compatibility components; full migration is not complete. See [the parity matrix](docs/DOTNET_MIGRATION.md) and [operator/user guide](docs/INTEGRATION_ENGINE.md).
 
 
 Mapping-model selection: `fhir_mapping prepare-confirmation/confirmation` supplies

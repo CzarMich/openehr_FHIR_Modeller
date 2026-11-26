@@ -7,10 +7,7 @@ separate: the former produces versioned templates, profiles and mapping rules;
 the latter must validate records, reconcile failures and export or deliver FHIR
 to an authorised configured destination.
 
-The compatibility application currently runs on the patched PHP runtime; the
-independent C#/.NET service has migrated guide retrieval only. See the exact
-[parity matrix](DOTNET_MIGRATION.md). This architecture does not claim a completed
-runtime migration or operational data-delivery implementation.
+New modelling, mapping confirmation and private integration services run in C#/.NET 10. The Node browser adapter and specialised Java/Node standards engines are retained. The original PHP `/mcp` endpoint and repositories remain a compatibility surface while migration proceeds. See the exact [parity matrix](DOTNET_MIGRATION.md) and [integration guide](INTEGRATION_ENGINE.md); a full PHP removal has not occurred.
 
 ## Product workflow and delivery boundary
 
@@ -29,19 +26,16 @@ flowchart LR
     Sources --> Mapping
     Audit --> Mapping
     Mapping --> Preview[Synthetic preview and findings]
-    Mapping -.-> Runtime[Private processing and per-record validation]
-    Runtime -.-> Export[Private file export]
-    Runtime -.-> Delivery[Authorised FHIR delivery]
-    Delivery -.-> Destination[Configured destination FHIR server]
-    Runtime -.-> Reconcile[Quarantine and reconciliation]
+    Mapping --> Runtime[Optional private C# processing and validation]
+    Runtime --> Export[Private file export]
+    Runtime --> Delivery[Authorised FHIR delivery]
+    Delivery --> Destination[Configured destination FHIR server]
+    Runtime --> Reconcile[Quarantine and reconciliation]
 ```
 
-Solid paths describe implemented modelling/preview capabilities; dashed paths
-identify the operational processing, export and destination-delivery path still
-being implemented. Neither a diagram nor a successful preview is deployment
-or conformance evidence.
+The optional integration runtime processes private file batches and channels with confirmed mapping assignments. FHIR delivery requires separate operator enablement, a registered authorised destination and successful validation. A diagram or a successful synthetic preview is not deployment, clinical or conformance evidence.
 
-## Existing modelling and identity adapters
+## Compatibility modelling and identity adapters
 
 ```mermaid
 flowchart TB
@@ -144,3 +138,25 @@ migrations or invoke write-capable procedures. Use read-only credentials and
 server-enforced read-only transactions; fail closed if enforcement is unavailable.
 FHIR delivery uses a separately authorised FHIR API, never its backing database.
 See [the clinical database policy](CLINICAL_DATA_READ_ONLY.md).
+
+
+## C# modelling and integration boundary
+
+New model/rule state and private processing use `Modeller.Core`, `Modeller.Mcp` and `Modeller.Processing`, not PHP application services. The Node browser adapter verifies identity/CSRF, binds human decisions to exact requests, and schedules bounded C# workers. The Java openEHR and Node/Java FHIR engines remain specialised validators. The compatibility `/mcp` endpoint is not silently replaced. See [ADR-0030](decisions/0030-dotnet-modelling-and-integration-channels.md), [migration status](DOTNET_MIGRATION.md) and [integration operation](INTEGRATION_ENGINE.md).
+
+```mermaid
+flowchart LR
+  Agent[External MCP agent] -->|API key; synthetic modelling| MCP[C# MCP service]
+  Browser[Authenticated browser] --> Node[Node session and channel adapter]
+  Node -->|Request-bound human assertion| MCP
+  MCP --> Models[Versioned C# model and rule registry]
+  Node -->|Confirmed assignment| Worker[Private C# worker]
+  Files[Read-only source files] --> Worker
+  Worker -->|Recheck exact confirmation| Models
+  Worker --> Engines[Java openEHR and FHIR validation engines]
+  Worker --> Private[Private exports, quarantine and checkpoints]
+  Worker -->|Separately authorised HTTPS conditional create| FHIR[FHIR destination API]
+  Legacy[PHP compatibility MCP] -. existing contracts .-> Old[Existing repositories and governance]
+```
+
+Direct source-to-FHIR requires supplied/confirmed FHIR SDs; a route through openEHR or reverse mapping also requires the exact openEHR template. User narrative and interpretations are versioned with executable rules. Clinical approval remains distinct. No clinical database driver is enabled; all future direct clinical database access must be read-only.

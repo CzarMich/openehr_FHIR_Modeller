@@ -44,9 +44,14 @@ services:
       CHAT_PUBLIC_URL: https://dev-openehr-fhir-modeller.sandbox.hygeoniq.com
       CHAT_MCP_URL: http://ingress:8343/mcp
       CHAT_DATA_DIR: /data/chat
+      CHAT_INTEGRATION_ENABLED: "true"
+      CHAT_INTEGRATION_FHIR_KEY_FILE: /run/secrets/fhir-engine-key
+      CHAT_INTEGRATION_NATIVE_KEY_FILE: /run/secrets/engine-key
       NODE_EXTRA_CA_CERTS: /run/secrets/dev-ca.crt
     volumes:
       - chat-data:/data/chat
+      - /opt/hygeoniq/projects/openehr-fhir-modeller/config/secrets/fhir-engine-key:/run/secrets/fhir-engine-key:ro
+      - /opt/hygeoniq/projects/openehr-fhir-modeller/config/secrets/fhir-engine-key:/run/secrets/engine-key:ro
       - /usr/local/share/ca-certificates/hygeoniq-development-ca.crt:/run/secrets/dev-ca.crt:ro
     extra_hosts:
       - dev-auth.sandbox.hygeoniq.com:192.168.178.20
@@ -126,6 +131,8 @@ services:
       app: {condition: service_started}
     environment:
       ENGINE_KEY_FILE: /run/secrets/engine-key
+      ENGINE_BIND_HOST: 0.0.0.0
+      ENGINE_ALLOWED_HOSTS: 127.0.0.1:8090,localhost:8090,app:8090
     volumes:
       - /opt/hygeoniq/projects/openehr-fhir-modeller/config/secrets/fhir-engine-key:/run/secrets/engine-key:ro
     labels:

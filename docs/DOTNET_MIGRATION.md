@@ -5,7 +5,7 @@
 The production PHP update is maintained as the compatibility baseline. The new
 service targets .NET 10 LTS, SDK 10.0.404/runtime 10.0.15 and the official MCP
 ASP.NET Core package 2.4.0. Versions and transitive dependencies are locked and
-audited. This is an independent read-only Dev slice, not a production replacement.
+audited. The guide service now shares a C# core with the separately enabled modelling/integration workspace. The original `/mcp` endpoint remains a PHP compatibility surface; a full PHP removal has not occurred. New application/domain features must be C#; no new PHP features are permitted.
 
 | Surface | .NET status | Gate |
 |---|---|---|
@@ -15,13 +15,19 @@ audited. This is an independent read-only Dev slice, not a production replacemen
 | HTTP API key/host/origin/body limits | First slice | Positive/negative independent client probes |
 | OIDC, tenants and browser accounts | Not migrated | Existing identity/security tests must pass before cutover |
 | Search, examples, terminology and CKM | Not migrated | Preserve ranking, scope, versions, provenance and bounded results |
-| Projects/repositories and mapping state | Not migrated | Storage/revision/CAS/tenant parity and migration rehearsal |
-| Human model confirmation/governance | Not migrated | Protected review, immutable evidence, stale/replay/role rejection |
-| Source and mapping tools | Not migrated | Port deterministic orchestration, retain executable engine and fixtures |
+| New integration projects/models/mappings | Independent C# registry | Immutable versions and hash pins; existing PHP repositories are not automatically migrated |
+| New integration model/rule confirmation | C# protected review | Purpose/request-bound human assertions, roles, project scopes, sequence checks and HMAC event chain; existing clinical governance remains separate |
+| New private source/mapping execution | C# core and worker | Bounded file adapters, deterministic rules, validation, export and conditional-create FHIR delivery; see [integration guide](INTEGRATION_ENGINE.md) |
 | Browser backend/providers | Not migrated | Preserve personal credential isolation and browser journeys |
 | Compiler/validator engines | Retained | Reuse installed Java/Node services and exact toolchain versions |
 
-## First slice
+## Compatibility boundary
+
+The new tools are `modelling_project`, `modelling_model`, `modelling_mapping`, `source_inspect` and `modelling_engine`. The browser launches a private C# service and workers. Its authenticated public MCP adapter is `/chat/integration/mcp`; the integration page is `/chat/integration/`. The Node browser adapter is retained. This is not a Node or Java rewrite, and specialised engines are not being ported to C#.
+
+The C# registry is a shared organisation workspace for the configured API-key principal. Human calls additionally enforce verified project scopes. Do not advertise API-key tenant isolation. Re-provide and confirm existing models in this registry before assigning a new integration channel; PHP confirmation identifiers are not interchangeable.
+
+## Original guide slice
 
 `dotnet/Modeller.Mcp` reads existing guide files directly into an immutable bounded
 index. It exposes only the implemented guide tool/resources. API-key HTTP access

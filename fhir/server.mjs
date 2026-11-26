@@ -31,7 +31,7 @@ export function createServer({token=process.env.FHIR_ENGINE_TOKEN_FILE ? readFil
         activeValidators++;validationSlot=true;
       }
       const result=await execute(body.operation,body.parameters,{...context,tenant:body.tenant});send(200,result);
-    } catch(error) {send(error instanceof EngineError?error.status:500,{error:{code:error.code || 'ENGINE_FAILURE',message:error instanceof EngineError?error.message:'FHIR engine execution failed; inspect private service logs.'}});if(!(error instanceof EngineError))console.error('FHIR engine failure:',error.name,error.message);}
+    } catch(error) {send(error instanceof EngineError?error.status:500,{error:{code:error.code || 'ENGINE_FAILURE',message:error instanceof EngineError?error.message:'FHIR engine execution failed; inspect private service logs.'}});if(!(error instanceof EngineError))console.error('FHIR engine failure:',error.name);}
     finally{active--;if(validationSlot)activeValidators--;}
   });
   server.requestTimeout=30_000;server.headersTimeout=15_000;server.keepAliveTimeout=5000;

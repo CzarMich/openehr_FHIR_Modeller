@@ -21,6 +21,7 @@
     <dependency><groupId>org.apache.logging.log4j</groupId><artifactId>log4j-api</artifactId><version>2.25.5</version></dependency>
   </dependencies></dependencyManagement>
   <dependencies>
+    <dependency><groupId>org.ehrbase.openehr.sdk</groupId><artifactId>validation</artifactId><version>${sdk.version}</version><exclusions><exclusion><groupId>com.nedap.healthcare.archie</groupId><artifactId>test-rm</artifactId></exclusion></exclusions></dependency>
     <dependency><groupId>com.nedap.healthcare.archie</groupId><artifactId>tools</artifactId><version>${archie.version}</version></dependency>
     <dependency><groupId>com.nedap.healthcare.archie</groupId><artifactId>referencemodels</artifactId><version>${archie.version}</version></dependency>
     <dependency><groupId>org.ehrbase.openehr.sdk</groupId><artifactId>aql</artifactId><version>${sdk.version}</version></dependency>

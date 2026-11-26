@@ -7,7 +7,7 @@ namespace Modeller.Mcp;
 
 public static class GuideProtocol
 {
-    public static IMcpServerBuilder AddGuides(this IMcpServerBuilder builder, GuideRepository guides)
+    public static IMcpServerBuilder AddGuides(this IMcpServerBuilder builder, GuideRepository guides, WorkspaceProtocol? workspace = null)
     {
         var directory = Path.Combine(AppContext.BaseDirectory, "contracts");
         var tool = JsonSerializer.Deserialize<Tool>(File.ReadAllText(Path.Combine(directory, "guide_get.tool.json")))
@@ -15,12 +15,15 @@ public static class GuideProtocol
         var template = JsonSerializer.Deserialize<ResourceTemplate>(File.ReadAllText(Path.Combine(directory, "guides.template.json")))
             ?? throw new InvalidOperationException("Published guide resource contract is required.");
         return builder
-            .WithListToolsHandler((_, _) => ValueTask.FromResult(new ListToolsResult { Tools = [tool] }))
+            .WithListToolsHandler((_, _) => ValueTask.FromResult(new ListToolsResult { Tools = new[] { tool }.Concat(workspace?.Tools ?? []).ToList() }))
             .WithCallToolHandler((request, cancellation) =>
             {
                 cancellation.ThrowIfCancellationRequested();
                 var parameters = request.Params ?? throw InvalidInput();
-                if (parameters.Name != "guide_get") throw InvalidInput();
+                if (parameters.Name != "guide_get") {
+                    if (workspace is not null) return workspace.Call(parameters.Name, parameters.Arguments, cancellation);
+                    throw InvalidInput();
+                }
                 var args = parameters.Arguments ?? new Dictionary<string, JsonElement>();
                 if (args.Keys.Any(k => k is not ("uri" or "category" or "name"))) throw InvalidInput();
                 var uri = StringArgument(args, "uri", false) ?? "";

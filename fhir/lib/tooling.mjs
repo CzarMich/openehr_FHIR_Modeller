@@ -26,8 +26,9 @@ async function run(command,args,cwd,toolHome,timeout=180_000) {
 }
 async function job(project,context,validator=false) {
   const lock=await resolveDependencies(project,context),root=await tenantRoot(context);
-  await mkdir(path.join(root,'jobs'),{recursive:true});
-  const dir=await mkdtemp(path.join(root,'jobs','run-'));
+  const jobs=validator?path.join('/tmp','modeller-private-validation'):path.join(root,'jobs');
+  await mkdir(jobs,{recursive:true,mode:0o700});
+  const dir=await mkdtemp(path.join(jobs,'run-'));
   const toolHome=path.join(dir,'home'),cache=path.join(toolHome,'.fhir','packages');await mkdir(cache,{recursive:true});
   for(const p of lock.packages)await cp(path.join(root,'packages',p.key,'package'),path.join(cache,`${p.id}#${p.version}`,'package'),{recursive:true});
   if(validator) {

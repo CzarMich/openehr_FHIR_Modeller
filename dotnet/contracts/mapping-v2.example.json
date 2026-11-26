@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 2,
+  "name": "synthetic-patient-example",
+  "version": "1.0.0",
+  "direction": "source-direct-to-fhir",
+  "sourceSchema": [
+    {
+      "path": "/id",
+      "types": [
+        "string"
+      ]
+    },
+    {
+      "path": "/name",
+      "types": [
+        "string"
+      ]
+    }
+  ],
+  "sourceSchemaSha256": "9e30e4bcbedbcd1d12774ea66ed4369471b229e6f480b818e6298f337deefc92",
+  "reversibility": "retained-context",
+  "description": "Synthetic documentation example, not a clinical mapping",
+  "requirements": [
+    {
+      "id": "USER-1",
+      "originalText": "Copy the supplied synthetic identifier and display name. Reject missing names.",
+      "basis": "user-instruction"
+    }
+  ],
+  "unresolvedQuestions": [],
+  "examples": [
+    {
+      "synthetic": true,
+      "input": {
+        "id": "syn-1",
+        "name": "Synthetic One"
+      },
+      "expected": [
+        {
+          "resourceType": "Patient",
+          "identifier": [
+            {
+              "system": "urn:uuid:991c7a7a-c903-4da4-944c-23329b16797a",
+              "value": "syn-1"
+            }
+          ],
+          "active": true,
+          "name": [
+            {
+              "text": "Synthetic One"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "synthetic": true,
+      "input": {
+        "id": "syn-missing"
+      },
+      "expectedError": "RECORD_REQUIRED"
+    }
+  ],
+  "stages": [
+    {
+      "seed": {
+        "resourceType": "Patient",
+        "identifier": [
+          {
+            "system": "urn:uuid:991c7a7a-c903-4da4-944c-23329b16797a"
+          }
+        ],
+        "active": true
+      },
+      "rules": [
+        {
+          "source": "/id",
+          "target": "/identifier/0/value",
+          "operation": "copy",
+          "description": "Copy the declared synthetic string",
+          "interpretation": "Use this exact path without clinical inference",
+          "assumptions": [],
+          "missing": "reject",
+          "null": "reject"
+        },
+        {
+          "source": "/name",
+          "target": "/name/0/text",
+          "operation": "copy",
+          "description": "Copy the declared synthetic string",
+          "interpretation": "Use this exact path without clinical inference",
+          "assumptions": [],
+          "missing": "reject",
+          "null": "reject"
+        }
+      ]
+    }
+  ]
+}

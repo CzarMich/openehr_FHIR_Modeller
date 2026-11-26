@@ -26,6 +26,7 @@ final class NativeEngine {
         result.put("clinical_approval", false);
         List<Map<String, Object>> findings = new ArrayList<>();
         result.put("findings", findings);
+        if (request.operation().equals("validate/composition")) return CompositionValidation.validate(request, result);
         if (request.operation().equals("validate/aql")) return aql(request, result, findings);
         if (LegacyEngine.xml(request.content())) return LegacyEngine.execute(request, result);
         if (LegacyEngine.adl(request.content())) return LegacyEngine.archetype(request, result);
