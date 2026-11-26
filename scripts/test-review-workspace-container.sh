@@ -43,14 +43,15 @@ assert.equal(spawnSync('/app/integration/worker/Modeller.Processing', []).stderr
 async function rpc(body, session, authenticated = true) {
   return await new Promise((resolve, reject) => {
     const bytes = JSON.stringify(body);
-    const request = http.request({ hostname:'127.0.0.1', port:8350, path:'/chat/integration/mcp', method:'POST', headers:{Host:'browser.fixture','Content-Type':'application/json',Accept:'application/json, text/event-stream','Content-Length':Buffer.byteLength(bytes), ...(authenticated?{'X-API-Key':'b'.repeat(64)}:{}), ...(session?{'Mcp-Session-Id':session,'MCP-Protocol-Version':'2025-06-18'}:{})}}, response=>{
+    const request = http.request({ hostname:'127.0.0.1', port:8350, path:'/chat/integration/mcp', method:'POST', headers:{Host:'browser.fixture','Content-Type':'application/json',Accept:'application/json, text/event-stream','Content-Length':Buffer.byteLength(bytes), ...(authenticated?{'X-API-Key':'b'.repeat(64)}:{}), ...(session?{'Mcp-Session-Id':session,'MCP-Protocol-Version':'2025-11-25'}:{})}}, response=>{
       let text=''; response.on('data',chunk=>text+=chunk); response.on('end',()=>{const lines=text.split('\n').filter(line=>line.startsWith('data:')).map(line=>line.slice(5).trim()); resolve({status:response.statusCode,session:response.headers['mcp-session-id'],result:text?(JSON.parse(lines.length?lines.at(-1):text)):null});});
     }); request.on('error',reject); request.end(bytes);
   });
 }
-const initialize={jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'packaged-csharp-check',version:'1'}}};
+const initialize={jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2025-11-25',capabilities:{},clientInfo:{name:'packaged-csharp-check',version:'1'}}};
 assert.equal((await rpc(initialize,null,false)).status,401);
 const initialized=await rpc(initialize);assert.equal(initialized.status,200);
+await rpc({jsonrpc:"2.0",method:"notifications/initialized"},initialized.session);
 const tools=await rpc({jsonrpc:'2.0',id:2,method:'tools/list',params:{}},initialized.session);
 assert.equal(tools.status,200);
 for(const name of ['modelling_project','modelling_model','modelling_mapping','source_inspect','modelling_engine'])assert.ok(tools.result.result.tools.some(tool=>tool.name===name),name);
