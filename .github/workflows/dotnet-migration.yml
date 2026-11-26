@@ -1,0 +1,56 @@
+name: .NET migration slice
+on:
+  pull_request:
+    paths: ["dotnet/**", "resources/guides/**", "scripts/mcp-smoke.py", ".github/workflows/dotnet-migration.yml"]
+  push:
+    branches: [main]
+    paths: ["dotnet/**", "resources/guides/**", "scripts/mcp-smoke.py", ".github/workflows/dotnet-migration.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: dotnet-migration-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.404
+      - name: Restore locked audited packages and build the C# service
+        working-directory: dotnet
+        run: |
+          dotnet restore Modeller.Mcp --locked-mode
+          dotnet build Modeller.Mcp -c Release --no-restore
+      - name: Verify HTTP and stdio contracts, guide content and security boundaries
+        run: |
+          set -euo pipefail
+          python3 dotnet/tests/run-contracts.py --dll dotnet/Modeller.Mcp/bin/Release/net10.0/Modeller.Mcp.dll | tee "$RUNNER_TEMP/dotnet-contracts.jsonl"
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the independent runtime image on the hosted runner
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: dotnet/Dockerfile
+          load: true
+          push: false
+          tags: modeller-dotnet-ci:${{ github.sha }}
+          cache-from: type=gha,scope=dotnet-migration
+          cache-to: type=gha,scope=dotnet-migration,mode=max
+      - name: Verify packaged runtime without PHP or production data
+        run: |
+          set -euo pipefail
+          docker run --rm --entrypoint sh modeller-dotnet-ci:${{ github.sha }} -c '! command -v php && ! command -v composer'
+          python3 dotnet/tests/run-contracts.py --image modeller-dotnet-ci:${{ github.sha }} | tee "$RUNNER_TEMP/dotnet-runtime-contracts.jsonl"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dotnet-migration-contracts-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/dotnet-contracts.jsonl
+            ${{ runner.temp }}/dotnet-runtime-contracts.jsonl

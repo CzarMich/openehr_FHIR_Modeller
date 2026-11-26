@@ -144,3 +144,13 @@ Promote exact successfully verified Dev image digests through the infrastructure
 GitOps repository to the existing RKE2 namespace on `hygeoniq-prod`.
 `amcdr-vps` remains the public edge only. Preserve PVCs, secrets and identity.
 Do not invoke the legacy Docker-on-VPS delivery script or build on production.
+
+## .NET migration boundary
+
+Follow ADR-0028 and docs/DOTNET_MIGRATION.md. C# code lives under dotnet/.
+Use the pinned .NET 10 SDK container for Dev builds/tests; build application images
+on hosted CI. Preserve PHP contracts and clinical/governance/storage boundaries.
+The first read-only service is Dev-only and must not replace production.
+New application features target the .NET service; PHP remains for security and
+compatibility maintenance while migration proceeds. Keep the existing compiler
+engines and browser assets unless a verified replacement is needed.

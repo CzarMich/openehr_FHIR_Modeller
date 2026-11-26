@@ -378,3 +378,14 @@ requirements:
     adr: ["0027"]
     plans: [docs/SOURCE_MODELLING.md]
     verification: Bounded synthetic previews; operational processing and full conformance not delivered.
+
+  - id: REQ-F29
+    title: Incremental C# MCP migration with contract parity
+    canonical: docs/requirements.md
+    status: draft
+    implementation: partial
+    packages: [dotnet/Modeller.Mcp/*.cs, dotnet/contracts/*.json]
+    tests: [dotnet/tests/contract-smoke.py]
+    adr: ["0028"]
+    plans: [docs/DOTNET_MIGRATION.md]
+    verification: Read-only guide retrieval first; clinical/stateful capabilities remain on the existing service.

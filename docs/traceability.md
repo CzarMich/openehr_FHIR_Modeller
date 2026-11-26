@@ -110,3 +110,6 @@ REQ-F25 maps bounded provider context, session rotation, persistent project task
 REQ-F28 connects bounded source inspection, exact model-input readiness and
 explicit synthetic transformations to `fhir/lib/pipeline.mjs`, FhirModelling,
 FhirTools and `fhir/test/pipeline.test.mjs`; see ADR-0027 and SOURCE_MODELLING.md.
+
+REQ-F29 connects the .NET migration service, captured MCP contracts and independent
+HTTP/stdio compatibility/security probes to `dotnet/` and ADR-0028.

@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- Added a read-only C# MCP migration slice with guide contract parity.
 - Updated transport, authentication and parser dependencies with a patched PHP runtime.
 - Source inspection and deterministic synthetic mapping previews with supplied model inputs and explicit confirmation blockers.
 

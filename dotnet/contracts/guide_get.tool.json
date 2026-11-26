@@ -1,0 +1,43 @@
+{
+  "name": "guide_get",
+  "title": "Get openEHR guide",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "uri": {
+        "type": "string",
+        "description": "Canonical guide URI (openehr://guides/{category}/{name}). Optional when category and name are provided.",
+        "default": ""
+      },
+      "category": {
+        "type": [
+          "null",
+          "string"
+        ],
+        "description": "Guide category (authoring guides for archetypes/templates/AQL/simplified_formats, plus \"specs\" per-document spec digests and \"howto\" toolchain guides). Optional when URI is provided.",
+        "default": null,
+        "enum": [
+          "archetypes",
+          "templates",
+          "aql",
+          "simplified_formats",
+          "specs",
+          "howto",
+          null
+        ]
+      },
+      "name": {
+        "type": "string",
+        "description": "Guide filename without extension. Optional when URI is provided.",
+        "default": ""
+      }
+    },
+    "additionalProperties": false
+  },
+  "description": "Fetch the full content of an openEHR guide by its canonical URI or by specifying its category and name.\n\nUse this tool to retrieve an openEHR guide for a specific processing or implementation task around archetypes, templates, AQL, simplified formats, spec digests, or toolchain how-tos.\nSuch guides describe modelling workflows, best practices, syntax checklists, principal rules, anti-patterns, normative spec digests, and other guidance on demand.",
+  "annotations": {
+    "readOnlyHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false
+  }
+}

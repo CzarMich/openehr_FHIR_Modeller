@@ -21,3 +21,6 @@ fhir/.data
 fhir/tools
 fhir/acceptance-results.json
 fhir/acceptance-export
+
+**/bin
+**/obj
