@@ -57,7 +57,6 @@ try {
         }
         try {
             Progress();
-            if (source.Format == "fhir-json") for (var inputIndex = 0; inputIndex < records.Count; inputIndex++) await validation.Fhir(records[inputIndex], Path.Combine(directory, "evidence", $"input-{inputIndex:D6}"), cancellation.Token);
             for (var index = 0; index < groups.Count; index++) {
                 cancellation.Token.ThrowIfCancellationRequested(); await models.Refresh(cancellation.Token);
                 if (Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories).Sum(file => new FileInfo(file).Length) > 256L * 1048576) throw new ProcessingException("JOB_STORAGE_LIMIT");
@@ -70,6 +69,10 @@ try {
                 row.Complete = false;
                 Data.Write(rowFile, row);
                 try {
+                    if (source.Format == "fhir-json") {
+                        var inputs = groups[index].Record["_group"]?["records"] as JsonArray ?? new JsonArray(groups[index].Record.DeepClone());
+                        for (var inputIndex = 0; inputIndex < inputs.Count; inputIndex++) await validation.Fhir((JsonObject)inputs[inputIndex]!, Path.Combine(directory, "evidence", $"input-{index:D6}-{inputIndex:D6}"), cancellation.Token);
+                    }
                     var mapped = mapping.Transform(groups[index].Record);
                     // Validate the complete source record's outputs before the first destination write.
                     for (var output = 0; output < mapped.Count; output++) {
