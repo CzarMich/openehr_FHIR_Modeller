@@ -58,3 +58,7 @@ The inventory is recorded in `composer.lock`, `chat/package-lock.json`, `engine/
 - **Container services:** PHP, Caddy, PostgreSQL, Valkey, Java, operating-system packages and development tools retain the licenses and notices of their pinned distributions. Nothing here relicenses these runtimes or services.
 
 Historical inspiration and general acknowledgements have not been promoted to ownership claims or treated as evidence of incorporated code. Git history preserves the actual contributors and commit metadata. Product compatibility and trademarks do not imply endorsement.
+
+## C# MCP migration
+
+The optional .NET service uses the official [C# MCP SDK](https://github.com/modelcontextprotocol/csharp-sdk) with its exact upstream license/transition notice and third-party notices retained in `dotnet/notices/`. Microsoft .NET and its runtime image retain their own license and third-party notices. Exact NuGet dependencies/checksums are recorded in `dotnet/Modeller.Mcp/packages.lock.json`; no SDK source is vendored. Existing guide content and upstream credits are preserved unchanged.

@@ -73,3 +73,7 @@ chat/playwright-report/
 /fhir/acceptance-results.json
 /fhir/acceptance-export/
 /test-results/
+
+# .NET migration build output
+/dotnet/**/bin/
+/dotnet/**/obj/

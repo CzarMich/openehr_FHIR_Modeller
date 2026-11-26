@@ -1,0 +1,6 @@
+{
+  "uriTemplate": "openehr://guides/{category}/{name}",
+  "name": "guides",
+  "description": "The openEHR Assistant guides document (markdown) identified by category and name",
+  "mimeType": "text/markdown"
+}

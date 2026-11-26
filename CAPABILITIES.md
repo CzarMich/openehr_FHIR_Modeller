@@ -71,3 +71,7 @@ Browser AI tasks use configurable context budgets, selective tool schemas and lo
 ## Source-driven mapping increment
 
 Bounded synthetic CSV/custom JSON inspection, explicit forward/reverse mapping previews and supplied template/profile context are available through MCP and browser chat. Clinical meaning, model confirmation, full conformance and operational processing remain separate. See [implemented scope and backlog](docs/SOURCE_MODELLING.md).
+
+## C# migration slice
+
+An independent read-only C# service implements guide retrieval/resources with published contract and content parity. HTTP/stdio and boundary tests cover this Dev slice. OIDC, clinical/stateful tools and production replacement remain unmigrated; see [the parity matrix](docs/DOTNET_MIGRATION.md).

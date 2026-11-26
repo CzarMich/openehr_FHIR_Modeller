@@ -76,3 +76,11 @@ preview. It never accepts caller approval flags as evidence. Retrieval connector
 and patient processing remain separate from parsers and model storage.
 See [ADR-0027](decisions/0027-source-driven-mapping.md) and the
 [audit and increment backlog](SOURCE_MODELLING.md).
+
+## Incremental .NET migration (REQ-F29)
+
+An independent ASP.NET Core MCP service starts with read-only knowledge retrieval.
+It reads the existing bundled guides directly, without PHP proxies. Fixed published
+contracts and black-box tests provide the compatibility boundary. Existing PHP
+production, browser, private compiler engines, data stores and governance remain
+authoritative until each replacement passes its migration gates. See ADR-0028.
