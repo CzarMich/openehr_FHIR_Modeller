@@ -137,10 +137,18 @@ test("channels pin the confirmed mapping and cannot silently change while runnin
             /Stop and reload/,
         );
         assert.equal(f.workspace.listChannels({ identity: "another" }).items.length, 0);
+        channel.activeJob = "d".repeat(64);
+        f.workspace.persist(channel);
         f.workspace.close();
         const restarted = new ProcessingWorkspace({ dataDir: f.root }, f.core);
         try {
-            assert.equal(restarted.listChannels(f.session).items[0].status, "INTERRUPTED");
+            const restored = restarted.listChannels(f.session).items[0];
+            assert.equal(restored.status, "INTERRUPTED");
+            assert.equal(restored.activeJob, null);
+            assert.equal(restored.interruptedJob, "d".repeat(64));
+            await restarted.controlChannel(f.session, restored.id, "start");
+            assert.equal(restored.status, "RUNNING");
+            assert.equal(restored.activeJob, null);
         } finally {
             restarted.close();
         }
@@ -249,6 +257,43 @@ test("a failed worker preflight cannot reuse an old successful job status", asyn
         assert.equal(result.status, "BLOCKED");
         assert.equal(result.error, "SOURCE_CHANGED");
         assert.equal(result.read, 1);
+    } finally {
+        f.close();
+    }
+});
+
+test("unrelated source uploads do not revoke an active job's scoped connection", async () => {
+    const f = fixture();
+    try {
+        const source = await f.workspace.upload(
+            f.session,
+            { projectId: "lab", format: "csv", name: "first.csv" },
+            Buffer.from("id\n1\n"),
+        );
+        const request = { owner: hash(f.session.identity), projectId: "lab", sourceId: source.id, mode: "export" };
+        const original = f.workspace.connectionFingerprint(request);
+        await f.workspace.upload(
+            f.session,
+            { projectId: "lab", format: "csv", name: "second.csv" },
+            Buffer.from("id\n2\n"),
+        );
+        assert.equal(f.workspace.connectionFingerprint(request), original);
+    } finally {
+        f.close();
+    }
+});
+test("revoking the selected source grant changes the active job fingerprint", () => {
+    const f = fixture();
+    try {
+        const owner = hash(f.session.identity),
+            file = join(f.root, "operator-connections.json");
+        f.workspace.config.integrationConnectionsFile = file;
+        const source = { id: "registered", root: f.root, format: "csv", owners: [owner], projects: ["lab"] };
+        writeFileSync(file, JSON.stringify({ sources: [source], destinations: [] }));
+        const request = { owner, projectId: "lab", sourceId: "registered", mode: "export" };
+        const original = f.workspace.connectionFingerprint(request);
+        writeFileSync(file, JSON.stringify({ sources: [{ ...source, owners: [] }], destinations: [] }));
+        assert.notEqual(f.workspace.connectionFingerprint(request), original);
     } finally {
         f.close();
     }

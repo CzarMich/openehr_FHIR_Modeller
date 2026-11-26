@@ -64,7 +64,9 @@ export class ProcessingWorkspace {
             )) {
                 const channel = json(join(directory, name));
                 // Restart requires an explicit resume; pending data and checkpoints remain intact.
-                if (channel.status === "RUNNING" || channel.status === "STOPPING") {
+                if (channel.status === "RUNNING" || channel.status === "STOPPING" || channel.activeJob) {
+                    if (channel.activeJob) channel.interruptedJob = channel.activeJob;
+                    channel.activeJob = null;
                     channel.status = "INTERRUPTED";
                     save(join(directory, name), channel);
                 }
@@ -398,6 +400,18 @@ export class ProcessingWorkspace {
             })),
         };
     }
+    connectionFingerprint(request) {
+        const configuration = this.configuration(request.owner, request.projectId);
+        return hash(
+            JSON.stringify({
+                ...configuration,
+                sources: configuration.sources.filter((source) => source.id === request.sourceId),
+                destinations: configuration.destinations.filter(
+                    (destination) => request.mode === "deliver" && destination.id === request.destinationId,
+                ),
+            }),
+        );
+    }
     jobDirectory(owner, id, create = false) {
         if (!ids.test(owner) || !ids.test(id)) throw problem("Job not found.", 404);
         const directory = join(this.root, owner, "jobs", id);
@@ -494,11 +508,11 @@ export class ProcessingWorkspace {
                 child.kill("SIGTERM");
             }, 1800000);
             timer.unref();
-            const admitted = JSON.stringify(this.configuration(owner, job.request.projectId));
+            const admitted = this.connectionFingerprint(job.request);
             const grantMonitor = setInterval(() => {
                 try {
                     if (
-                        JSON.stringify(this.configuration(owner, job.request.projectId)) === admitted &&
+                        this.connectionFingerprint(job.request) === admitted &&
                         (job.request.mode !== "deliver" || this.config.integrationAllowDelivery)
                     )
                         return;
@@ -691,6 +705,8 @@ export class ProcessingWorkspace {
             channel = this.channels.get(owner + ":" + id);
         if (!channel) throw problem("Channel not found.", 404);
         if (action === "start") {
+            if (channel.status === "STOPPING" && channel.activeJob && this.active.has(owner + ":" + channel.activeJob))
+                throw problem("Wait for the active job to stop before restarting the channel.", 409);
             if (channel.mode === "deliver" && !this.config.integrationAllowDelivery)
                 throw problem("FHIR destination delivery is disabled.", 403);
             await this.selection(session, channel.projectId, channel.subject);
