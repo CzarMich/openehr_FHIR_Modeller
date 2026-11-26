@@ -28,6 +28,8 @@ class GitOpsTest(unittest.TestCase):
         self.assertNotIn('deploy-fhir-prod.sh',workflow)
         script=(ROOT/'scripts/promote-fhir-gitops.sh').read_text()
         self.assertIn('--preserve-digests',script)
+        self.assertIn('--dest-cert-dir /registry-certs',script)
+        self.assertNotIn('--dest-tls-verify=false',script)
         self.assertIn('fhir-promotion-evidence.py',script)
         self.assertNotIn('docker build ',script)
     def test_runtime_manifest_identity_handles_containerd_and_pinned_indexes(self):
