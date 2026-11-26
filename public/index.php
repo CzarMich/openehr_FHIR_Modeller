@@ -168,7 +168,9 @@ try {
             new \OpenEHR\Assistant\Integrations\Fhir\HttpFhirProvider($settings, $identity->tenant ?? 'shared'),
             new \OpenEHR\Assistant\Integrations\Fhir\LazyFhirAuditStore($settings),
             new \OpenEHR\Assistant\Domain\Governance\Actor($identity->id ?? $principal, $identity->tenant ?? 'shared', $governanceRoles),
-            new \OpenEHR\Assistant\Integrations\Fhir\FhirConnections($settings)));
+            new \OpenEHR\Assistant\Integrations\Fhir\FhirConnections($settings),
+            RepositoryFactory::create($settings, $identity),
+            new \OpenEHR\Assistant\Integrations\Governance\ConfiguredAuditStore($settings)));
     $terminology = new FhirTerminologyProvider($settings);
     $container->set(FhirTerminologyProvider::class, $terminology);
     $container->set(TerminologyProvider::class, $terminology);
@@ -188,7 +190,7 @@ try {
     // rather than silently serving a mismatched, previously-cached capability set.
     // The namespace becomes a subdirectory under $cacheDir and old ones are never pruned
     // (no TTL), so releases accumulate directories there — see docs/development.md.
-    $cache = new Psr16Cache(new PhpFilesAdapter('mcp-server-' . APP_VERSION . '-model-capabilities-5', 0, $cacheDir));
+    $cache = new Psr16Cache(new PhpFilesAdapter('mcp-server-' . APP_VERSION . '-model-capabilities-6', 0, $cacheDir));
 
     // Load server instructions. Optional at the protocol level, but this server
     // ships a canonical resources/server-instructions.md — a missing/unreadable

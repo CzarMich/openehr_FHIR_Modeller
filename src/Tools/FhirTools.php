@@ -70,14 +70,23 @@ final readonly class FhirTools
         #[Schema(maxLength: 8388608)] string $arguments = '{}'): array
     { return ToolResult::run(fn (): array => $this->fhir->operation('fhirpath', $action, $projectId, $arguments)); }
 
-    /** Create versioned cross-standard mapping proposals independently of source models. JSON arguments preserve source and target versions and paths; equivalence is never automatic.
+    /** Create mapping proposals; context retrieves supplied pinned template/profile content and confirmation blockers. preview executes explicit synthetic rules with modelInputs; requires both standards. No operational records, implicit reverse rules or automatic approval. See docs/SOURCE_MODELLING.md.
      * @return array<string, mixed> */
     #[Schema(additionalProperties: false)]
     #[McpTool(name: 'fhir_mapping', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, openWorldHint: true), outputSchema: ToolResult::SCHEMA)]
-    public function mapping(#[Schema(enum: ['list', 'get', 'save', 'analyse'])] string $action,
+    public function mapping(#[Schema(enum: ['list', 'get', 'save', 'analyse', 'context', 'preview'])] string $action,
         #[Schema(minLength: 1, maxLength: 80)] string $projectId,
         #[Schema(maxLength: 8388608)] string $arguments = '{}'): array
     { return ToolResult::run(fn (): array => $this->fhir->operation('mapping', $action, $projectId, $arguments)); }
+
+    /** Inspect bounded synthetic CSV/custom JSON. arguments requires synthetic:true, format, content, sourceId and sourceVersion. Returns structure without samples; no patient records.
+     * @return array<string, mixed> */
+    #[Schema(additionalProperties: false)]
+    #[McpTool(name: 'fhir_dataset', annotations: new ToolAnnotations(readOnlyHint: true, destructiveHint: false, openWorldHint: false), outputSchema: ToolResult::SCHEMA)]
+    public function dataset(#[Schema(enum: ['inspect'])] string $action,
+        #[Schema(minLength: 1, maxLength: 80)] string $projectId,
+        #[Schema(maxLength: 524288)] string $arguments = '{}'): array
+    { return ToolResult::run(fn (): array => $this->fhir->operation('dataset', $action, $projectId, $arguments)); }
 
     /** Inspect named deployment-managed connections. search/read browse definition resource types only, with resourceType and canonical url/name/version or resourceId. validate sends a synthetic resource only. Credentials are never tool arguments; patient-data search is browser-only.
      * @return array<string, mixed> */

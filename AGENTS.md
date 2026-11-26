@@ -138,8 +138,9 @@ host. Preserve existing project volumes, UID1000 app data and identity issuers.
 Deployment orchestration uses host Bash/Python scripts under `scripts/`; its
 offline boundary checks must pass before changing this delivery path. Never
 restore the inherited VPS workflow or build application images on shared Dev.
-Production promotion uses the separate manually dispatched workflow described in
-[`docs/FHIR_PRODUCTION_DELIVERY.md`](docs/FHIR_PRODUCTION_DELIVERY.md). It promotes
-the exact successfully verified Dev digests through GitHub-hosted SSH delivery,
-with separate production configuration/storage and a shared Java admission lock for both private engines.
-Keep builds off both deployment hosts and preserve the Dev-first promotion gate.
+Production promotion uses the manually dispatched workflow in
+[`docs/FHIR_PRODUCTION_DELIVERY.md`](docs/FHIR_PRODUCTION_DELIVERY.md).
+Promote exact successfully verified Dev image digests through the infrastructure
+GitOps repository to the existing RKE2 namespace on `hygeoniq-prod`.
+`amcdr-vps` remains the public edge only. Preserve PVCs, secrets and identity.
+Do not invoke the legacy Docker-on-VPS delivery script or build on production.

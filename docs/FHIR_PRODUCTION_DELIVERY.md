@@ -1,88 +1,47 @@
-# Production promotion
+# Production promotion to hygeoniq-prod
 
-The modeller is available at `https://openehr-fhir-modeller.sandbox.hygeoniq.com/`
-after successful production promotion. The MCP path is `/mcp`. Production uses
-separate accounts, credentials, workspaces and volumes from Dev. The existing IG
-platform remains responsible for publication and distribution; deploying the
-modeller does not publish any FHIR artifact.
+Production runs in RKE2 on `hygeoniq-prod` (192.168.178.30), namespace
+`openehr-fhir-modeller`. Public HTTPS and `/mcp` remain available through
+`amcdr-vps` at https://openehr-fhir-modeller.sandbox.hygeoniq.com/.
+The VPS is the edge, not an application deployment target.
 
-## Promote verified images through GitHub
+Run **Promote FHIR Modeller Production** on main with the successful exact-main
+**Deploy FHIR Modeller Dev** run ID after live Dev checks. The workflow retains
+the exact revision, five immutable image manifests, successful actual Dev
+execution and readiness/MCP evidence gates. Images are built on hosted runners.
+No images are built on Dev or production during promotion.
 
-Run **Promote FHIR Modeller Production** from `main`, providing the successful
-**Deploy FHIR Modeller Dev** run ID for that exact current main commit. Complete
-the live Dev browser and FHIR workflow checks before starting promotion.
+The protected production job runs on the existing Dev delivery runner, copies
+identical manifest digests/layers from GHCR to the dedicated Harbor project
+`openehr-fhir-modeller` using pinned Skopeo and `--preserve-digests`, then updates
+only the five image references and adds the scoped pull identity in
+`CzarMich/platform-infrastructure:kubernetes/production/apps/openehr-fhir-modeller.yaml`.
+It validates the complete GitOps tree and pushes without force. Argo CD's
+`hygeoniq-production` application reconciles the existing production deployments.
+Secrets, PVCs, identity issuers, services and VPS routing are preserved.
 
-The workflow checks the source repository, current revision, successful actual
-Dev deployment step, five immutable digest manifests, and matching Dev readiness
-and MCP evidence. A skipped or stale Dev delivery cannot supply the required
-evidence. It downloads the images' recorded digest references; it builds no new
-images and does not use mutable image tags.
+Protected environment credentials are `HARBOR_USERNAME`/`HARBOR_PASSWORD` (scoped
+publisher), `PROD_CLUSTER_SSH_KEY` and `PROD_CLUSTER_KNOWN_HOSTS` (direct cluster
+verification from Dev). The delivery runner uses its existing infrastructure Git
+SSH identity. Registry auth and temporary SSH files are removed after the job.
+The copy container resolves the configured registry name directly to the production
+registry at `192.168.178.30`, preserving its TLS server name rather than using the
+unrelated public-edge fallback certificate. Skopeo verifies it with the existing CA at
+`/etc/docker/certs.d/registry.hygeoniq.com/ca.crt`; TLS verification stays enabled.
+The cluster has its own pull-only `modeller-pull` secret; the previous pull
+identity remains available for rollback. Rotate the scoped registry robots before
+their one-year expiry. No secret values belong in Git or workflow evidence.
 
-The GitHub-hosted promotion job uses the protected `production` environment and
-dedicated `PROD_SSH_KEY` / `PROD_SSH_KNOWN_HOSTS` secrets. SSH host-key checking is
-mandatory. The fixed target is `amcdr@82.165.59.171`; there is no persistent Actions
-runner on the production server. Only tracked deployment files and verified
-manifests are transferred. A short-lived Actions token reaches registry login
-through SSH standard input, and the temporary registry configuration is removed
-when the deployment process exits.
+Verification connects directly to `hyq@192.168.178.30` with strict host-key
+checking, checks actual pod images/readiness, and executes public HTTPS/MCP and
+real openEHR compiler smoke tests through the existing VPS edge. Evidence records
+the source revision, exact promoted digests, infrastructure commit and checks.
 
-The remote script requires hostname and Docker daemon name `ubuntu`, address
-`82.165.59.171`, and root-owned `/opt/hygeoniq/production-host` containing
-`hygeoniq-production`. It forces the local Docker socket and checks current main
-again after image transfer. Pulls are sequential and quiet. No source directory
-is mounted into an application container.
+If verification fails, inspect the failed rollout and revert the infrastructure
+image/pull-reference commit to the previous known-good digests. Argo CD performs
+the rollback; never reset PVCs or secrets. There is no automatic rollback over
+concurrent infrastructure commits. Production deployment does not publish model
+artifacts; the existing IG platform retains review and distribution authority.
 
-## Protected production configuration
-
-The operator provisions `/opt/hygeoniq/projects/openehr-fhir-modeller-prod/`:
-
-- `config/runtime.env` and `config/chat.env`, with fresh production keys and the
-  production HTTPS identity issuer;
-- `config/secrets/fhir-engine-key`, `fhir-connections.json` and `ig-prod-login.json`;
-- writable `deployment/`, containing immutable release manifests and evidence.
-
-The named IG connection is `ig-prod`, with private origin
-`http://ig-prod-api:8092`. Only the app joins `hyq-fhir-ig-prod_default`.
-The protected runtime configuration explicitly includes `ig-prod-api` in
-`FHIR_ALLOWED_HOSTS` and enables `FHIR_ALLOW_HTTP` for this isolated container
-connection. Public origins and external services still require verified HTTPS.
-Compose project `openehr-fhir-modeller-prod` has its own default network and five
-external volumes: models, governance, cdr-data, chat-data and fhir-data. The app
-and browser run as UID1000; the private FHIR engine runs as UID10001.
-
-Existing Nginx terminates public TLS and forwards the original host and HTTPS
-scheme to `127.0.0.1:18350`. The private engine has no host port. Production uses
-the public certificate chain, without disabling TLS verification or loading the
-development CA.
-
-GitHub delivery installs only the tracked site named
-`openehr-fhir-modeller.sandbox.hygeoniq.com.conf`, after containers are healthy.
-It rejects an unrelated existing file or enabled-site link, saves previous bytes
-and link state, checks `nginx -t` before reload, and restores the prior managed
-site if activation or subsequent verification fails. Other sites remain intact.
-Both applications share `/opt/hygeoniq/fhir-production-tooling/nginx.lock`
-(root:1000, mode0660), serializing site installation, configuration tests and reloads.
-
-The engine has a 2 GiB limit for its existing 1,536 MiB validator heap and native
-overhead. A production-only Java wrapper is mounted read-only from the tracked
-release. The shared host lock `/opt/hygeoniq/fhir-production-tooling/java.lock`
-(root:1000, mode0660) prevents simultaneous heavy Java work in the modeller and
-IG platform. Version probes remain available; the lock releases on process exit.
-Browser, app and ingress limits are 512, 256 and 64 MiB. These limits require
-capacity monitoring alongside existing server workloads.
-
-## Verification and recovery
-
-Promotion waits for container health, checks loopback and certificate-verified
-public HTTPS readiness, and runs the independent authenticated MCP smoke client.
-It records the source SHA, Dev run ID and exact image digests without secrets.
-Only then does `deployment/current-revision` advance. GitHub retains the
-production verification artifact for 30 days.
-
-If verification fails, the previous managed release is restored when present;
-data volumes remain intact. The first deployment has no previous managed release,
-so repair the configuration and rerun promotion of a currently verified main
-revision. Offline tests cover mismatched image evidence, failed Dev checks,
-wrong-host rejection and separate production storage without contacting the VPS.
-
-Production also includes the private openEHR compiler, with one disposable worker, a 768 MiB container budget and the same Java admission lock used by the FHIR tooling/IG platform. Its listener and health checks do not acquire the lock. The total configured application container budget is 3,648 MiB; active heavy Java work remains serialized. The compiler shares only the app network namespace on loopback and mounts the existing internal service key read-only. Promotion verifies actual ADL parsing and specialised template compilation in Dev evidence and again after production deployment.
+The former Docker-on-VPS scripts and Compose fixtures remain legacy regression
+material and are not invoked by production promotion.

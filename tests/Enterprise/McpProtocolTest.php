@@ -64,6 +64,20 @@ final class McpProtocolTest extends TestCase
         self::assertSame($parse, RequestErrors::normalize($parse, $ids));
     }
 
+    public function test_request_error_adapter_preserves_request_scoped_sdk_tokens(): void
+    {
+        $token = new \Mcp\Server\Authorization\AccessToken(['modelling.read'], ['sub' => 'synthetic-user']);
+        foreach ([new \OpenEHR\Assistant\Mcp\StdioTransport(),
+            new \OpenEHR\Assistant\Mcp\StreamableHttpTransport(new \Nyholm\Psr7\ServerRequest('POST', 'https://example.org/mcp'))] as $transport) {
+            $observed = [];
+            $transport->onMessage(static function ($sender, $payload, $session, $accessToken) use (&$observed): void { $observed[] = $accessToken; });
+            $handler = new \ReflectionMethod($transport, 'handleMessage');
+            $handler->invoke($transport, '{"jsonrpc":"2.0","id":1,"method":"unknown"}', null, $token);
+            $handler->invoke($transport, '{"jsonrpc":"2.0","id":2,"method":"unknown"}', null);
+            self::assertSame([$token, null], $observed);
+        }
+    }
+
     public function test_explicit_loopback_http_cors_is_only_permitted_outside_production(): void
     {
         foreach (['http://localhost:3000', 'http://127.0.0.1:8343', 'http://[::1]:8343'] as $origin) {

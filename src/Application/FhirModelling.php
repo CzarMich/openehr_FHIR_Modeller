@@ -19,7 +19,7 @@ final readonly class FhirModelling
 
     public function __construct(private ModelRepository $repository, private AccessPolicy $access,
         private StandardsProvider $provider, private AuditStore $audit, private Actor $actor,
-        private FhirConnections $connections) {}
+        private FhirConnections $connections, private ?ModelRepository $models = null, private ?AuditStore $reviews = null) {}
 
     /** @return array<string, mixed> */
     public function project(string $action, ?string $projectId = null, ?string $document = null, ?string $expectedRevision = null): array
@@ -66,11 +66,27 @@ final readonly class FhirModelling
             'source' => ['inspect', 'import'],
             'artifact' => ['inspect', 'get', 'search', 'save', 'validate', 'diff', 'history'],
             'profile' => ['discover', 'generate', 'validate'], 'examples' => ['generate'], 'fsh' => ['compile'], 'fhirpath' => ['validate', 'evaluate'],
-            'mapping' => ['list', 'get', 'save', 'analyse'], 'connection' => ['list', 'get', 'test', 'metadata', 'search', 'read', 'validate'],
+            'mapping' => ['list', 'get', 'save', 'analyse', 'context', 'preview'], 'dataset' => ['inspect'], 'connection' => ['list', 'get', 'test', 'metadata', 'search', 'read', 'validate'],
             'ig' => ['test', 'projects', 'status', 'submit', 'sync', 'build', 'publish'],
         ];
         if (!in_array($action, $allowed[$category] ?? [], true)) { throw new \InvalidArgumentException('FHIR_OPERATION_UNSUPPORTED'); }
         if (in_array($action, ['save', 'install', 'import', 'submit', 'sync', 'build', 'publish'], true)) { $this->access->assertProjectWrite($projectId); }
+        if ($category === 'mapping' && in_array($action, ['context', 'preview'], true)) {
+            $inputs = $this->mappingInputs($projectId, $args['modelInputs'] ?? []);
+            if ($action === 'context') { return $inputs; }
+            foreach ($inputs['items'] as $input) {
+                if (!$input['current']) { throw new \DomainException('MAPPING_MODELS_STALE'); }
+                if (array_intersect($input['blockers'], ['STRUCTURE_DEFINITION_VERSION_REQUIRED', 'TEMPLATE_REQUIRED']) !== []) {
+                    throw new \DomainException('MAPPING_MODEL_INPUT_INVALID');
+                }
+            }
+            $result = $this->provider->execute('mapping.preview', array_merge($args, ['project' => $project]));
+            return $result + ['modelReadiness' => $inputs, 'operationalExecution' => 'NOT_SUPPORTED'];
+        }
+        if ($category === 'dataset') {
+            // Synthetic records never enter model storage or the audit ledger.
+            return $this->provider->execute('dataset.inspect', array_merge($args, ['project' => $project]));
+        }
         if ($category === 'source') { return $this->source($action, $projectId, $args, $project); }
         if ($category === 'artifact' && in_array($action, ['get', 'search', 'save', 'history'], true)) {
             return $this->artifacts($action, $projectId, $args, $project);
@@ -173,6 +189,56 @@ final readonly class FhirModelling
         $saved = $this->repository->saveArtifact($projectId, $path, json_encode($args, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT), ['kind' => 'cross-standard-mapping'], $revision);
         $this->record($projectId, 'mapping.save', ['path' => $path, 'revision' => $saved['revision']]);
         return $saved;
+    }
+
+    /** Resolve supplied models, never caller approval assertions. Reuse and authoring use the same pins.
+     * @param mixed $bindings
+     * @return array<string, mixed> */
+    private function mappingInputs(string $projectId, mixed $bindings): array
+    {
+        if (!is_array($bindings) || !array_is_list($bindings) || count($bindings) < 2 || count($bindings) > 20) {
+            throw new \InvalidArgumentException('MAPPING_MODELS_REQUIRED');
+        }
+        $items = []; $standards = []; $ready = true; $contentBytes = 0;
+        foreach ($bindings as $binding) {
+            if (!is_array($binding) || !in_array($binding['standard'] ?? null, ['openEHR', 'FHIR'], true)) {
+                throw new \InvalidArgumentException('MAPPING_MODEL_INVALID');
+            }
+            foreach (['projectId', 'path', 'revision', 'sha256', 'version'] as $field) {
+                if (!is_string($binding[$field] ?? null) || $binding[$field] === '') { throw new \InvalidArgumentException('MAPPING_MODEL_PIN_REQUIRED'); }
+            }
+            $standard = $binding['standard']; $standards[$standard] = true;
+            if ($standard === 'FHIR' && $binding['projectId'] !== $projectId) { throw new \DomainException('MAPPING_MODEL_PROJECT_MISMATCH'); }
+            $repository = $standard === 'FHIR' ? $this->repository : ($this->models ?? throw new \RuntimeException('MAPPING_MODEL_REPOSITORY_UNAVAILABLE'));
+            $artifact = $repository->getArtifact($binding['projectId'], $binding['path']);
+            $contentBytes += strlen($artifact['content']);
+            if ($contentBytes > 4194304) { throw new \InvalidArgumentException('MAPPING_MODEL_CONTEXT_LIMIT'); }
+            $current = $artifact['revision'] === $binding['revision'] && hash_equals($artifact['sha256'], $binding['sha256']);
+            $blockers = $current ? [] : ['MODEL_CHANGED'];
+            if ($standard === 'FHIR') {
+                $definition = json_decode($artifact['content'], true);
+                if (!is_array($definition) || ($definition['resourceType'] ?? '') !== 'StructureDefinition'
+                    || ($definition['version'] ?? null) !== $binding['version']) { $blockers[] = 'STRUCTURE_DEFINITION_VERSION_REQUIRED'; }
+            } elseif (!preg_match('/\.(opt|opt2|oet|xml)$/iD', $binding['path'])) { $blockers[] = 'TEMPLATE_REQUIRED'; }
+            $approved = false;
+            // Existing human-only review service is the authority for openEHR models.
+            // FHIR approval stays with the IG platform; no unverified external claim is accepted.
+            if ($standard === 'openEHR' && is_string($binding['reviewSubject'] ?? null) && $this->reviews !== null) {
+                $events = $this->reviews->events($this->actor->tenant, $binding['reviewSubject']);
+                $first = $events[0] ?? []; $last = $events === [] ? [] : $events[count($events) - 1];
+                $source = $first['source'] ?? [];
+                $approved = ($first['type'] ?? '') === 'REGISTER' && in_array($last['new_state'] ?? '', ['APPROVED', 'PUBLISHED'], true)
+                    && ($source['project'] ?? '') === $binding['projectId'] && ($source['path'] ?? '') === $binding['path']
+                    && ($source['revision'] ?? '') === $binding['revision'] && ($source['sha256'] ?? '') === $binding['sha256'];
+            }
+            if (!$approved) { $blockers[] = $standard === 'FHIR' ? 'FHIR_IG_CONFIRMATION_NOT_VERIFIED' : 'HUMAN_CONFIRMATION_REQUIRED'; }
+            $ready = $ready && $blockers === [];
+            $items[] = ['standard' => $standard, 'path' => $artifact['path'], 'revision' => $artifact['revision'],
+                'sha256' => $artifact['sha256'], 'versionClaim' => $binding['version'], 'content' => $artifact['content'],
+                'current' => $current, 'clinicalApproval' => $approved && $current, 'blockers' => $blockers];
+        }
+        if (!isset($standards['openEHR'], $standards['FHIR'])) { throw new \InvalidArgumentException('MAPPING_BOTH_STANDARDS_REQUIRED'); }
+        return ['items' => $items, 'ready' => $ready, 'scope' => 'Exact supplied model revisions; compiler success is not human confirmation.'];
     }
 
     /** @param array<string, mixed> $args
