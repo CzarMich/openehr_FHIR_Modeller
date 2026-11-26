@@ -67,12 +67,12 @@ controls. They are not a certification or a claim of automatic regulatory compli
 |---|---|
 | Clinical/source databases | Read-only is mandatory across MCP, agents and runtime. SQL extraction/drivers are not implemented yet; there is no claimed driver-specific read-only enforcement. Future adapters must pass the golden-rule contract before support is advertised. |
 | Existing CDR queries | Read-only query operations through configured connections; source access is not permission to write clinical records. |
-| FHIR destination delivery | A separately authorised FHIR HTTP API operation, not a direct backing-database connection. Operational delivery is still under implementation; synthetic previews emit zero records. |
+| FHIR destination delivery | A separately authorised FHIR HTTP API operation, not a direct backing-database connection. The optional C# worker supports scoped HTTPS conditional create; it is separately enabled and requires registered credentials. Synthetic MCP previews emit zero records. |
 | API keys | One deployment service principal. They do not identify individual users or establish tenant isolation. |
 | Native MCP OIDC | Verified token/tenant boundaries; project repository scopes require explicit configuration. Browser sign-in does not turn its shared MCP credential into a user token. |
 | Human decisions | Purpose-bound, short-lived assertions, consumed nonces, roles and exact revisions. Model selection is distinct from independent clinical approval/publication. |
 | AI providers | The optional browser sends selected conversation/context/tool results to the configured provider. The provider connection, terms and deployment policy determine that external processing. Do not submit patient records as chat messages or modelling attachments. |
-| Processing data | Operational records, exports, validation detail and quarantine belong in a separate private runtime. This is a required boundary for the runtime under implementation, not proof that operational processing is already delivered. |
+| Processing data | Operational records, exports, validation detail and quarantine belong in a separate private runtime. The C# file runtime stores these under owner-scoped private processing directories, outside model Git and AI context; file permissions do not provide encryption. |
 | Encryption at rest | Personal provider credentials and selected identity/session stores use application encryption. Model snapshots and conversation/history files are not generally application-encrypted. Do not assume processing files, PVCs or backups are encrypted; volume/database/backup encryption is an operator responsibility. |
 | Network encryption | Hosted browser/MCP entry points require authenticated HTTPS. Some private compiler/service hops use authenticated HTTP on isolated networks; there is no blanket end-to-end TLS claim. Outbound public destinations must verify TLS. |
 | Logging | Application request logging allowlists metadata. Infrastructure/access logs, retention, backups and any external services need separate operator review. Avoid credentials or clinical values in URLs, filenames and diagnostic messages. |
@@ -84,3 +84,10 @@ still writes its own separate model and audit stores, and the integration design
 needs private queues/checkpoints. Those stores must not be placed inside a
 clinical/source database. Keep source-read and destination-write credentials and
 permissions separate. See [the full policy](CLINICAL_DATA_READ_ONLY.md).
+
+
+## C# integration runtime
+
+The optional C# runtime adds a shared organisation model registry and owner-scoped private operational files. Human mapping confirmation is request-bound with a separate assertion purpose, short lifetime, replay nonce, verified roles/project scopes and sequence checks. Ordinary MCP API-key calls cannot confirm/revoke mappings, start channels or deliver operational data. API-key access to models is shared and must not be presented as per-user tenant isolation. Existing PHP confirmation identifiers do not authorise C# processing.
+
+Source files are opened read-only; direct SQL drivers are unavailable. No test attempts writes to clinical databases. Source records, retained context, validator findings, quarantine and exports remain private operational data and must never enter model Git or general AI context. File permissions do not constitute encryption. Operators must configure encrypted storage/backups, access, retention and deletion. Internal authenticated HTTP may carry records between worker and validators; public HTTPS alone does not encrypt those hops. See [the operational controls and limits](INTEGRATION_ENGINE.md).

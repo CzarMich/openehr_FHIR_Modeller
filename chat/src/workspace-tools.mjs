@@ -1,3 +1,4 @@
+import { isIntegrationTool, validateIntegrationCall } from "./integration-tools.mjs";
 import { WRITE_TOOLS, isWriteTool } from "./mcp.mjs";
 import { isFhirTool, validateFhirCall } from "./fhir-workspace.mjs";
 import { FHIR_DRAFT_DESCRIPTIONS, hydrateFhirDrafts, retainFhirDrafts } from "./fhir-drafts.mjs";
@@ -253,7 +254,10 @@ export class WorkspaceTools {
                 (t) =>
                     !CDR_BROWSER_ONLY_TOOLS.has(t.name) &&
                     (!CDR_TOOLS.has(t.name) || this.cdr) &&
-                    (!this.conversation.repository || !WRITE_TOOLS.has(t.name) || isFhirTool(t.name)),
+                    (!this.conversation.repository ||
+                        !WRITE_TOOLS.has(t.name) ||
+                        isFhirTool(t.name) ||
+                        isIntegrationTool(t.name)),
             ),
             ...personal,
         ].filter(
@@ -292,6 +296,12 @@ export class WorkspaceTools {
         };
     }
     checkWrite(name, args) {
+        if (isIntegrationTool(name)) {
+            validateIntegrationCall(name, args);
+            if (isWriteTool(name, args) && !this.allowWrites)
+                throw problem("Integration model changes are disabled.", 403);
+            return;
+        }
         if (isFhirTool(name)) {
             validateFhirCall(name, args);
             if (isWriteTool(name, args) && !this.allowWrites)
@@ -397,6 +407,7 @@ export class WorkspaceTools {
         this.checkpoints.draft(args.content, args.path);
     }
     async call(name, args) {
+        if (isIntegrationTool(name)) validateIntegrationCall(name, args);
         if (isFhirTool(name)) {
             validateFhirCall(name, args);
             args = hydrateFhirDrafts(name, args, this.checkpoints, {

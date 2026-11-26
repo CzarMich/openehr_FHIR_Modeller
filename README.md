@@ -43,10 +43,7 @@ HTTPS does not imply encryption on every private service hop. See the
 - Define a separate FHIR → openEHR mapping and check declared round-trip invariants.
 - Browse projects, discuss proposals with an agent and submit models for human review.
 
-The complete operational workflow also requires private source extraction,
-validated compositions, resumable transformation runs, file export and delivery to
-an authorised FHIR destination. Those capabilities must not be inferred from
-model authoring or a successful synthetic preview. See the status table below.
+The optional C#/.NET integration workspace adds private file processing, versioned channel assignments, validation, export and authorised FHIR delivery. It runs deterministic confirmed rules; it does not call a language model for each record. See the [integration guide](docs/INTEGRATION_ENGINE.md) for configuration, use and limits.
 
 ## Open the workspace or connect your agent
 
@@ -67,6 +64,12 @@ organisation's network and private CA. See [client setup](docs/MCP_CLIENTS.md),
 Production runs on `hygeoniq-prod`; `amcdr-vps` provides the public HTTPS edge.
 [Production delivery and rollback](docs/FHIR_PRODUCTION_DELIVERY.md) describes the
 verified-image promotion process.
+
+## Process data or assign a channel
+
+Open the **Integration workspace** link in the browser. Create a project with a pinned FHIR release and dependencies. Provide the actual StructureDefinitions and templates, prepare versioned mapping JSON with your original instructions and synthetic examples, then inspect and confirm the exact model/rule selection.
+
+Upload a private file or select a registered folder. Inspect its field schema, select the confirmed mapping and choose **Validate and export** or an authorised FHIR destination. Review the run before confirming. For continuous consumption, create a channel assignment and explicitly start it. Review counts, failures, private quarantine and validated exports under Jobs. Changing rules requires a new mapping version and confirmation; channels do not automatically adopt new drafts. See [the complete guide](docs/INTEGRATION_ENGINE.md).
 
 ## Your first workflow: laboratory results
 
@@ -119,13 +122,13 @@ The detailed [capability matrix](CAPABILITIES.md) and
 |---|---|
 | openEHR modelling | CKM discovery, versioned repositories, template authoring, native ADL/OPT validation and supported template compilation |
 | FHIR modelling | R4/R4B/R5 packages, profile proposals, real SUSHI compilation, validator evidence, examples and IG draft handoff |
-| Source understanding | Bounded synthetic CSV/custom JSON inspection; unresolved meanings are reported |
-| Executable mapping | Explicit synthetic forward and separate reverse previews; unmapped fields and rejected records are reported |
+| Source understanding | C# file adapters for CSV, object-array JSON, constrained XML and one-sheet XLSX; FHIR JSON classification requires actual validation before reverse mapping |
+| Executable mapping | Versioned narrative-guided rules; source → openEHR → FHIR, direct source → supplied FHIR SD, and separately defined reverse mappings |
 | Model review | Protected human openEHR review and exact cross-standard mapping-selection confirmation |
-| Operational extraction/runs | Not yet delivered; previews are not processing jobs |
-| Export and FHIR destination push | Required operational capability; not yet delivered by the preview engine |
-| Other connectors | Folder/XLSX/SQL, incoming FHIR extraction, HL7 v2/CDA and dataset adapters remain implementation work |
-| C#/.NET migration | First independent guide service in [PR #17](https://github.com/CzarMich/openehr_FHIR_Modeller/pull/17); full application remains on the patched PHP runtime |
+| Operational runs/channels | Optional C# private file workers, checkpointing, quarantine, manual restart and confirmed mapping assignments; previews remain synthetic |
+| Export and FHIR destination push | Private NDJSON export; separately enabled HTTPS conditional create by business identifier against an operator-registered FHIR destination |
+| Other connectors | SQL, HL7 v2, CDA, message queues and specialised dataset adapters remain unsupported; generic XML does not implement these standards |
+| C#/.NET migration | New modelling/integration core and workers are C#/.NET 10; existing `/mcp` remains PHP compatibility during migration; [exact boundary](docs/DOTNET_MIGRATION.md) |
 
 An openEHR-shaped intermediate object is not automatically a conformant
 composition. Unavailable checks are reported as `NOT_EXECUTED`. No agent may grant
@@ -164,24 +167,14 @@ outputs, and exports or pushes FHIR to a configured, authorised destination.
 
 ```mermaid
 flowchart LR
-    User[Modeller or integration engineer] --> Browser[Browser workspace]
-    Agent[MCP agent or client] --> MCP[Modelling MCP service]
-    Browser --> MCP
-    MCP --> Sources[Source structure and requirements]
-    MCP --> Models[openEHR templates and FHIR profiles]
-    Models --> Reuse[CKMs, packages and model repositories]
-    Models --> Engines[Native compilers and validators]
-    Browser --> Review[Authenticated human model confirmation]
-    Review --> Audit[Protected audit and exact model revisions]
-    Models --> Mapping[Explicit forward and reverse mapping rules]
-    Sources --> Mapping
-    Audit --> Mapping
-    Mapping --> Preview[Synthetic preview and findings]
-    Mapping -.-> Runtime[Private processing and per-record validation]
-    Runtime -.-> Export[Private file export]
-    Runtime -.-> Delivery[Authorised FHIR delivery]
-    Delivery -.-> Destination[Configured destination FHIR server]
-    Runtime -.-> Reconcile[Quarantine and reconciliation]
+  User[User instructions and supplied models] --> MCP[C# modelling MCP]
+  MCP --> Review[Human confirmation of exact models and rules]
+  Source[Read-only private source] --> Runtime[Private C# worker / channel]
+  Review --> Runtime
+  Runtime --> Validators[Installed openEHR / FHIR validators]
+  Runtime --> Export[Private validated export]
+  Runtime -->|Authorised HTTPS API| Destination[FHIR destination]
+  Legacy[PHP compatibility endpoint] -. retained during migration .-> Existing[Existing tools and repositories]
 ```
 
 Solid paths describe implemented modelling/preview capabilities; dashed paths

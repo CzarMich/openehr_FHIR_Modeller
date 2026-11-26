@@ -32,7 +32,7 @@ public final class Server {
         System.setProperty("sun.net.httpserver.maxRspTime", "60");
         System.setProperty("sun.net.httpserver.maxConnections", "24");
         System.setProperty("sun.net.httpserver.maxReqHeaders", "32");
-        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 8090), 16);
+        HttpServer server = HttpServer.create(new InetSocketAddress(System.getenv().getOrDefault("ENGINE_BIND_HOST", "127.0.0.1"), 8090), 16);
         server.createContext("/", new Server(token.getBytes(StandardCharsets.US_ASCII))::handle);
         server.setExecutor(new ThreadPoolExecutor(4, 4, 0, TimeUnit.SECONDS, new ArrayBlockingQueue<>(16), new ThreadPoolExecutor.AbortPolicy()));
         server.start();
@@ -44,7 +44,7 @@ public final class Server {
         try {
             String host = request.getRequestHeaders().getFirst("Host");
             if (request.getRequestHeaders().getOrDefault("Host", java.util.List.of()).size() != 1
-                    || (!"127.0.0.1:8090".equals(host) && !"localhost:8090".equals(host))) {
+                    || !java.util.Arrays.asList(System.getenv().getOrDefault("ENGINE_ALLOWED_HOSTS", "127.0.0.1:8090,localhost:8090").split(",")).contains(host)) {
                 send(request, 403, error("ENGINE_HOST_REJECTED")); return;
             }
             if (request.getRequestHeaders().containsKey("Origin")) {

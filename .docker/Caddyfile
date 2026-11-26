@@ -4,7 +4,7 @@
     persist_config off
 }
 :8343 {
-    @ordinary not path /chat/api/conversations/*/attachments /chat/api/cdr/* /api/v1/cdr/* /chat/api/aql-draft /chat/api/fhir/*
+    @ordinary not path /chat/api/conversations/*/attachments /chat/api/cdr/* /api/v1/cdr/* /chat/api/aql-draft /chat/api/fhir/* /chat/api/integration/* /chat/integration/mcp
     request_body @ordinary {
         max_size {$MAX_REQUEST_BYTES:2097152}
     }
@@ -34,6 +34,19 @@
             transport http {
                 response_header_timeout 655s
                 read_timeout 655s
+            }
+        }
+    }
+    @integration path /chat/api/integration/* /chat/integration/mcp
+    handle @integration {
+        request_body {
+            max_size 16777216
+        }
+        reverse_proxy {$MODELLING_CHAT_UPSTREAM:chat:8350} {
+            flush_interval -1
+            transport http {
+                response_header_timeout 660s
+                read_timeout 1260s
             }
         }
     }

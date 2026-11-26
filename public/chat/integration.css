@@ -1,0 +1,119 @@
+:root {
+    font-family: system-ui, sans-serif;
+    color: #17334a;
+    background: #f4f7fa;
+    font-size: 16px;
+}
+body {
+    max-width: 1120px;
+    margin: auto;
+    padding: 24px;
+}
+header {
+    padding: 12px 0;
+}
+h1 {
+    font-size: 2rem;
+}
+h2 {
+    font-size: 1.3rem;
+    margin-top: 0;
+}
+section {
+    background: #fff;
+    border: 1px solid #cad7e1;
+    border-radius: 8px;
+    padding: 24px;
+    margin: 20px 0;
+}
+label {
+    display: block;
+    margin: 14px 0 6px;
+}
+input:not([type="checkbox"]),
+select,
+textarea {
+    display: block;
+    box-sizing: border-box;
+    max-width: 100%;
+    width: 100%;
+    border: 1px solid #90a7ba;
+    border-radius: 4px;
+    padding: 10px;
+    margin-top: 5px;
+    background: #fff;
+    color: #17334a;
+    font: inherit;
+}
+textarea,
+pre {
+    font:
+        14px/1.5 ui-monospace,
+        monospace;
+}
+pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 36rem;
+    overflow: auto;
+    background: #f2f5f8;
+    padding: 16px;
+}
+button {
+    font: inherit;
+    border: 1px solid #0060ab;
+    background: #0060ab;
+    color: #fff;
+    border-radius: 4px;
+    padding: 9px 14px;
+    margin: 10px 8px 5px 0;
+    cursor: pointer;
+}
+button:disabled {
+    opacity: 0.5;
+    cursor: wait;
+}
+a {
+    color: #005a9d;
+}
+details {
+    margin: 18px 0;
+}
+summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+}
+#notice {
+    border-left: 4px solid #0060ab;
+    padding: 14px;
+    background: #e5f1fb;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+.item {
+    padding: 14px 0;
+    border-bottom: 1px solid #cad7e1;
+}
+.item input[type="checkbox"] {
+    margin-right: 10px;
+}
+input:focus-visible,
+button:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+    outline: 3px solid #ffbc42;
+    outline-offset: 3px;
+}
+
+.download-link {
+    display: inline-block;
+    min-height: 24px;
+    margin: 8px 18px 8px 0;
+}

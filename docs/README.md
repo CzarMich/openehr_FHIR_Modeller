@@ -51,3 +51,5 @@ counts and deployment observations apply to the revisions recorded there. Use th
 - [AQL workspace and private CDR connections](CDR_WORKSPACE.md) — setup, user workflow, privacy and execution limits.
 
 External IG/package URLs, StructureDefinition and ValueSet imports, connected definition searches and extensible release capabilities: [FHIR external sources](FHIR_EXTERNAL_SOURCES.md). The browser User guide includes the same workflow.
+
+- [C# integration engine](INTEGRATION_ENGINE.md): private file jobs, confirmed mapping assignments, channels, FHIR delivery and operator limits.

@@ -27,10 +27,15 @@ jobs:
         run: |
           dotnet restore Modeller.Mcp --locked-mode
           dotnet build Modeller.Mcp -c Release --no-restore
+          dotnet restore Modeller.Processing --locked-mode
+          dotnet build Modeller.Processing -c Release --no-restore
+          dotnet run --project Modeller.Processing.Tests -c Release
       - name: Verify HTTP and stdio contracts, guide content and security boundaries
         run: |
           set -euo pipefail
           python3 dotnet/tests/run-contracts.py --dll dotnet/Modeller.Mcp/bin/Release/net10.0/Modeller.Mcp.dll | tee "$RUNNER_TEMP/dotnet-contracts.jsonl"
+      - name: Verify protected C# workspace independently over HTTP
+        run: python3 dotnet/tests/workspace-contracts.py --dll dotnet/Modeller.Mcp/bin/Release/net10.0/Modeller.Mcp.dll
       - uses: docker/setup-buildx-action@v3
       - name: Build the independent runtime image on the hosted runner
         uses: docker/build-push-action@v6

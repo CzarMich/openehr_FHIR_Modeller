@@ -1,6 +1,15 @@
+import {
+    INTEGRATION_ACTIONS,
+    isIntegrationTool,
+    integrationWrite,
+    validateIntegrationCall,
+} from "./integration-tools.mjs";
 import { FHIR_REQUEST_TIMEOUT_MS, FHIR_ACTIONS, isFhirTool, isFhirWrite, validateFhirCall } from "./fhir-workspace.mjs";
 
 export const WRITE_TOOLS = new Set([
+    ...Object.keys(INTEGRATION_ACTIONS).filter(
+        (name) => INTEGRATION_ACTIONS[name].write.length || name === "modelling_engine",
+    ),
     "model_traceability_save",
     "governance_prepare",
     "governance_validate",
@@ -17,6 +26,7 @@ export const WRITE_TOOLS = new Set([
     ...Object.keys(FHIR_ACTIONS).filter((name) => FHIR_ACTIONS[name].write.length),
 ]);
 export const READ_TOOLS = new Set([
+    ...Object.keys(INTEGRATION_ACTIONS),
     ...Object.keys(FHIR_ACTIONS),
     "model_traceability_get",
     "model_traceability_explain",
@@ -90,7 +100,11 @@ export const READ_TOOLS = new Set([
     "terminology_catalogue_translate",
 ]);
 export function isWriteTool(name, args) {
-    return isFhirTool(name) ? isFhirWrite(name, args) : WRITE_TOOLS.has(name);
+    return isIntegrationTool(name)
+        ? integrationWrite(name, args)
+        : isFhirTool(name)
+          ? isFhirWrite(name, args)
+          : WRITE_TOOLS.has(name);
 }
 export class McpClient {
     constructor(config, signal) {
@@ -114,7 +128,9 @@ export class McpClient {
             signal: AbortSignal.any([
                 this.signal,
                 AbortSignal.timeout(
-                    method === "tools/call" && isFhirTool(params?.name) ? FHIR_REQUEST_TIMEOUT_MS : 60000,
+                    method === "tools/call" && (isFhirTool(params?.name) || params?.name === "modelling_engine")
+                        ? FHIR_REQUEST_TIMEOUT_MS
+                        : 60000,
                 ),
             ]),
             redirect: "error",
@@ -200,6 +216,10 @@ export class McpClient {
         }
     }
     async call(name, args) {
+        if (isIntegrationTool(name)) {
+            validateIntegrationCall(name, args);
+            if (isWriteTool(name, args) && !this.config.allowWrites) throw new Error("Tool writes are disabled");
+        }
         if (isFhirTool(name)) {
             validateFhirCall(name, args);
             if (isWriteTool(name, args) && !this.config.allowWrites) throw new Error("Tool writes are disabled");

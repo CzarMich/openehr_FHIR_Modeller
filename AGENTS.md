@@ -19,7 +19,7 @@ commits; do not add blanket ownership headers to inherited or mixed files.
 
 ## Project Overview
 
-- A PHP 8.4 MCP server exposing openEHR tools, prompts, and resources to MCP clients, built on `mcp/sdk` ([modelcontextprotocol/php-sdk](https://github.com/modelcontextprotocol/php-sdk)) with attribute-driven discovery (`#[McpTool]`, `#[McpPrompt]`, `#[McpResourceTemplate]`/`#[McpResource]`, `#[CompletionProvider]`). Feature overview: `README.md`.
+- The application is moving to C#/.NET 10. New modelling, mapping, human-confirmation and integration application features belong under `dotnet/`. Java/Node services provide specialised standards compilation/validation; the browser backend remains Node. The existing PHP MCP endpoint is a compatibility surface until verified parity and storage migration. Feature overview: `README.md`.
 - This product is client-neutral; no client plugin or model SDK is required.
 
 ## Documentation map
@@ -116,7 +116,7 @@ Feature branches off `main` plus pull requests (naming in [`CONTRIBUTING.md`](CO
 
 ## Learned Workspace Facts
 
-- Repo tooling that can be implemented in PHP should live as classes in `src/` with CLI entrypoints (e.g. `scripts/*.php`) and `composer.json` script entries; update AGENTS.md and related docs when changing such tooling.
+- New application and domain logic is C#/.NET. Do not add new PHP features. Maintain PHP only for security, compatibility and verified migration support. Retain existing standards engines and browser assets.
 
 ## FHIR fork boundary
 
@@ -150,7 +150,7 @@ Do not invoke the legacy Docker-on-VPS delivery script or build on production.
 Follow ADR-0028 and docs/DOTNET_MIGRATION.md. C# code lives under dotnet/.
 Use the pinned .NET 10 SDK container for Dev builds/tests; build application images
 on hosted CI. Preserve PHP contracts and clinical/governance/storage boundaries.
-The first read-only service is Dev-only and must not replace production.
+The initial guide-only service must not silently replace the compatibility endpoint. The separately enabled C# modelling/integration workspace has its own endpoint and private data stores.
 New application features target the .NET service; PHP remains for security and
 compatibility maintenance while migration proceeds. Keep the existing compiler
 engines and browser assets unless a verified replacement is needed.

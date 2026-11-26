@@ -2222,3 +2222,74 @@ test("mapping selection displays both exact models and requires a human acknowle
     expect(decisions).toBe(1);
     await expect(page.locator("#mapping-confirmation-reviewed")).not.toBeChecked();
 });
+
+test("C# integration review requires inspecting exact models and a human comment", async ({ page }) => {
+    const subject = "a".repeat(64);
+    let decision;
+    await page.route("**/chat/api/session", (route) =>
+        route.fulfill({ json: { authenticated: true, csrf: "synthetic-csrf", integrationReady: true } }),
+    );
+    const view = {
+        subject,
+        state: "PENDING",
+        sequence: 0,
+        mappingConfirmed: false,
+        clinicalApproval: false,
+        executionMapping: '{"requirements":[{"originalText":"Synthetic user instruction"}]}',
+        items: [
+            {
+                pin: {
+                    id: "synthetic-profile",
+                    standard: "FHIR",
+                    version: "1.0.0",
+                    origin: "externally-provided",
+                    sha256: "b".repeat(64),
+                },
+                content: '{"resourceType":"StructureDefinition"}',
+            },
+        ],
+    };
+    await page.route("**/chat/api/integration/**", async (route) => {
+        const url = new URL(route.request().url()),
+            target = url.searchParams.get("target");
+        let result = { items: [] };
+        if (target === "/api/v1/integration/projects")
+            result = { items: [{ id: "lab", name: "Synthetic laboratory", fhirVersion: "4.0.1" }] };
+        else if (target?.endsWith("/mappings"))
+            result = { items: [{ subject, name: "Synthetic mapping", version: "1.0.0", state: "PENDING" }] };
+        else if (target?.endsWith("/decisions")) {
+            decision = route.request().postDataJSON();
+            result = { ...view, state: "CONFIRMED", sequence: 1, mappingConfirmed: true };
+        } else if (target?.includes("/mappings/")) result = view;
+        else if (url.pathname.endsWith("/connections"))
+            result = { sources: [], destinations: [], clinicalDatabasePolicy: "READ_ONLY" };
+        await route.fulfill({ json: result });
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/chat/integration/");
+    await expect(page.locator("#notice")).toContainText("Project loaded");
+    await page.getByRole("button", { name: "Inspect selection and rules" }).click();
+    await expect(page.locator("#review")).toContainText("Synthetic user instruction");
+    await page.getByRole("button", { name: "Confirm exact mapping" }).click();
+    await expect(page.locator("#notice")).toContainText("tick the acknowledgement");
+    expect(decision).toBeUndefined();
+    await page.locator("#reviewed").check();
+    await page.locator("#decision-comment").fill("Reviewed exact synthetic models and rules");
+    await page.getByRole("button", { name: "Confirm exact mapping" }).click();
+    await expect(page.locator("#notice")).toContainText("Recorded CONFIRMED");
+    expect(decision).toEqual({
+        decision: "CONFIRMED",
+        expectedSequence: 0,
+        comment: "Reviewed exact synthetic models and rules",
+    });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("C# integration page reports unavailable service without claiming migration completion", async ({ page }) => {
+    await page.route("**/chat/api/session", (route) =>
+        route.fulfill({ json: { authenticated: true, integrationReady: false } }),
+    );
+    await page.goto("/chat/integration/");
+    await expect(page.locator("#notice")).toContainText("C# integration service is not enabled or ready");
+    await expect(page.getByText("Clinical databases are read-only.", { exact: true })).toBeVisible();
+});

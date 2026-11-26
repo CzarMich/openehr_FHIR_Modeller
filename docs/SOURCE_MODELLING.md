@@ -1,5 +1,9 @@
 # Source-driven modelling: audit and implementation contract
 
+## Current C# integration implementation
+
+The optional [C# integration workspace](INTEGRATION_ENGINE.md) now adds immutable model/rule revisions, protected human mapping selection, direct-to-FHIR and openEHR-mediated routes, private bounded file workers, channel assignments, checkpoints/quarantine, validation and conditional-create FHIR delivery. The original PHP tools below remain the compatibility preview surface. The audit and initial backlog describe the earlier baseline; they must not be read as the current integration feature list. SQL/HL7/CDA/queue/dataset adapters and full PHP repository migration remain incomplete. No clinical approval is inferred from this implementation.
+
 ## Audit
 
 Baseline: 7578ac0. Reuse CKM federation, NativeModels/TemplateBuilds, exact-version

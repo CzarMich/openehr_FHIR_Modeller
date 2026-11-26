@@ -42,6 +42,18 @@ export function loadConfig(env = process.env) {
             .filter(Boolean),
         reviewEnabled: env.CHAT_REVIEW_ENABLED === "true",
         cdrEnabled: env.CHAT_CDR_ENABLED === "true",
+        integrationEnabled: env.CHAT_INTEGRATION_ENABLED === "true",
+        integrationApprovalKeys: env.CHAT_INTEGRATION_APPROVAL_KEYS
+            ? JSON.parse(env.CHAT_INTEGRATION_APPROVAL_KEYS)
+            : undefined,
+        integrationAllowDelivery: env.CHAT_INTEGRATION_ALLOW_DELIVERY === "true",
+        integrationServer: env.CHAT_INTEGRATION_SERVER || "/app/integration/server/Modeller.Mcp",
+        integrationWorker: env.CHAT_INTEGRATION_WORKER || "/app/integration/worker/Modeller.Processing",
+        integrationConnectionsFile: env.CHAT_INTEGRATION_CONNECTIONS_FILE || "",
+        integrationFhirUrl: env.CHAT_INTEGRATION_FHIR_URL || "http://fhir:8094",
+        integrationFhirKeyFile: env.CHAT_INTEGRATION_FHIR_KEY_FILE || "/run/secrets/fhir-engine-key",
+        integrationNativeUrl: env.CHAT_INTEGRATION_NATIVE_URL || "http://app:8090",
+        integrationNativeKeyFile: env.CHAT_INTEGRATION_NATIVE_KEY_FILE || "/run/secrets/engine-key",
         reviewSigningKey: env.CHAT_REVIEW_SIGNING_KEY || "",
         reviewKeyId: env.CHAT_REVIEW_KEY_ID || "active",
         reviewRolesClaim: env.CHAT_REVIEW_ROLES_CLAIM || "roles",
@@ -117,5 +129,21 @@ export function loadConfig(env = process.env) {
         throw new Error("Invalid review session maximum age");
     for (const claim of [config.reviewRolesClaim, config.reviewTenantClaim, config.reviewProjectScopesClaim])
         if (claim && !/^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/.test(claim)) throw new Error("Invalid review claim path");
+    if (config.integrationEnabled && (!config.reviewEnabled || !config.reviewSigningKey))
+        throw new Error("Integration requires verified human review");
+    if (
+        config.integrationApprovalKeys &&
+        (typeof config.integrationApprovalKeys !== "object" ||
+            Array.isArray(config.integrationApprovalKeys) ||
+            Object.keys(config.integrationApprovalKeys).length > 8 ||
+            Object.entries(config.integrationApprovalKeys).some(
+                ([key, value]) =>
+                    !/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(key) ||
+                    typeof value !== "string" ||
+                    !/^[a-f0-9]{64,128}$/.test(value),
+            ) ||
+            config.integrationApprovalKeys[config.reviewKeyId] !== config.reviewSigningKey)
+    )
+        throw new Error("Invalid integration approval key ring");
     return Object.freeze(config);
 }

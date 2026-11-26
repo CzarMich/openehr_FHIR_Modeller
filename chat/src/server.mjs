@@ -1,3 +1,7 @@
+import { IntegrationCore } from "./integration-core.mjs";
+import { ProcessingWorkspace } from "./processing.mjs";
+import { ModellingClients } from "./modelling-clients.mjs";
+import { Readable } from "node:stream";
 import { GLOBAL_IDENTITY, workspaceAccess, identityCanUseGlobal } from "./access.mjs";
 import http from "node:http";
 import QRCode from "qrcode";
@@ -73,7 +77,9 @@ export function createApplication(
         auth = new Auth(config),
         store = new Store(config.dataDir + "/conversations", config.retentionDays),
         provider = new Providers(config),
-        mcpFactory = (signal) => new McpClient(config, signal),
+        mcpFactory = null,
+        integrationCore = new IntegrationCore(config),
+        processing = new ProcessingWorkspace(config, integrationCore),
         reviews = new ReviewClient(config),
         cdr = new CdrClient(config),
         connections = new PersonalConnections(config),
@@ -81,6 +87,7 @@ export function createApplication(
         shares = new Shares(store),
     } = {},
 ) {
+    mcpFactory ||= (signal) => new ModellingClients(config, integrationCore, signal);
     provider.canUseGlobal = (identity) => identityCanUseGlobal(auth.identityStore, identity);
     connections.canUseGlobal = provider.canUseGlobal;
     const active = new Map(),
@@ -133,8 +140,62 @@ export function createApplication(
         );
         const path = new URL(req.url, "http://local").pathname;
         try {
+            if (path === "/chat/integration/mcp") {
+                if (!integrationCore.ready)
+                    throw Object.assign(new Error("Integration modelling is unavailable."), { status: 503 });
+                if (
+                    req.headers.host !== new URL(config.origin).host ||
+                    (req.headers.origin && req.headers.origin !== config.origin)
+                )
+                    throw Object.assign(new Error("Invalid integration origin."), { status: 403 });
+                if (!["GET", "POST", "DELETE"].includes(req.method))
+                    throw Object.assign(new Error("Method not allowed."), { status: 405 });
+                const controller = new AbortController();
+                res.on("close", () => controller.abort());
+                const headers = {};
+                for (const name of [
+                    "accept",
+                    "content-type",
+                    "mcp-session-id",
+                    "mcp-protocol-version",
+                    "last-event-id",
+                    "origin",
+                ])
+                    if (req.headers[name]) headers[name] = req.headers[name];
+                const supplied = req.headers[config.mcpKeyHeader.toLowerCase()];
+                if (typeof supplied === "string") headers["X-API-Key"] = supplied;
+                let payload;
+                if (req.method === "POST") {
+                    const chunks = [];
+                    let size = 0;
+                    for await (const chunk of req) {
+                        size += chunk.length;
+                        if (size > 8 * 1024 * 1024)
+                            throw Object.assign(new Error("MCP request exceeds the limit."), { status: 413 });
+                        chunks.push(chunk);
+                    }
+                    payload = Buffer.concat(chunks);
+                }
+                const upstream = await fetch(integrationCore.origin + "/mcp", {
+                    method: req.method,
+                    headers,
+                    ...(payload ? { body: payload } : {}),
+                    signal: controller.signal,
+                    redirect: "error",
+                });
+                res.statusCode = upstream.status;
+                for (const name of ["content-type", "mcp-session-id", "mcp-protocol-version"])
+                    if (upstream.headers.has(name)) res.setHeader(name, upstream.headers.get(name));
+                if (upstream.body)
+                    Readable.fromWeb(upstream.body)
+                        .on("error", () => res.destroy())
+                        .pipe(res);
+                else res.end();
+                return;
+            }
             if (req.method === "GET" && path === "/health")
-                return json(res, 200, {
+                return json(res, config.integrationEnabled && !integrationCore.ready ? 503 : 200, {
+                    integration_ready: !!integrationCore.ready,
                     status: "alive",
                     enabled: config.enabled,
                     review_enabled: config.reviewEnabled,
@@ -163,6 +224,9 @@ export function createApplication(
                 "/chat/aql.js": ["aql.js", "text/javascript"],
                 "/chat/aql.css": ["aql.css", "text/css"],
                 "/chat/fhir.js": ["fhir.js", "text/javascript"],
+                "/chat/integration.js": ["integration.js", "text/javascript"],
+                "/chat/integration/": ["integration.html", "text/html"],
+                "/chat/integration.css": ["integration.css", "text/css"],
                 "/chat/fhir.css": ["fhir.css", "text/css"],
             };
             if (req.method === "GET" && path === "/chat/reviews") {
@@ -192,6 +256,9 @@ export function createApplication(
                     allowWrites: config.allowWrites,
                     reviewEnabled: config.reviewEnabled,
                     cdrEnabled: !!config.cdrEnabled,
+                    integrationEnabled: !!config.integrationEnabled,
+                    integrationReady: !!integrationCore.ready,
+                    integrationAllowDelivery: !!config.integrationAllowDelivery,
                     identityEnabled: config.identityEnabled,
                     signupEnabled: config.signupEnabled !== false && !!auth.identityStore?.signupAvailable(),
                     access: workspaceAccess(auth.identityStore, session),
@@ -582,6 +649,126 @@ export function createApplication(
                     return json(res, 200, await reviews.request(session, "POST", "/api/v1/reviews" + suffix, input));
                 }
                 throw Object.assign(new Error("Not found"), { status: 404 });
+            }
+            if (path.startsWith("/chat/api/integration/")) {
+                if (!config.integrationEnabled)
+                    throw Object.assign(new Error("Integration mode is not configured."), { status: 503 });
+                const suffix = path.slice("/chat/api/integration/".length);
+                const url = new URL(req.url, config.origin);
+                if (suffix === "models") {
+                    const target = url.searchParams.get("target");
+                    if (typeof target !== "string" || !target.startsWith("/api/v1/integration/"))
+                        throw Object.assign(new Error("Invalid model operation."), { status: 400 });
+                    if (req.method === "GET")
+                        return json(res, 200, await integrationCore.request(session, "GET", target));
+                    if (req.method === "POST") {
+                        if (!config.allowWrites)
+                            throw Object.assign(new Error("Model changes are disabled."), { status: 403 });
+                        return json(
+                            res,
+                            200,
+                            await integrationCore.request(
+                                session,
+                                "POST",
+                                target,
+                                await body(req, null, "Invalid model request.", 8 * 1024 * 1024),
+                            ),
+                        );
+                    }
+                }
+                if (suffix === "connections" && req.method === "GET")
+                    return json(
+                        res,
+                        200,
+                        processing.listConnections(session, url.searchParams.get("projectId") || undefined),
+                    );
+                if (suffix === "files" && req.method === "GET")
+                    return json(
+                        res,
+                        200,
+                        processing.files(session, url.searchParams.get("projectId"), url.searchParams.get("sourceId")),
+                    );
+                if (suffix === "sources/upload" && req.method === "POST") {
+                    const pieces = [];
+                    let size = 0;
+                    for await (const chunk of req) {
+                        size += chunk.length;
+                        if (size > 16 * 1024 * 1024)
+                            throw Object.assign(new Error("Private source limit is 16 MiB."), { status: 413 });
+                        pieces.push(chunk);
+                    }
+                    return json(
+                        res,
+                        200,
+                        await processing.upload(
+                            session,
+                            {
+                                projectId: req.headers["x-model-project"],
+                                format: req.headers["x-source-format"],
+                                name: req.headers["x-source-name"],
+                            },
+                            Buffer.concat(pieces),
+                        ),
+                    );
+                }
+                if (suffix === "sources/inspect" && req.method === "POST")
+                    return json(
+                        res,
+                        200,
+                        await processing.inspect(session, await body(req, ["projectId", "sourceId", "file"])),
+                    );
+                if (suffix === "jobs" && req.method === "GET") return json(res, 200, processing.jobs(session));
+                if (suffix === "channels" && req.method === "GET")
+                    return json(res, 200, processing.listChannels(session));
+                if (
+                    req.method === "POST" &&
+                    ["jobs/preview", "jobs/commit", "channels/preview", "channels/commit"].includes(suffix)
+                ) {
+                    const input = await body(req, null, "Invalid integration request.", 1048576);
+                    const result =
+                        suffix === "jobs/preview"
+                            ? await processing.previewJob(session, input)
+                            : suffix === "jobs/commit"
+                              ? await processing.commitJob(session, input.confirmation)
+                              : suffix === "channels/preview"
+                                ? await processing.previewChannel(session, input)
+                                : await processing.commitChannel(session, input.confirmation);
+                    return json(res, 200, result);
+                }
+                const match = suffix.match(
+                    /^(jobs|channels)\/([a-f0-9]{64})(?:\/(cancel|resume|start|pause|download|report|quarantine))?$/,
+                );
+                if (match) {
+                    if (match[1] === "jobs" && req.method === "GET" && ["download", "quarantine"].includes(match[3])) {
+                        const file = processing.download(
+                            session,
+                            match[2],
+                            match[3] === "quarantine" ? "quarantine" : "export",
+                        );
+                        res.writeHead(200, {
+                            "Content-Type": "application/fhir+ndjson",
+                            "Content-Disposition": "attachment; filename=integration-output.ndjson",
+                        });
+                        return (await import("node:fs")).createReadStream(file).pipe(res);
+                    }
+                    if (match[1] === "jobs" && req.method === "GET" && match[3] === "report")
+                        return json(res, 200, processing.report(session, match[2]));
+                    if (match[1] === "jobs" && req.method === "GET" && !match[3])
+                        return json(res, 200, processing.status(processing.owner(session), match[2]));
+                    if (req.method === "POST") {
+                        await body(req, []);
+                        const result =
+                            match[1] === "channels"
+                                ? await processing.controlChannel(session, match[2], match[3])
+                                : match[3] === "cancel"
+                                  ? processing.cancel(session, match[2])
+                                  : match[3] === "resume"
+                                    ? await processing.resume(session, match[2])
+                                    : null;
+                        if (result) return json(res, 200, result);
+                    }
+                }
+                throw Object.assign(new Error("Integration operation not found."), { status: 404 });
             }
             if (path === "/chat/api/fhir/execute") {
                 if (req.method !== "POST")
@@ -1492,7 +1679,7 @@ export function createApplication(
                         ? "At least one active administrator must remain."
                         : "The identity request could not be completed.";
             }
-            const status = [400, 401, 403, 404, 409, 413, 415, 421, 429, 503].includes(error.status)
+            const status = [400, 401, 403, 404, 405, 409, 413, 415, 421, 422, 429, 502, 503].includes(error.status)
                 ? error.status
                 : 500;
             json(res, status, {
@@ -1517,7 +1704,12 @@ export function createApplication(
     server.requestTimeout = 120000;
     server.headersTimeout = 10000;
     server.maxHeadersCount = 40;
+    server.on("listening", () => {
+        integrationCore.start().catch(() => {});
+    });
     server.on("close", () => {
+        processing.close();
+        integrationCore.stop();
         clearInterval(cleanup);
         provider.close?.();
         for (const turn of active.values()) turn.controller.abort();
