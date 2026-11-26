@@ -145,6 +145,21 @@ final class FhirModellingTest extends TestCase
         $service->operation('mapping', 'preview', 'synthetic', json_encode($args));
     }
 
+    public function testPreviewRejectsSuppliedResourceThatIsNotAStructureDefinition(): void
+    {
+        $this->project();
+        $service = new FhirModelling($this->repository, new AccessPolicy(new Settings(['MODEL_REPOSITORY_WRITE_ENABLED' => 'true'])),
+            $this->provider, $this->audit, new Actor('test', 'shared', ['modeller']), $this->connections, $this->repository, $this->audit);
+        $bindings = [];
+        foreach (['openEHR' => ['templates/lab.opt', '<template/>'], 'FHIR' => ['fhir/wrong.json', '{"resourceType":"ValueSet","version":"1.0.0"}']] as $standard => [$path, $content]) {
+            $artifact = $this->repository->saveArtifact('synthetic', $path, $content, [], null);
+            $bindings[] = ['standard' => $standard, 'projectId' => 'synthetic', 'path' => $path,
+                'revision' => $artifact['revision'], 'sha256' => $artifact['sha256'], 'version' => '1.0.0'];
+        }
+        $this->expectExceptionMessage('MAPPING_MODEL_INPUT_INVALID');
+        $service->operation('mapping', 'preview', 'synthetic', json_encode(['modelInputs' => $bindings]));
+    }
+
     public function testMappingWithoutBothModelInputsFailsClosed(): void
     {
         $service = $this->project();

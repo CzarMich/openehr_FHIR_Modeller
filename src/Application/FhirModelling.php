@@ -76,6 +76,9 @@ final readonly class FhirModelling
             if ($action === 'context') { return $inputs; }
             foreach ($inputs['items'] as $input) {
                 if (!$input['current']) { throw new \DomainException('MAPPING_MODELS_STALE'); }
+                if (array_intersect($input['blockers'], ['STRUCTURE_DEFINITION_VERSION_REQUIRED', 'TEMPLATE_REQUIRED']) !== []) {
+                    throw new \DomainException('MAPPING_MODEL_INPUT_INVALID');
+                }
             }
             $result = $this->provider->execute('mapping.preview', array_merge($args, ['project' => $project]));
             return $result + ['modelReadiness' => $inputs, 'operationalExecution' => 'NOT_SUPPORTED'];

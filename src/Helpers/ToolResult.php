@@ -39,6 +39,7 @@ final class ToolResult
                 'message' => match ($code) {
                     'MAPPING_MODELS_REQUIRED', 'MAPPING_BOTH_STANDARDS_REQUIRED' => 'Supply the exact openEHR template and FHIR StructureDefinitions before preparing a mapping, including externally obtained models.',
                     'MAPPING_MODEL_PIN_REQUIRED' => 'Each supplied model needs its project, path, exact revision, SHA-256 and version.',
+                    'MAPPING_MODEL_INPUT_INVALID' => 'Supply an openEHR template and version-matching FHIR StructureDefinitions; other artifact types cannot serve as mapping models.',
                     'MAPPING_MODELS_STALE' => 'A supplied model changed. Retrieve its current constraints and review the mapping again.',
                     'INVALID_INPUT' => 'Input does not meet the documented operation constraints.',
                     'REVISION_CONFLICT' => 'The artefact changed. Read the current revision before retrying.',
