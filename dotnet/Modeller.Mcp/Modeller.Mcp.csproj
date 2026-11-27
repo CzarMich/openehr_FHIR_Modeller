@@ -18,4 +18,5 @@
     <Content Include="../../deploy/postgres/001-governance.sql" Link="deploy/postgres/001-governance.sql" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../contracts/*.json" Link="contracts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup><ProjectReference Include="../Modeller.Operational/Modeller.Operational.csproj" /></ItemGroup>
 </Project>

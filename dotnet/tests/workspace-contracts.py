@@ -16,6 +16,7 @@ with tempfile.TemporaryDirectory(prefix='modeller-workspace-contracts-') as temp
     owner='b'*64;subject=None;checks=0
     with socket.socket() as sock:sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
     config={'modelRoot':str(fixture/'models'),'fhirUrl':'http://127.0.0.1:1','fhirKeyFile':str(fixture/'key'),'nativeUrl':'http://127.0.0.1:1','nativeKeyFile':str(fixture/'key'),'sources':[],'destinations':[],'requireTerminology':False}
+    config['operationalRoot']=str(fixture/'operational');config['operationalKeyFile']=str(fixture/'operational-key');(fixture/'operational-key').write_bytes(os.urandom(32));(fixture/'operational-key').chmod(0o600)
     if args.installed_fhir:
         address=subprocess.check_output(['docker','inspect','--format','{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}','openehr-fhir-modeller-fhir-1'],text=True).strip()
         config['fhirUrl']='http://'+address+':8094'
@@ -66,14 +67,27 @@ with tempfile.TemporaryDirectory(prefix='modeller-workspace-contracts-') as temp
             request(target,token=proof('GET',target,'',roles=['modelling-reviewer'],project_scopes=['project:other:read']),expected=403)
             profile={'resourceType':'StructureDefinition','id':'SyntheticPatient','url':'https://example.org/StructureDefinition/SyntheticPatient','version':'1.0.0','name':'SyntheticPatient','status':'draft','fhirVersion':'4.0.1','kind':'resource','abstract':False,'type':'Patient','baseDefinition':'http://hl7.org/fhir/StructureDefinition/Patient','derivation':'constraint','differential':{'element':[{'id':'Patient.identifier','path':'Patient.identifier','min':1}]}}
             model=request('/api/v1/integration/projects/synthetic/models',{'id':'synthetic-patient','standard':'FHIR','version':'1.0.0','origin':'externally-provided','content':compact(profile),'provenance':{'source':'Independent synthetic acceptance fixture'}})
+            authority='urn:uuid:991c7a7a-c903-4da4-944c-23329b16797a'
+            def source_model(identifier,format,id_path,name_path,versions=None,message_types=None):
+                definition={'schemaVersion':1,'format':format,'versions':versions or [],'messageTypes':message_types or [],'fields':[{'name':'id','kind':'json-pointer','path':id_path,'classification':'patient-identifier'},{'name':'name','kind':'json-pointer','path':name_path,'classification':'direct-identifier'}],'patient':{'identifierField':'id','anchorField':'id','system':authority,'authoritativeRegistration':True},'relations':[]}
+                return request('/api/v1/integration/projects/synthetic/models',{'id':identifier,'standard':'source-contract','version':'1.0.0','origin':'externally-provided','content':compact(definition),'provenance':{'source':'Explicit synthetic interface definition'}})
+            source_contract=source_model('synthetic-source','json','/id','/name')
+            policy={'schemaVersion':1,'identityDomain':'synthetic-hospital','destinationId':'synthetic-export','privacyPolicyRevision':0,'pseudonymisePatientIdentifiers':False,'pseudonymSystem':None,'references':[],'publications':[]}
+            privacy_target='/api/v1/integration/projects/synthetic/destinations/synthetic-export/privacy'
+            assert request(privacy_target)['patientIdentityRequired']
+            denied={'expectedRevision':0,'pseudonymisePatientIdentifiers':True,'pseudonymSystem':'urn:synthetic:pseudonym'}
+            request(privacy_target,denied,token=proof('POST',privacy_target,compact(denied),roles=[],project_scopes=['project:synthetic:read']),expected=403)
+            request(privacy_target,denied,token=proof('POST',privacy_target,compact(denied),session_started=int(time.time())-1200),expected=401)
+            assert request(privacy_target)['revision']==0
             schema=[{'path':'/id','types':['string']},{'path':'/name','types':['string']}]
             def rule(source,target):return {'source':source,'target':target,'operation':'copy','description':'Synthetic exact copy','interpretation':'Copy the explicitly declared string without inference','assumptions':[],'missing':'reject','null':'reject'}
             seed={'resourceType':'Patient','identifier':[{'system':'urn:uuid:991c7a7a-c903-4da4-944c-23329b16797a'}],'active':True}
             output={**seed,'identifier':[{'system':'urn:uuid:991c7a7a-c903-4da4-944c-23329b16797a','value':'syn-1'}],'name':[{'text':'Synthetic One'}]}
             mapping={'schemaVersion':2,'name':'synthetic-patients','version':'1.0.0','direction':'source-direct-to-fhir','sourceSchema':schema,'sourceSchemaSha256':digest(canonical(schema)),'reversibility':'retained-context','description':'Synthetic acceptance, not a clinical mapping','requirements':[{'id':'USER-1','originalText':'Use the supplied profile; copy synthetic id and display name. Reject missing names.','basis':'user-instruction'}],'unresolvedQuestions':[],'examples':[{'synthetic':True,'input':{'id':'syn-1','name':'Synthetic One'},'expected':[output]},{'synthetic':True,'input':{'id':'syn-missing'},'expectedError':'RECORD_REQUIRED'}],'stages':[{'seed':seed,'rules':[rule('/id','/identifier/0/value'),rule('/name','/name/0/text')]}]}
+            mapping['sourceProfileKey']=source_contract['key'];mapping['clinicalPolicy']=policy
             reuse_context={'sourceSystem':'synthetic-lab','sourceSemanticsVersion':'dictionary-1','purpose':'Synthetic patient transformation','terminologyPins':[]}
-            reuse_query={'context':reuse_context,'sourceSchemaSha256':mapping['sourceSchemaSha256'],'requirements':mapping['requirements'],'modelKeys':[model['key']],'direction':mapping['direction']}
-            view=request('/api/v1/integration/projects/synthetic/mappings',{'modelKeys':[model['key']],'executionMapping':compact(mapping),'reuseContext':reuse_context})
+            reuse_query={'context':reuse_context,'sourceSchemaSha256':mapping['sourceSchemaSha256'],'requirements':mapping['requirements'],'modelKeys':[model['key'],source_contract['key']],'direction':mapping['direction']}
+            view=request('/api/v1/integration/projects/synthetic/mappings',{'modelKeys':[model['key'],source_contract['key']],'executionMapping':compact(mapping),'reuseContext':reuse_context})
             reuse_target='/api/v1/integration/projects/synthetic/reuse'
             reusable=request(reuse_target,reuse_query)
             assert reusable['providerCalls']==0 and len(reusable['items'])==1 and not reusable['items'][0]['eligibleForReuse']
@@ -86,15 +100,34 @@ with tempfile.TemporaryDirectory(prefix='modeller-workspace-contracts-') as temp
             assert reusable['items'][0]['eligibleForReuse'] and not reusable['automaticExecution']
             changed_query=json.loads(compact(reuse_query));changed_query['context']['sourceSemanticsVersion']='dictionary-2'
             assert request(reuse_target,changed_query)['items']==[]
-            preparation={'modelKeys':[model['key']],'executionMapping':compact(mapping),'reuseContext':reuse_context}
+            preparation={'modelKeys':[model['key'],source_contract['key']],'executionMapping':compact(mapping),'reuseContext':reuse_context}
             write_target='/api/v1/integration/projects/synthetic/mappings'
             request(write_target,preparation,token=proof('POST',write_target,compact(preparation),session_started=int(time.time())-1200),expected=401)
             request(target,{'decision':'CONFIRMED','expectedSequence':0,'comment':'Stale sequence'},expected=409)
             if args.installed_fhir:
                 source=fixture/'source';source.mkdir();(source/'records.json').write_text(compact([{'id':'syn-1','name':'Synthetic One'},{'id':'syn-2','name':'Synthetic Two'},{'id':'syn-missing'}]))
-                config['sources']=[{'id':'synthetic','root':str(source),'format':'json','projects':['synthetic'],'owners':[owner]}];(fixture/'config.json').write_text(compact(config))
+                config['sources']=[{'id':'synthetic','root':str(source),'format':'json','projects':['synthetic'],'owners':[owner],'identityDomain':'synthetic-hospital','trustPatientRegistration':False}];(fixture/'config.json').write_text(compact(config))
                 job=fixture/'job';job.mkdir();(job/'request.json').write_text(compact({'owner':owner,'projectId':'synthetic','subject':subject,'sourceId':'synthetic','file':'records.json','sourceSha256':hashlib.sha256((source/'records.json').read_bytes()).hexdigest(),'mode':'export','destinationId':None}))
                 subprocess.run(base+[args.sdk_image,'dotnet',str(ROOT/'dotnet/Modeller.Processing/bin/Release/net10.0/Modeller.Processing.dll'),'run',str(fixture/'config.json'),str(job)],check=True,capture_output=True,text=True,timeout=660)
+                held=json.loads((job/'state.json').read_text());assert (held['status'],held['held'],held['exported'])==('WAITING_DEPENDENCIES',3,0),held
+                def source_connection_fingerprint(connection):
+                    part=lambda value:str(len(value.encode('utf-8')))+':'+value
+                    array=lambda values:str(len(values))+':'+''.join(map(part,values))
+                    values=[connection['id'],connection['root'],connection['format'],connection.get('identityDomain') or '',str(connection.get('trustPatientRegistration',False)).lower(),array(connection['projects']),array(connection['owners'])]
+                    return digest('modeller-source-connection/v1\n'+''.join(map(part,values)))
+                source_fingerprint=source_connection_fingerprint(config['sources'][0])
+                request('/api/v1/integration/projects/synthetic/source-trust',{'sourceSystem':'synthetic-hospital','destinationId':'synthetic-export','connectionSha256':source_fingerprint,'comment':'Synthetic fixture: reviewed exact source registration contract and configuration'})
+                inspection=fixture/'projected-inspection';inspection.mkdir();inspection_request=json.loads((job/'request.json').read_text());inspection_request['sourceContractKey']=source_contract['key'];(inspection/'request.json').write_text(compact(inspection_request))
+                inspected=subprocess.run(base+[args.sdk_image,'dotnet',str(ROOT/'dotnet/Modeller.Processing/bin/Release/net10.0/Modeller.Processing.dll'),'inspect',str(fixture/'config.json'),str(inspection)],capture_output=True,text=True,check=True,timeout=60)
+                assert 'syn-1' not in inspected.stdout and 'Synthetic One' not in inspected.stdout and 'sourceSchema' in json.loads(inspected.stdout), inspected.stdout
+                checks+=1
+                (source/'records.json').unlink()
+                subprocess.run(base+[args.sdk_image,'dotnet',str(ROOT/'dotnet/Modeller.Processing/bin/Release/net10.0/Modeller.Processing.dll'),'run',str(fixture/'config.json'),str(job)],check=True,capture_output=True,text=True,timeout=660)
+                retrieved=subprocess.run(base+[args.sdk_image,'dotnet',str(ROOT/'dotnet/Modeller.Processing/bin/Release/net10.0/Modeller.Processing.dll'),'original',str(fixture/'config.json'),str(job)],capture_output=True,text=True,check=True,timeout=60)
+                assert hashlib.sha256((job/'received-source.bin').read_bytes()).hexdigest()==json.loads((job/'request.json').read_text())['sourceSha256']
+                assert 'syn-1' not in retrieved.stdout and not (source/'records.json').exists()
+                (job/'received-source.bin').unlink();checks+=1
+                checks+=2
                 state=json.loads((job/'state.json').read_text());assert (state['status'],state['read'],state['exported'],state['rejected'],state['emitted'])==('COMPLETED_WITH_FAILURES',3,2,1,0),{'state':state,'evidence':[json.loads(p.read_text()) for p in (job/'evidence').glob('*-fhir-*.json')]}
                 assert len((job/'export.ndjson').read_text().splitlines())==2
                 assert len((job/'quarantine.ndjson').read_text().splitlines())==1
@@ -103,7 +136,7 @@ with tempfile.TemporaryDirectory(prefix='modeller-workspace-contracts-') as temp
                 unversioned=dict(profile);unversioned.pop('version');content=compact(unversioned)
                 exact=request('/api/v1/integration/projects/synthetic/models',{'id':'external-unversioned','standard':'FHIR','version':'sha256-'+digest(content),'origin':'externally-provided','content':content,'provenance':{'source':'Synthetic unversioned external SD'}})
                 unversioned_mapping=dict(mapping,name='unversioned-synthetic-patients')
-                selected=request('/api/v1/integration/projects/synthetic/mappings',{'modelKeys':[exact['key']],'executionMapping':compact(unversioned_mapping)})
+                selected=request('/api/v1/integration/projects/synthetic/mappings',{'modelKeys':[exact['key'],source_contract['key']],'executionMapping':compact(unversioned_mapping)})
                 request('/api/v1/integration/mappings/'+selected['subject']+'/decisions',{'decision':'CONFIRMED','expectedSequence':0,'comment':'Reviewed the exact unversioned SD content hash'})
                 second=fixture/'unversioned-job';second.mkdir();second_request=json.loads((job/'request.json').read_text());second_request['subject']=selected['subject'];(second/'request.json').write_text(compact(second_request))
                 subprocess.run(base+[args.sdk_image,'dotnet',str(ROOT/'dotnet/Modeller.Processing/bin/Release/net10.0/Modeller.Processing.dll'),'run',str(fixture/'config.json'),str(second)],check=True,capture_output=True,text=True,timeout=660)
@@ -112,7 +145,7 @@ with tempfile.TemporaryDirectory(prefix='modeller-workspace-contracts-') as temp
                 invalid=dict(profile);invalid.pop('differential')
                 bad=request('/api/v1/integration/projects/synthetic/models',{'id':'invalid-synthetic-profile','standard':'FHIR','version':'1.0.0','origin':'externally-provided','content':compact(invalid),'provenance':{'source':'Intentionally invalid synthetic SD'}})
                 bad_mapping=dict(mapping,name='invalid-sd-synthetic-patients')
-                bad_view=request('/api/v1/integration/projects/synthetic/mappings',{'modelKeys':[bad['key']],'executionMapping':compact(bad_mapping)})
+                bad_view=request('/api/v1/integration/projects/synthetic/mappings',{'modelKeys':[bad['key'],source_contract['key']],'executionMapping':compact(bad_mapping)})
                 request('/api/v1/integration/mappings/'+bad_view['subject']+'/decisions',{'decision':'CONFIRMED','expectedSequence':0,'comment':'Synthetic test: selection is not technical validation'})
                 blocked=fixture/'invalid-sd-job';blocked.mkdir();blocked_request=dict(second_request,subject=bad_view['subject']);(blocked/'request.json').write_text(compact(blocked_request))
                 subprocess.run(base+[args.sdk_image,'dotnet',str(ROOT/'dotnet/Modeller.Processing/bin/Release/net10.0/Modeller.Processing.dll'),'run',str(fixture/'config.json'),str(blocked)],check=True,capture_output=True,text=True,timeout=660)
@@ -131,49 +164,62 @@ with tempfile.TemporaryDirectory(prefix='modeller-workspace-contracts-') as temp
                     java=(ROOT/'engine/src/test/java/org/openehr/modelling/engine/CompositionValidationTest.java').read_text()
                     composition=json.loads(java.split('static final String COMPOSITION = """')[1].split('"""')[0])
                     first={'seed':composition,'rules':[rule('/id','/composer/name'),rule('/name','/name/value')]}
-                    second_stage={'seed':seed,'rules':[rule('/composer/name','/identifier/0/value'),rule('/name/value','/name/0/text')]}
-                    via=dict(mapping,name='native-synthetic-patients',direction='source-to-fhir',stages=[first,second_stage])
-                    via['requirements']=[{'id':'SYNTHETIC-1','originalText':'Create a non-clinical persistent composition, then preserve the synthetic ID and display label in Patient.','basis':'user-instruction'}]
-                    via_view=request('/api/v1/integration/projects/synthetic/mappings',{'modelKeys':[model['key'],template_model['key']],'executionMapping':compact(via)})
-                    request('/api/v1/integration/mappings/'+via_view['subject']+'/decisions',{'decision':'CONFIRMED','expectedSequence':0,'comment':'Synthetic acceptance only; inspected exact OPT, SD and two-stage rules'})
                     def run_job(name,job_request):
-                        directory=fixture/name;directory.mkdir();(directory/'request.json').write_text(compact(job_request))
-                        subprocess.run(base+[args.sdk_image,'dotnet',str(ROOT/'dotnet/Modeller.Processing/bin/Release/net10.0/Modeller.Processing.dll'),'run',str(fixture/'config.json'),str(directory)],check=True,capture_output=True,text=True,timeout=660)
-                        state=json.loads((directory/'state.json').read_text());return directory,state
-                    native_request=json.loads((job/'request.json').read_text());native_request['subject']=via_view['subject']
-                    native_job,native_state=run_job('native-job',native_request)
+                        directory=fixture/name;directory.mkdir();job_request=dict(job_request,intakeId=name);(directory/'request.json').write_text(compact(job_request))
+                        result=subprocess.run(base+[args.sdk_image,'dotnet',str(ROOT/'dotnet/Modeller.Processing/bin/Release/net10.0/Modeller.Processing.dll'),'run',str(fixture/'config.json'),str(directory)],capture_output=True,text=True,timeout=660)
+                        assert result.returncode==0, {'workerError':result.stderr}
+                        return directory,json.loads((directory/'state.json').read_text())
+                    def confirmed(plan,keys):
+                        view=request('/api/v1/integration/projects/synthetic/mappings',{'modelKeys':keys,'executionMapping':compact(plan)})
+                        request('/api/v1/integration/mappings/'+view['subject']+'/decisions',{'decision':'CONFIRMED','expectedSequence':0,'comment':'Inspected exact synthetic source contract, target models and independent mapping rules'})
+                        return view
+                    expected_composition=json.loads(compact(composition));expected_composition['composer']['name']='syn-1';expected_composition['name']['value']='Synthetic One'
+                    to_ehr=dict(mapping,name='native-source-to-openehr',direction='source-to-openehr',stages=[first],examples=[{'synthetic':True,'input':{'id':'syn-1','name':'Synthetic One'},'expected':[expected_composition]}])
+                    to_ehr['requirements']=[{'id':'SYN-EHR-1','originalText':'Map synthetic source data to an openEHR composition as an independent operation.','basis':'user-instruction'}]
+                    ehr_view=confirmed(to_ehr,[source_contract['key'],template_model['key']])
+                    native_request=json.loads((job/'request.json').read_text());native_request['subject']=ehr_view['subject']
+                    native_job,native_state=run_job('source-to-openehr-job',native_request)
                     assert (native_state['exported'],native_state['rejected'],native_state['emitted'])==(2,1,0),native_state
                     native_evidence=[json.loads(file.read_text()) for file in (native_job/'evidence').glob('*-openehr.json')]
                     assert len(native_evidence)==2 and all(report['valid'] and report['status']=='PASS' and not report['clinical_approval'] for report in native_evidence)
-                    forward=[json.loads(line) for line in (native_job/'export.ndjson').read_text().splitlines()]
+                    compositions=[json.loads(line) for line in (native_job/'export.ndjson').read_text().splitlines()]
+                    incoming=compact(compositions);(source/'incoming-openehr.json').write_text(incoming)
+                    ehr_contract=source_model('synthetic-openehr-source','openehr-json','/composer/name','/name/value')
+                    from_ehr=dict(mapping,name='native-openehr-to-fhir',direction='openehr-to-fhir',sourceProfileKey=ehr_contract['key'])
+                    from_ehr['requirements']=[{'id':'SYN-FHIR-1','originalText':'Map supplied openEHR compositions to FHIR as an independent operation.','basis':'user-instruction'}]
+                    from_ehr_view=confirmed(from_ehr,[ehr_contract['key'],template_model['key'],model['key']])
+                    config['sources'].append({'id':'incoming-openehr','root':str(source),'format':'openehr-json','projects':['synthetic'],'owners':[owner],'identityDomain':'synthetic-hospital','trustPatientRegistration':True});(fixture/'config.json').write_text(compact(config))
+                    forward_job,forward_state=run_job('openehr-to-fhir-job',dict(native_request,subject=from_ehr_view['subject'],sourceId='incoming-openehr',file='incoming-openehr.json',sourceSha256=digest(incoming)))
+                    assert (forward_state['exported'],forward_state['rejected'],forward_state['emitted'])==(2,0,0),forward_state
+                    forward=[json.loads(line) for line in (forward_job/'export.ndjson').read_text().splitlines()]
                     incoming=compact(forward);(source/'incoming-fhir.json').write_text(incoming)
-                    config['sources'].append({'id':'incoming-fhir','root':str(source),'format':'fhir-json','projects':['synthetic'],'owners':[owner]});(fixture/'config.json').write_text(compact(config))
-                    field_types={}
-                    def fields(value,path=''):
-                        if isinstance(value,dict):
-                            if path:field_types.setdefault(path,set()).add('object')
-                            for key,item in value.items():fields(item,path+'/'+key.replace('~','~0').replace('/','~1'))
-                        elif isinstance(value,list):
-                            field_types.setdefault(path,set()).add('array')
-                            for item in value:fields(item,path+'/*')
-                        else:field_types.setdefault(path,set()).add('null' if value is None else 'boolean' if isinstance(value,bool) else 'number' if isinstance(value,(int,float)) else 'string')
-                    for record in forward:fields(record)
-                    reverse_schema=[{'path':path,'types':sorted(types)} for path,types in sorted(field_types.items())]
-                    reverse_expected=json.loads(compact(composition));reverse_expected['composer']['name']='syn-1';reverse_expected['name']['value']='Synthetic One'
-                    reverse=dict(via,name='native-reverse-synthetic-patients',direction='fhir-to-openehr',sourceSchema=reverse_schema,sourceSchemaSha256=digest(canonical(reverse_schema)),stages=[{'seed':composition,'rules':[rule('/identifier/0/value','/composer/name'),rule('/name/0/text','/name/value')]}],examples=[{'synthetic':True,'input':forward[0],'expected':[reverse_expected]}])
-                    reverse['requirements']=[{'id':'SYNTHETIC-REVERSE-1','originalText':'Separately map the synthetic Patient identifier and display label back to a persistent composition.','basis':'user-instruction'}]
-                    reverse_view=request('/api/v1/integration/projects/synthetic/mappings',{'modelKeys':[model['key'],template_model['key']],'executionMapping':compact(reverse)})
-                    request('/api/v1/integration/mappings/'+reverse_view['subject']+'/decisions',{'decision':'CONFIRMED','expectedSequence':0,'comment':'Synthetic reverse mapping with explicitly bounded round-trip assertions'})
-                    reverse_request=dict(native_request,subject=reverse_view['subject'],sourceId='incoming-fhir',file='incoming-fhir.json',sourceSha256=digest(incoming))
-                    reverse_job,reverse_state=run_job('native-reverse-job',reverse_request)
+                    fhir_contract=source_model('synthetic-fhir-source','fhir-json','/identifier/0/value','/name/0/text')
+                    reverse=dict(to_ehr,name='native-fhir-to-openehr',direction='fhir-to-openehr',sourceProfileKey=fhir_contract['key'])
+                    reverse['requirements']=[{'id':'SYN-REVERSE-1','originalText':'Map supplied FHIR resources to openEHR as an independent operation.','basis':'user-instruction'}]
+                    reverse_view=confirmed(reverse,[fhir_contract['key'],template_model['key'],model['key']])
+                    config['sources'].append({'id':'incoming-fhir','root':str(source),'format':'fhir-json','projects':['synthetic'],'owners':[owner],'identityDomain':'synthetic-hospital','trustPatientRegistration':True});(fixture/'config.json').write_text(compact(config))
+                    reverse_job,reverse_state=run_job('fhir-to-openehr-job',dict(native_request,subject=reverse_view['subject'],sourceId='incoming-fhir',file='incoming-fhir.json',sourceSha256=digest(incoming)))
                     assert (reverse_state['exported'],reverse_state['rejected'],reverse_state['emitted'])==(2,0,0),reverse_state
                     backward=[json.loads(line) for line in (reverse_job/'export.ndjson').read_text().splitlines()]
                     assert [(r['identifier'][0]['value'],r['name'][0]['text']) for r in forward]==[(r['composer']['name'],r['name']['value']) for r in backward]
+                    # The actual private worker maps raw ER7 independently to each target standard.
+                    adt='MSH|^~\\&|SYNTHETIC|TEST|MODELLER|TEST|20260101120000||ADT^A01|synthetic-adt-1|P|2.5\rPID|1||syn-hl7-1^^^SYNTHETIC^MR||Example^Synthetic\r'
+                    (source/'incoming.hl7').write_bytes(adt.encode('ascii'))
+                    hl7_contract=source_model('synthetic-v2-source','hl7-v2','/model/PID/0/3/0/components/0/value','/model/PID/0/5/0/components/0/components/0/value',['2.5'],['ADT^A01'])
+                    config['sources'].append({'id':'incoming-v2','root':str(source),'format':'hl7-v2','projects':['synthetic'],'owners':[owner],'identityDomain':'synthetic-hospital','trustPatientRegistration':True});(fixture/'config.json').write_text(compact(config))
+                    for direction,base_mapping,target_model in [('source-direct-to-fhir',mapping,model),('source-to-openehr',to_ehr,template_model)]:
+                        expected=compact(output if direction=='source-direct-to-fhir' else expected_composition).replace('syn-1','syn-hl7-1').replace('Synthetic One','Example')
+                        plan=dict(base_mapping,name='raw-v2-'+direction,sourceProfileKey=hl7_contract['key'],examples=[{'synthetic':True,'input':{'id':'syn-hl7-1','name':'Example'},'expected':[json.loads(expected)]}])
+                        selection=confirmed(plan,[hl7_contract['key'],target_model['key']])
+                        directory,actual=run_job('raw-v2-'+direction,dict(native_request,subject=selection['subject'],sourceId='incoming-v2',file='incoming.hl7',sourceSha256=hashlib.sha256(adt.encode('ascii')).hexdigest()))
+                        assert (actual['exported'],actual['rejected'],actual['emitted'])==(1,0,0),actual
+                        assert len((directory/'patient-index.ndjson').read_text().splitlines())==1
+                        checks+=2
                     from concurrent.futures import ThreadPoolExecutor
                     with ThreadPoolExecutor(max_workers=2) as pool:
                         concurrent=list(pool.map(lambda name:run_job(name,native_request),['native-concurrent-one','native-concurrent-two']))
                     assert all((state['exported'],state['rejected'],state['emitted'])==(2,1,0) for directory,state in concurrent),[state for directory,state in concurrent]
-                    checks+=6
+                    checks+=8
             request(target,{'decision':'REVOKED','expectedSequence':1,'comment':'Withdraw synthetic acceptance selection'})
             if args.export_fixture:
                 import shutil

@@ -16,6 +16,24 @@ import { join, resolve, basename } from "node:path";
 import { problem } from "./personal-http.mjs";
 
 const hash = (value) => createHash("sha256").update(value).digest("hex");
+function sourceFingerprint(source) {
+    const part = (value) => Buffer.byteLength(value, "utf8") + ":" + value;
+    const array = (values) => values.length + ":" + values.map(part).join("");
+    return hash(
+        "modeller-source-connection/v1\n" +
+            [
+                source.id,
+                source.root,
+                source.format,
+                source.identityDomain || "",
+                source.trustPatientRegistration ? "true" : "false",
+                array(source.projects),
+                array(source.owners),
+            ]
+                .map(part)
+                .join(""),
+    );
+}
 const LIMIT = 16 * 1024 * 1024;
 const ids = /^[a-f0-9]{64}$/;
 const projectId = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$/;
@@ -46,6 +64,7 @@ export class ProcessingWorkspace {
         this.launcher = launcher;
         this.clock = clock;
         this.inspectors = new Map();
+        this.originalDownloads = new Set();
         this.inspectionRequests = 0;
         this.root = join(config.dataDir, "processing");
         this.active = new Map();
@@ -88,6 +107,11 @@ export class ProcessingWorkspace {
             ? json(this.config.integrationConnectionsFile)
             : { sources: [], destinations: [], requireTerminology: true };
         fields(configured, ["sources", "destinations", "requireTerminology"]);
+        for (const kind of ["sources", "destinations"]) {
+            const ids = (configured[kind] || []).map((item) => item.id);
+            if (new Set(ids).size !== ids.length)
+                throw problem("Registered connection identifiers must be unique across the installation.", 503);
+        }
         const allowed = (item) =>
             Array.isArray(item.owners) &&
             item.owners.includes(owner) &&
@@ -104,6 +128,7 @@ export class ProcessingWorkspace {
                     id: name,
                     root: join(uploads, name),
                     format: item.format,
+                    identityDomain: item.identityDomain || null,
                     projects: [item.projectId],
                     owners: [owner],
                     displayName: item.displayName,
@@ -135,10 +160,25 @@ export class ProcessingWorkspace {
     }
     async upload(session, input, bytes) {
         this.checkQuota(session);
-        fields(input, ["projectId", "format", "name"]);
+        fields(input, ["projectId", "format", "name", "identityDomain"]);
         if (
             !projectId.test(input.projectId) ||
-            !["csv", "json", "fhir-json", "xml", "xlsx"].includes(input.format) ||
+            ![
+                "csv",
+                "json",
+                "fhir-json",
+                "openehr-json",
+                "xml",
+                "xlsx",
+                "hl7-v2",
+                "hl7-v2-xml",
+                "hl7-v3",
+                "cda",
+            ].includes(input.format) ||
+            typeof input.identityDomain !== "string" ||
+            !input.identityDomain.trim() ||
+            input.identityDomain.length > 256 ||
+            /[\r\n\0]/.test(input.identityDomain) ||
             typeof input.name !== "string" ||
             input.name.length > 180 ||
             /[\r\n\0]/.test(input.name) ||
@@ -150,7 +190,7 @@ export class ProcessingWorkspace {
         await this.core.request(session, "GET", "/api/v1/integration/projects/" + input.projectId);
         const owner = this.owner(session),
             digest = hash(bytes),
-            id = hash(input.projectId + "\n" + input.format + "\n" + digest);
+            id = hash(input.projectId + "\n" + input.format + "\n" + input.identityDomain + "\n" + digest);
         const directory = join(this.directory(session, "sources"), id);
         mkdirSync(directory, { recursive: true, mode: 0o700 });
         if (!existsSync(join(directory, "source.bin")))
@@ -158,6 +198,7 @@ export class ProcessingWorkspace {
         save(join(directory, "source.json"), {
             projectId: input.projectId,
             format: input.format,
+            identityDomain: input.identityDomain,
             displayName: basename(input.name),
             sha256: digest,
         });
@@ -180,11 +221,14 @@ export class ProcessingWorkspace {
                 displayName: s.displayName || s.id,
                 projects: s.projects,
                 uploaded: !!s.uploaded,
+                identityDomain: s.identityDomain || null,
+                trustPatientRegistration: !!s.trustPatientRegistration,
             })),
             destinations: result.destinations.map((d) => ({
                 id: d.id,
                 displayName: d.displayName || d.id,
                 resourceTypes: d.resourceTypes,
+                readResourceTypes: d.readResourceTypes || null,
                 projects: d.projects,
             })),
             databaseDrivers: [],
@@ -203,7 +247,17 @@ export class ProcessingWorkspace {
     matches(source, name) {
         return source.uploaded
             ? name === "source.bin"
-            : name.toLowerCase().endsWith("." + ({ "fhir-json": "json" }[source.format] || source.format));
+            : name.toLowerCase().endsWith(
+                  "." +
+                      ({
+                          "fhir-json": "json",
+                          "openehr-json": "json",
+                          "hl7-v2": "hl7",
+                          "hl7-v2-xml": "xml",
+                          "hl7-v3": "xml",
+                          cda: "xml",
+                      }[source.format] || source.format),
+              );
     }
     async file(source, name) {
         if (
@@ -276,13 +330,27 @@ export class ProcessingWorkspace {
         return mapping;
     }
     async inspect(session, input) {
-        fields(input, ["projectId", "sourceId", "file"]);
+        fields(input, ["projectId", "sourceId", "file", "sourceContractKey"]);
         this.checkQuota(session);
         if (this.active.size + this.inspectionRequests >= 2) throw problem("Processing workers are busy.", 429);
         this.inspectionRequests++;
         try {
             await this.core.request(session, "GET", "/api/v1/integration/projects/" + input.projectId);
             if (!projectId.test(input.projectId)) throw problem("Choose a valid project.");
+            if (input.sourceContractKey !== undefined) {
+                if (!ids.test(input.sourceContractKey)) throw problem("Select a valid source contract.");
+                const models = await this.core.request(
+                    session,
+                    "GET",
+                    "/api/v1/integration/projects/" + input.projectId + "/models",
+                );
+                if (
+                    !models.items.some(
+                        (model) => model.key === input.sourceContractKey && model.standard === "source-contract",
+                    )
+                )
+                    throw problem("The source contract does not belong to this project.", 403);
+            }
             const owner = this.owner(session),
                 source = this.source(owner, input.projectId, input.sourceId),
                 file = await this.file(source, input.file);
@@ -293,6 +361,7 @@ export class ProcessingWorkspace {
                 owner,
                 projectId: input.projectId,
                 subject: "",
+                ...(input.sourceContractKey ? { sourceContractKey: input.sourceContractKey } : {}),
                 sourceId: input.sourceId,
                 file: input.file,
                 sourceSha256: file.sha256,
@@ -308,8 +377,11 @@ export class ProcessingWorkspace {
                         env: {
                             PATH: process.env.PATH,
                             LANG: "C.UTF-8",
+                            HTTP_CA_BUNDLE: process.env.HTTP_CA_BUNDLE,
                             DOTNET_EnableDiagnostics: "0",
                             DOTNET_GCHeapHardLimit: "0x20000000",
+                            MODELLER_APPROVAL_KEYS: JSON.stringify(this.core.keys),
+                            MODELLER_APPROVAL_KEY_ID: this.config.reviewKeyId,
                         },
                         stdio: ["ignore", "pipe", "pipe"],
                         shell: false,
@@ -360,6 +432,193 @@ export class ProcessingWorkspace {
             this.inspectionRequests--;
         }
     }
+    async previewSourceTrust(session, input) {
+        fields(input, ["projectId", "subject", "sourceId", "comment"]);
+        if (typeof input.comment !== "string" || !input.comment.trim() || input.comment.length > 4000)
+            throw problem("Record why this source is authoritative for patient registration.");
+        const owner = this.owner(session),
+            mapping = await this.selection(session, input.projectId, input.subject);
+        const policy = JSON.parse(mapping.executionMapping).clinicalPolicy,
+            configuration = this.configuration(owner, input.projectId);
+        const source = configuration.sources.find((source) => source.id === input.sourceId);
+        if (!source || !policy || source.identityDomain !== policy.identityDomain)
+            throw problem("Select the exact source and a confirmed mapping with its identity domain.");
+        return this.ticket(owner, "source-trust", {
+            projectId: input.projectId,
+            sourceId: input.sourceId,
+            sourceSystem: policy.identityDomain,
+            destinationId: policy.destinationId,
+            connectionSha256: sourceFingerprint(source),
+            comment: input.comment,
+        });
+    }
+    async commitSourceTrust(session, token) {
+        const value = this.take(session, token, "source-trust");
+        const source = this.configuration(this.owner(session), value.projectId).sources.find(
+            (source) => source.id === value.sourceId,
+        );
+        if (!source) throw problem("Source access changed. Review again.", 403);
+        if (sourceFingerprint(source) !== value.connectionSha256)
+            throw problem("Source configuration changed. Review again.", 409);
+        return this.core.request(session, "POST", "/api/v1/integration/projects/" + value.projectId + "/source-trust", {
+            sourceSystem: value.sourceSystem,
+            destinationId: value.destinationId,
+            connectionSha256: value.connectionSha256,
+            comment: value.comment,
+        });
+    }
+    async recoveryContext(session, jobId, record) {
+        if (!Number.isInteger(record) || record < 1 || record > 10000)
+            throw problem("Choose a record number from the private job report.");
+        const owner = this.owner(session),
+            directory = this.jobDirectory(owner, jobId),
+            request = json(join(directory, "request.json"));
+        this.source(owner, request.projectId, request.sourceId);
+        const mapping = await this.selection(session, request.projectId, request.subject);
+        const policy = JSON.parse(mapping.executionMapping).clinicalPolicy;
+        if (!policy) throw problem("This historical job requires a newly reviewed clinical mapping.", 409);
+        const rowFile = join(directory, "row-" + String(record - 1).padStart(6, "0") + ".json");
+        if (!existsSync(rowFile)) throw problem("The private record checkpoint is unavailable.", 404);
+        const row = json(rowFile);
+        if (!ids.test(row.pendingId || "")) throw problem("This record has no durable queue admission.", 409);
+        const scope = {
+            sourceSystem: policy.identityDomain,
+            destinationId: policy.destinationId,
+            pendingId: row.pendingId,
+        };
+        const target = "/api/v1/integration/projects/" + request.projectId + "/pending/";
+        const pending = await this.core.request(session, "POST", target + "inspect", scope);
+        if (pending.sourceSha256 !== request.sourceSha256 || pending.mappingSubject !== request.subject)
+            throw problem("The original source or mapping changed.", 409);
+        return { request, pending, scope, target };
+    }
+    async previewPatientResolution(session, input) {
+        fields(input, ["jobId", "record", "patientSystem", "patientValue", "comment"]);
+        if (
+            ![input.patientSystem, input.patientValue, input.comment].every(
+                (value) => typeof value === "string" && value.trim(),
+            ) ||
+            input.patientSystem.length > 2000 ||
+            input.patientValue.length > 512 ||
+            input.comment.length > 4000
+        )
+            throw problem("Provide the verified assigning authority, patient identifier and review reason.");
+        const context = await this.recoveryContext(session, input.jobId, input.record);
+        if (context.pending.patientIdentityPresent)
+            throw problem(
+                "This record already has a patient identity; reassignment requires a separate clinical correction.",
+                409,
+            );
+        return this.ticket(this.owner(session), "patient-resolution", {
+            ...input,
+            expectedRevision: context.pending.revision,
+            sourceSha256: context.pending.sourceSha256,
+            pendingId: context.pending.id,
+            projectId: context.request.projectId,
+            scope: context.scope,
+        });
+    }
+    async commitPatientResolution(session, token) {
+        const value = this.take(session, token, "patient-resolution"),
+            context = await this.recoveryContext(session, value.jobId, value.record);
+        if (
+            context.pending.id !== value.pendingId ||
+            context.pending.revision !== value.expectedRevision ||
+            context.pending.sourceSha256 !== value.sourceSha256
+        )
+            throw problem("The held record changed. Review the identity decision again.", 409);
+        return this.core.request(session, "POST", context.target + "resolve-patient", {
+            ...context.scope,
+            expectedRevision: value.expectedRevision,
+            sourceSha256: value.sourceSha256,
+            patientSystem: value.patientSystem,
+            patientValue: value.patientValue,
+            comment: value.comment,
+        });
+    }
+    async previewRelationshipResolution(session, input) {
+        fields(input, ["jobId", "record", "role", "identifierSystem", "identifierValue", "comment"]);
+        if (
+            ![input.role, input.identifierSystem, input.identifierValue, input.comment].every(
+                (value) => typeof value === "string" && value.trim(),
+            ) ||
+            input.role.length > 64 ||
+            input.identifierSystem.length > 2000 ||
+            input.identifierValue.length > 512 ||
+            input.comment.length > 4000
+        )
+            throw problem("Provide the missing source role, verified identifier and review reason.");
+        const context = await this.recoveryContext(session, input.jobId, input.record);
+        return this.ticket(this.owner(session), "relationship-resolution", {
+            ...input,
+            expectedRevision: context.pending.revision,
+            sourceSha256: context.pending.sourceSha256,
+            pendingId: context.pending.id,
+        });
+    }
+    async commitRelationshipResolution(session, token) {
+        const value = this.take(session, token, "relationship-resolution"),
+            context = await this.recoveryContext(session, value.jobId, value.record);
+        if (
+            context.pending.id !== value.pendingId ||
+            context.pending.revision !== value.expectedRevision ||
+            context.pending.sourceSha256 !== value.sourceSha256
+        )
+            throw problem("The held relationship changed. Review it again.", 409);
+        return this.core.request(session, "POST", context.target + "resolve-relationship", {
+            ...context.scope,
+            expectedRevision: value.expectedRevision,
+            sourceSha256: value.sourceSha256,
+            role: value.role,
+            identifierSystem: value.identifierSystem,
+            identifierValue: value.identifierValue,
+            comment: value.comment,
+        });
+    }
+    async previewRecovery(session, input) {
+        fields(input, ["jobId", "record", "action", "comment"]);
+        if (
+            !["confirm", "retry-missing"].includes(input.action) ||
+            typeof input.comment !== "string" ||
+            !input.comment.trim() ||
+            input.comment.length > 4000
+        )
+            throw problem("Choose a recovery action and record your reason.");
+        const context = await this.recoveryContext(session, input.jobId, input.record);
+        const result = await this.core.request(session, "POST", context.target + "recover", {
+            ...context.scope,
+            expectedRevision: context.pending.revision,
+            sourceSha256: context.pending.sourceSha256,
+            comment: input.comment,
+            action: "check",
+        });
+        return this.ticket(this.owner(session), "recovery", {
+            ...input,
+            expectedRevision: result.revision,
+            sourceSha256: context.pending.sourceSha256,
+            pendingId: context.pending.id,
+            projectId: context.request.projectId,
+            scope: context.scope,
+            destinationEvidence: result,
+        });
+    }
+    async commitRecovery(session, token) {
+        const value = this.take(session, token, "recovery"),
+            context = await this.recoveryContext(session, value.jobId, value.record);
+        if (
+            context.pending.id !== value.pendingId ||
+            context.pending.revision !== value.expectedRevision ||
+            context.pending.sourceSha256 !== value.sourceSha256
+        )
+            throw problem("Recovery evidence changed. Check the destination again.", 409);
+        return this.core.request(session, "POST", context.target + "recover", {
+            ...context.scope,
+            expectedRevision: value.expectedRevision,
+            sourceSha256: value.sourceSha256,
+            comment: value.comment,
+            action: value.action,
+        });
+    }
     async previewJob(session, input) {
         fields(input, ["projectId", "subject", "sourceId", "file", "mode", "destinationId"]);
         const owner = this.owner(session),
@@ -373,8 +632,10 @@ export class ProcessingWorkspace {
                 !this.connections(owner, input.projectId).destinations.some((d) => d.id === input.destinationId))
         )
             throw problem("Choose an authorised export or FHIR destination.", 403);
-        if (input.mode === "deliver" && mapping.direction === "fhir-to-openehr")
-            throw problem("Reverse mappings export openEHR; select a FHIR-producing mapping for delivery.");
+        if (input.mode === "deliver" && ["fhir-to-openehr", "source-to-openehr"].includes(mapping.direction))
+            throw problem(
+                "This mapping exports openEHR compositions. Select a FHIR-producing mapping for FHIR delivery.",
+            );
         const file = await this.file(source, input.file);
         return this.ticket(owner, "job", { ...input, sourceSha256: file.sha256, mappingSha256: mapping.mappingSha256 });
     }
@@ -387,6 +648,8 @@ export class ProcessingWorkspace {
                 id: s.id,
                 root: s.root,
                 format: s.format,
+                identityDomain: s.identityDomain || null,
+                trustPatientRegistration: !!s.trustPatientRegistration,
                 projects: s.projects,
                 owners: s.owners,
             })),
@@ -397,6 +660,7 @@ export class ProcessingWorkspace {
                 projects: d.projects,
                 owners: d.owners,
                 resourceTypes: d.resourceTypes,
+                readResourceTypes: d.readResourceTypes || null,
             })),
         };
     }
@@ -429,6 +693,7 @@ export class ProcessingWorkspace {
             sourceSha256: input.sourceSha256,
             mode: input.mode,
             destinationId: input.destinationId || null,
+            intakeId: input.id || input.subject,
         };
         const id = hash(JSON.stringify({ ...request, file: undefined })),
             directory = this.jobDirectory(owner, id, true);
@@ -488,6 +753,7 @@ export class ProcessingWorkspace {
         const env = {
             PATH: process.env.PATH,
             LANG: "C.UTF-8",
+            HTTP_CA_BUNDLE: process.env.HTTP_CA_BUNDLE,
             DOTNET_ENVIRONMENT: "Production",
             DOTNET_EnableDiagnostics: "0",
             DOTNET_GCHeapHardLimit: "0x20000000",
@@ -574,6 +840,85 @@ export class ProcessingWorkspace {
         this.active.get(owner + ":" + id)?.child.kill("SIGTERM");
         return this.status(owner, id);
     }
+    async original(session, id) {
+        this.checkQuota(session);
+        if (this.active.size + this.inspectionRequests >= 2) throw problem("Private workers are busy.", 429);
+        const owner = this.owner(session),
+            directory = this.jobDirectory(owner, id),
+            request = json(join(directory, "request.json"));
+        if (this.active.has(owner + ":" + id))
+            throw problem("Wait for this job to stop before downloading its received source.", 409);
+        const downloadKey = owner + ":" + id;
+        if (this.originalDownloads.has(downloadKey)) throw problem("This received source is already downloading.", 409);
+        this.inspectionRequests++;
+        this.originalDownloads.add(downloadKey);
+        let complete = false;
+        try {
+            this.source(owner, request.projectId, request.sourceId);
+            await this.core.request(session, "GET", "/api/v1/integration/projects/" + request.projectId);
+            const configuration = join(directory, "configuration.original.json");
+            save(configuration, this.configuration(owner, request.projectId));
+            await new Promise((resolve, reject) => {
+                const child = this.launcher(this.config.integrationWorker, ["original", configuration, directory], {
+                    env: {
+                        PATH: process.env.PATH,
+                        LANG: "C.UTF-8",
+                        HTTP_CA_BUNDLE: process.env.HTTP_CA_BUNDLE,
+                        DOTNET_EnableDiagnostics: "0",
+                        DOTNET_GCHeapHardLimit: "0x20000000",
+                        MODELLER_APPROVAL_KEYS: JSON.stringify(this.core.keys),
+                        MODELLER_APPROVAL_KEY_ID: this.config.reviewKeyId,
+                    },
+                    stdio: ["ignore", "pipe", "pipe"],
+                    shell: false,
+                });
+                this.inspectors.set("original:" + owner + ":" + id, child);
+                const timer = setTimeout(() => child.kill("SIGTERM"), 30000);
+                timer.unref();
+                let error = "",
+                    ended = false;
+                child.stdout.resume();
+                child.stderr.on("data", (chunk) => {
+                    if (error.length < 256) error += chunk.toString();
+                });
+                const end = (code) => {
+                    if (ended) return;
+                    ended = true;
+                    clearTimeout(timer);
+                    this.inspectors.delete("original:" + owner + ":" + id);
+                    if (code === 0) resolve();
+                    else
+                        reject(
+                            problem(
+                                "Private source retrieval failed (" +
+                                    (/^[A-Z0-9_]+\s*$/.test(error) ? error.trim() : "HELD_SOURCE_UNAVAILABLE") +
+                                    ").",
+                                422,
+                            ),
+                        );
+                };
+                child.once("exit", end);
+                child.once("error", () => end(1));
+            });
+            const file = join(directory, "received-source.bin"),
+                stat = lstatSync(file);
+            if (
+                !stat.isFile() ||
+                stat.isSymbolicLink() ||
+                stat.size > LIMIT ||
+                hash(readFileSync(file)) !== request.sourceSha256
+            )
+                throw problem("The received source failed its integrity check.", 503);
+            complete = true;
+            return file;
+        } finally {
+            this.inspectionRequests--;
+            if (!complete) this.originalDownloads.delete(downloadKey);
+        }
+    }
+    releaseOriginal(session, id) {
+        this.originalDownloads.delete(this.owner(session) + ":" + id);
+    }
     report(session, id) {
         const directory = this.jobDirectory(this.owner(session), id);
         return {
@@ -586,8 +931,15 @@ export class ProcessingWorkspace {
     }
     download(session, id, kind = "export") {
         const directory = this.jobDirectory(this.owner(session), id);
-        if (!["export", "quarantine"].includes(kind)) throw problem("Unsupported download.");
-        const file = join(directory, kind === "export" ? "export.ndjson" : "quarantine.ndjson");
+        if (!["export", "quarantine", "patient-index"].includes(kind)) throw problem("Unsupported download.");
+        const file = join(
+            directory,
+            kind === "export"
+                ? "export.ndjson"
+                : kind === "patient-index"
+                  ? "patient-index.ndjson"
+                  : "quarantine.ndjson",
+        );
         if (!existsSync(file)) throw problem("No completed export is available.", 409);
         return file;
     }
@@ -721,6 +1073,42 @@ export class ProcessingWorkspace {
         this.persist(channel);
         return channel;
     }
+    resumeHeld(channel) {
+        if (!channel.waitingJobs?.length || channel.nextHeldRetry > this.clock()) return false;
+        const id = channel.waitingJobs.shift();
+        channel.nextHeldRetry = this.clock() + Math.max(5, channel.pollSeconds) * 1000;
+        const directory = this.jobDirectory(channel.owner, id),
+            request = json(join(directory, "request.json"));
+        if (
+            request.subject !== channel.subject ||
+            request.sourceId !== channel.sourceId ||
+            request.destinationId !== (channel.destinationId || null)
+        )
+            throw problem("Held work must retain its reviewed channel assignment.", 409);
+        save(join(directory, "configuration.json"), this.configuration(channel.owner, channel.projectId));
+        channel.activeJob = id;
+        this.persist(channel);
+        this.launch({ id, directory, request }, true)
+            .then((state) => {
+                channel.activeJob = null;
+                if (state.status === "WAITING_DEPENDENCIES") channel.waitingJobs.push(id);
+                else if (!terminal.has(state.status)) {
+                    channel.status = "PAUSED";
+                    channel.error = state.error || state.status;
+                    channel.waitingJobs.push(id);
+                }
+                if (channel.status === "STOPPING") channel.status = "STOPPED";
+                this.persist(channel);
+            })
+            .catch(() => {
+                channel.activeJob = null;
+                channel.waitingJobs.push(id);
+                channel.status = "PAUSED";
+                channel.error = "WORKER_UNAVAILABLE";
+                this.persist(channel);
+            });
+        return true;
+    }
     async tick() {
         if (this.ticking || !this.core.ready) return;
         this.ticking = true;
@@ -740,6 +1128,13 @@ export class ProcessingWorkspace {
                     continue;
                 channel.nextPoll = this.clock() + channel.pollSeconds * 1000;
                 try {
+                    this.source(channel.owner, channel.projectId, channel.sourceId);
+                    if (channel.lastPollWasIntake && this.resumeHeld(channel)) {
+                        channel.lastPollWasIntake = false;
+                        this.persist(channel);
+                        continue;
+                    }
+                    channel.lastPollWasIntake = true;
                     const source = this.source(channel.owner, channel.projectId, channel.sourceId),
                         names = readdirSync(source.root)
                             .filter((name) => this.matches(source, name))
@@ -774,9 +1169,14 @@ export class ProcessingWorkspace {
                                 channel.activeJob = null;
                                 if (
                                     state.status === "COMPLETED" ||
+                                    state.status === "WAITING_DEPENDENCIES" ||
                                     (state.status === "COMPLETED_WITH_FAILURES" &&
                                         channel.failurePolicy === "quarantine-and-continue")
                                 ) {
+                                    if (state.status === "WAITING_DEPENDENCIES") {
+                                        channel.waitingJobs ||= [];
+                                        if (!channel.waitingJobs.includes(job.id)) channel.waitingJobs.push(job.id);
+                                    }
                                     channel.completedFiles ||= {};
                                     channel.completedFiles[name] = signature;
                                     channel.acknowledged.push(file.sha256);
@@ -799,6 +1199,7 @@ export class ProcessingWorkspace {
                             });
                         break;
                     }
+                    if (!channel.activeJob) this.resumeHeld(channel);
                 } catch {
                     channel.status = "PAUSED";
                     channel.error = "SOURCE_OR_CONNECTION_UNAVAILABLE";

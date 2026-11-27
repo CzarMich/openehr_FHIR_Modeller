@@ -993,6 +993,125 @@
         "chat/test/browser.spec.mjs"
       ],
       "verification": "Shared visual contract and responsive keyboard navigation; protected confirmation regression tests remain in force."
+    },
+    {
+      "id": "REQ-F40",
+      "title": "Private HL7 message and document ingestion",
+      "canonical": "docs/requirements.md",
+      "status": "draft",
+      "implementation": "partial",
+      "packages": [
+        "dotnet/Modeller.Operational/ClinicalMessages.cs",
+        "dotnet/Modeller.Operational/XmlSourceValidation.cs",
+        "dotnet/Modeller.Operational/SourceProjection.cs",
+        "dotnet/Modeller.Core/SourceContract.cs"
+      ],
+      "tests": [
+        "dotnet/Modeller.Operational.Tests/Program.cs",
+        "dotnet/Modeller.Processing.Tests/Program.cs",
+        "dotnet/tests/workspace-contracts.py",
+        "chat/test/integration.test.mjs",
+        "chat/test/browser.spec.mjs"
+      ],
+      "verification": "Bounded file readers, typed v2 models, supplied XML profiles and private projection are implemented and tested. Network transports/ACKs, Schematron and hospital qualification remain pending.",
+      "adr": [
+        "0031"
+      ]
+    },
+    {
+      "id": "REQ-F41",
+      "title": "Durable patient and encounter dependency handling",
+      "canonical": "docs/requirements.md",
+      "status": "draft",
+      "implementation": "partial",
+      "packages": [
+        "dotnet/Modeller.Operational/DependencyQueue.cs",
+        "dotnet/Modeller.Operational/DestinationEvidence.cs",
+        "dotnet/Modeller.Processing/Program.cs",
+        "chat/src/processing.mjs"
+      ],
+      "tests": [
+        "dotnet/Modeller.Operational.Tests/Program.cs",
+        "dotnet/Modeller.Processing.Tests/Program.cs",
+        "dotnet/tests/workspace-contracts.py",
+        "chat/test/integration.test.mjs",
+        "chat/test/browser.spec.mjs"
+      ],
+      "verification": "Encrypted durable originals and queue admission are connected to the worker and channel scheduler. Synthetic real-worker hold/source-removal/resume acceptance passes. Identity-resolution, reconciliation and retention UI completion and release acceptance remain pending.",
+      "adr": [
+        "0031"
+      ]
+    },
+    {
+      "id": "REQ-F42",
+      "title": "Reviewed FHIR relationship reference policies",
+      "canonical": "docs/requirements.md",
+      "status": "draft",
+      "implementation": "partial",
+      "packages": [
+        "dotnet/Modeller.Core/ClinicalPolicy.cs",
+        "dotnet/Modeller.Operational/FhirReferences.cs",
+        "dotnet/Modeller.Operational/DestinationEvidence.cs",
+        "public/chat/integration.js"
+      ],
+      "tests": [
+        "dotnet/Modeller.Operational.Tests/Program.cs",
+        "dotnet/Modeller.Processing.Tests/Program.cs",
+        "dotnet/tests/workspace-contracts.py",
+        "chat/test/integration.test.mjs",
+        "chat/test/browser.spec.mjs"
+      ],
+      "verification": "Confirmed reference modes, exact destination lookup and cross-patient checks are implemented; target profile validation remains required. End-to-end dependency/destination and release qualification remain pending.",
+      "adr": [
+        "0031"
+      ]
+    },
+    {
+      "id": "REQ-F43",
+      "title": "Protected stable patient pseudonyms",
+      "canonical": "docs/requirements.md",
+      "status": "draft",
+      "implementation": "partial",
+      "packages": [
+        "dotnet/Modeller.Operational/IdentityRegistry.cs",
+        "dotnet/Modeller.Operational/ClinicalPipeline.cs",
+        "dotnet/Modeller.Mcp/WorkspaceHttp.cs",
+        "public/chat/integration.js"
+      ],
+      "tests": [
+        "dotnet/Modeller.Operational.Tests/Program.cs",
+        "dotnet/Modeller.Processing.Tests/Program.cs",
+        "dotnet/tests/workspace-contracts.py",
+        "chat/test/integration.test.mjs",
+        "chat/test/browser.spec.mjs"
+      ],
+      "verification": "Stable encrypted pseudonyms, mandatory patient gate and reviewed revision-bound browser toggle are tested. Controlled migration/merge/key-rotation procedures and full outbound-destination acceptance remain pending.",
+      "adr": [
+        "0031"
+      ]
+    },
+    {
+      "id": "REQ-F44",
+      "title": "Explicit openEHR and FHIR route selection",
+      "canonical": "docs/requirements.md",
+      "status": "draft",
+      "implementation": "partial",
+      "packages": [
+        "dotnet/Modeller.Core/Mapping.cs",
+        "dotnet/Modeller.Core/ModelStore.cs",
+        "dotnet/Modeller.Processing/Program.cs"
+      ],
+      "tests": [
+        "dotnet/Modeller.Operational.Tests/Program.cs",
+        "dotnet/Modeller.Processing.Tests/Program.cs",
+        "dotnet/tests/workspace-contracts.py",
+        "chat/test/integration.test.mjs",
+        "chat/test/browser.spec.mjs"
+      ],
+      "verification": "Four independent routes pass synthetic acceptance against actual installed openEHR/FHIR engines. Retired combined definitions fail explicitly; hosted/package and production release acceptance remain pending.",
+      "adr": [
+        "0031"
+      ]
     }
   ]
 }

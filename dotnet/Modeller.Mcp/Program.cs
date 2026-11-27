@@ -15,7 +15,7 @@ if (Environment.GetEnvironmentVariable("MODELLER_WORKSPACE_ENABLED") == "true") 
     var configuration = Data.Read<Configuration>(configurationFile);
     var approvalKeys = JsonSerializer.Deserialize<Dictionary<string, string>>(Environment.GetEnvironmentVariable("MODELLER_APPROVAL_KEYS") ?? "{}") ?? throw new InvalidOperationException("Approval keys required.");
     var activeKey = Environment.GetEnvironmentVariable("MODELLER_APPROVAL_KEY_ID") ?? "active";
-    var models = new ModelStore(configuration.ModelRoot, approvalKeys, activeKey);
+    var models = new ModelStore(configuration.ModelRoot, approvalKeys, activeKey, configuration.RuntimeFiles);
     workspace = new WorkspaceProtocol(new Workspace(models, configuration), Environment.GetEnvironmentVariable("MODELLER_DRAFT_WRITES_ENABLED") == "true");
     humanProof = new HumanProof(approvalKeys, Environment.GetEnvironmentVariable("MODELLER_BROWSER_ORIGIN") ?? "",
         (Environment.GetEnvironmentVariable("MODELLER_IDENTITY_ISSUERS") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries), models);
@@ -31,7 +31,7 @@ if (stdio)
     builder.Services.AddMcpServer(options =>
     {
         options.ServerInfo = new Implementation { Name = workspace is null ? "openehr-fhir-modeller-dotnet-dev" : "openehr-fhir-modeller-dotnet", Version = "0.1.0" };
-        options.ServerInstructions = workspace is null ? "Read-only guide retrieval migration slice. Model writes, clinical approval and runtime data operations are unavailable." : "C# modelling workspace: supply exact models, original user narrative and explicit versioned rules. Direct FHIR and openEHR-mediated mappings are distinct. Human confirmation is a separate authenticated browser operation; agents cannot approve. MCP accepts synthetic records only and never delivers clinical records. Clinical/source database connections are read-only; no SQL driver is advertised. Private channels execute confirmed mappings without per-record LLM interpretation.";
+        options.ServerInstructions = workspace is null ? "Read-only guide retrieval migration slice. Model writes, clinical approval and runtime data operations are unavailable." : "C# modelling workspace: supply exact models, original user narrative and explicit versioned rules. Source-to-FHIR, source-to-openEHR, openEHR-to-FHIR and FHIR-to-openEHR are independent mappings. Human confirmation is a separate authenticated browser operation; agents cannot approve. MCP accepts synthetic records only and never delivers clinical records. Clinical/source database connections are read-only; no SQL driver is advertised. Private channels execute confirmed mappings without per-record LLM interpretation.";
     }).WithStdioServerTransport().AddGuides(guides, workspace);
     await builder.Build().RunAsync();
     return;
@@ -51,7 +51,7 @@ web.WebHost.ConfigureKestrel(options => { options.AddServerHeader = false; optio
 web.Services.AddMcpServer(options =>
 {
     options.ServerInfo = new Implementation { Name = workspace is null ? "openehr-fhir-modeller-dotnet-dev" : "openehr-fhir-modeller-dotnet", Version = "0.1.0" };
-    options.ServerInstructions = workspace is null ? "Read-only guide retrieval migration slice. Model writes, clinical approval and runtime data operations are unavailable." : "C# modelling workspace: supply exact models, original user narrative and explicit versioned rules. Direct FHIR and openEHR-mediated mappings are distinct. Human confirmation is a separate authenticated browser operation; agents cannot approve. MCP accepts synthetic records only and never delivers clinical records. Clinical/source database connections are read-only; no SQL driver is advertised. Private channels execute confirmed mappings without per-record LLM interpretation.";
+    options.ServerInstructions = workspace is null ? "Read-only guide retrieval migration slice. Model writes, clinical approval and runtime data operations are unavailable." : "C# modelling workspace: supply exact models, original user narrative and explicit versioned rules. Source-to-FHIR, source-to-openEHR, openEHR-to-FHIR and FHIR-to-openEHR are independent mappings. Human confirmation is a separate authenticated browser operation; agents cannot approve. MCP accepts synthetic records only and never delivers clinical records. Clinical/source database connections are read-only; no SQL driver is advertised. Private channels execute confirmed mappings without per-record LLM interpretation.";
 }).WithHttpTransport(options => options.SessionMode = HttpServerSessionMode.Stateful).AddGuides(guides, workspace);
 var app = web.Build();
 app.Use(async (context, next) =>

@@ -118,3 +118,14 @@ a:focus-visible {
     min-height: 24px;
     margin: 8px 18px 8px 0;
 }
+
+.table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+}
+.table-scroll table {
+    min-width: 880px;
+}
+.table-scroll input:not([type="checkbox"]) {
+    min-width: 120px;
+}

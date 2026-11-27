@@ -158,6 +158,7 @@
                             <select id="model-standard">
                                 <option>FHIR</option>
                                 <option>openEHR</option>
+                                <option value="source-contract">Source contract</option>
                             </select></label
                         ><label
                             >Origin
@@ -206,6 +207,8 @@
                             <select id="reuse-direction">
                                 <option value="source-direct-to-fhir">Source to FHIR</option>
                                 <option value="fhir-to-openehr">FHIR to openEHR</option>
+                                <option value="source-to-openehr">Source to openEHR</option>
+                                <option value="openehr-to-fhir">openEHR to FHIR</option>
                             </select></label
                         >
                         <label
@@ -238,6 +241,67 @@
                             create clinical approval, or start a delivery. No patient records belong in this form.
                         </p>
                     </details>
+                    <details id="identity-settings">
+                        <summary>Patient identity, references and pseudonymisation</summary>
+                        <p>
+                            A verified patient identity is required in every mode. Save destination settings, then
+                            include their exact revision in the mapping and confirm the new mapping version.
+                        </p>
+                        <label>Identity domain <input id="identity-domain" maxlength="256" /></label>
+                        <label
+                            >Destination identifier
+                            <input
+                                id="identity-destination"
+                                maxlength="128"
+                                placeholder="Authorised destination ID, or a stable private export ID"
+                        /></label>
+                        <button id="privacy-load">Load destination settings</button>
+                        <p id="privacy-status" role="status">Destination settings not loaded.</p>
+                        <label
+                            ><input id="patient-required" type="checkbox" checked disabled /> Require verified patient
+                            identity (always enabled)</label
+                        >
+                        <label><input id="pseudonymise" type="checkbox" /> Pseudonymise patient identifiers</label>
+                        <label
+                            >Pseudonym identifier system
+                            <input id="pseudonym-system" placeholder="urn:your-organisation:patient-pseudonym"
+                        /></label>
+                        <label
+                            ><input id="privacy-reviewed" type="checkbox" /> I reviewed this destination's identity
+                            settings. A change requires a new confirmed mapping. Existing destination identities require
+                            a controlled migration.</label
+                        >
+                        <button id="privacy-save">Save reviewed destination settings</button>
+                        <label
+                            >Hold unresolved records for days
+                            <input id="identity-hold-days" type="number" min="1" max="366" value="30"
+                        /></label>
+                        <div class="table-scroll">
+                            <table>
+                                <caption>
+                                    FHIR relationships applied before profile validation
+                                </caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Source role</th>
+                                        <th scope="col">Target type</th>
+                                        <th scope="col">Output path</th>
+                                        <th scope="col">Reference mode</th>
+                                        <th scope="col">Require destination</th>
+                                        <th scope="col">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="identity-references"></tbody>
+                            </table>
+                        </div>
+                        <button id="reference-add">Add relationship</button>
+                        <p>
+                            Use patient for the registered patient, or a relation declared in the source contract.
+                            Logical references do not prove that a destination resource exists. Required destination
+                            relationships stay held until verified.
+                        </p>
+                        <button id="identity-apply">Apply settings to mapping draft</button>
+                    </details>
                     <label
                         >Mapping definition JSON
                         <textarea
@@ -264,8 +328,8 @@
                     <h2 id="source-heading">4. Inspect a private source</h2>
                     <p>
                         Upload a private file, or choose an operator-registered source folder. Inspection returns field
-                        paths and types without record values. Do not paste patient records into mapping definitions or
-                        chat.
+                        paths and types without record values. Select one Source contract in Models to inspect its
+                        declared projection. Do not paste patient records into mapping definitions or chat.
                     </p>
                     <label
                         >Format
@@ -273,9 +337,20 @@
                             <option>csv</option>
                             <option>json</option>
                             <option value="fhir-json">FHIR JSON</option>
+                            <option value="openehr-json">openEHR composition JSON</option>
                             <option>xml</option>
                             <option>xlsx</option>
+                            <option value="hl7-v2">HL7 v2 (ER7 / MLLP-framed file)</option>
+                            <option value="hl7-v2-xml">HL7 v2 XML</option>
+                            <option value="hl7-v3">HL7 v3 interaction XML</option>
+                            <option value="cda">CDA document XML</option>
                         </select></label
+                    ><label
+                        >Patient identity domain
+                        <input
+                            id="source-domain"
+                            maxlength="256"
+                            placeholder="Stable hospital identity domain shared by related channels" /></label
                     ><label>Private file <input id="source-upload" type="file" /></label
                     ><button class="primary-button" id="upload">Upload privately</button
                     ><label
@@ -287,6 +362,16 @@
                         <select id="file"></select></label
                     ><button id="inspect">Inspect schema</button>
                     <pre id="inspection"></pre>
+                    <details>
+                        <summary>Authoritative patient registration</summary>
+                        <p>
+                            Only an explicitly trusted registration source can establish patients. A matching number in
+                            an Observation does not create a patient. Confirm the mapping first and record your reason
+                            for trusting the selected source.
+                        </p>
+                        <label>Review comment <input id="source-trust-comment" maxlength="4000" /></label>
+                        <button id="source-trust-review">Review source trust</button>
+                    </details>
                 </section>
                 <section id="run-step" role="tabpanel" aria-labelledby="tab-run" tabindex="0" hidden>
                     <h2 id="run-heading">5. Run or configure a channel</h2>
@@ -334,6 +419,98 @@
                     <div id="channels"></div>
                     <h3>Selected job report</h3>
                     <pre id="report"></pre>
+                    <details id="recovery-panel">
+                        <summary>Review held identities and uncertain delivery</summary>
+                        <p>
+                            Identity resolution and delivery recovery require a fresh approver or administrator review.
+                            These controls change private processing state; they do not create clinical approval.
+                        </p>
+                        <label
+                            >Private job
+                            <select id="recovery-job"></select
+                        ></label>
+                        <button id="recovery-report-load">Load private checkpoints</button>
+                        <pre id="recovery-report"></pre>
+                        <label
+                            >Record number <input id="recovery-record" type="number" min="1" max="10000" value="1"
+                        /></label>
+                        <details>
+                            <summary>Resolve a missing patient identifier</summary>
+                            <p>
+                                Choose an existing verified patient. This action preserves the original input and does
+                                not create a patient or reassign a record that already has an identity.
+                            </p>
+                            <label
+                                >Patient assigning authority
+                                <input
+                                    id="resolve-patient-system"
+                                    maxlength="2000"
+                                    autocomplete="off"
+                                    spellcheck="false"
+                            /></label>
+                            <label
+                                >Verified patient identifier
+                                <input id="resolve-patient-value" maxlength="512" autocomplete="off" spellcheck="false"
+                            /></label>
+                            <label
+                                >Identity review reason
+                                <textarea id="resolve-patient-comment" maxlength="4000" rows="3"></textarea>
+                            </label>
+                            <button id="resolve-patient-preview">Review patient identity decision</button>
+                        </details>
+                        <details>
+                            <summary>Resolve a missing relationship identifier</summary>
+                            <p>
+                                The destination must contain an exact matching resource belonging to the verified
+                                patient. Existing relationships are preserved.
+                            </p>
+                            <label
+                                >Source relation role
+                                <input id="resolve-relation-role" maxlength="64" placeholder="encounter"
+                            /></label>
+                            <label
+                                >Identifier assigning authority
+                                <input
+                                    id="resolve-relation-system"
+                                    maxlength="2000"
+                                    autocomplete="off"
+                                    spellcheck="false"
+                            /></label>
+                            <label
+                                >Verified relationship identifier
+                                <input
+                                    id="resolve-relation-value"
+                                    maxlength="512"
+                                    autocomplete="off"
+                                    spellcheck="false"
+                            /></label>
+                            <label
+                                >Relationship review reason
+                                <textarea id="resolve-relation-comment" maxlength="4000" rows="3"></textarea>
+                            </label>
+                            <button id="resolve-relation-preview">Review relationship decision</button>
+                        </details>
+                        <details>
+                            <summary>Reconcile an uncertain write or review a failed attempt</summary>
+                            <p>
+                                The server checks the authorised destination against the complete saved delivery plan.
+                                Existing conflicting content stays blocked. A retry sends only missing conditional
+                                creates after your explicit confirmation.
+                            </p>
+                            <label
+                                >Recovery action
+                                <select id="recovery-action">
+                                    <option value="confirm">Confirm verified delivery</option>
+                                    <option value="retry-missing">Retry missing conditional creates</option>
+                                </select></label
+                            >
+                            <label
+                                >Recovery review reason
+                                <textarea id="recovery-comment" maxlength="4000" rows="3"></textarea>
+                            </label>
+                            <button id="recovery-preview">Check destination and review recovery</button>
+                        </details>
+                    </details>
                 </section>
                 <section id="sharing-step" role="tabpanel" aria-labelledby="tab-sharing" tabindex="0" hidden>
                     <h2 id="sharing-heading">Shared channel groups</h2>

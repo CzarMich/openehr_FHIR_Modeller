@@ -5,12 +5,7 @@ namespace Modeller.Core;
 
 public sealed partial class ModelStore
 {
-    private static readonly Lazy<string> MappingRuntimeFingerprint = new(() => {
-        var path = typeof(Mapping).Assembly.Location;
-        if (string.IsNullOrEmpty(path)) throw new ProcessingException("REUSE_RUNTIME_FINGERPRINT_UNAVAILABLE");
-        return Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path)));
-    });
-    private static JsonObject ReuseContext(JsonObject input, string schemaHash, JsonArray requirements)
+    private JsonObject ReuseContext(JsonObject input, string schemaHash, JsonArray requirements)
     {
         Data.Keys(input, "sourceSystem", "sourceSemanticsVersion", "purpose", "terminologyPins");
         if (!Regex.IsMatch(schemaHash, "^[a-f0-9]{64}$")) throw new ProcessingException("REUSE_SCHEMA_HASH_REQUIRED");
@@ -37,7 +32,7 @@ public sealed partial class ModelStore
         }
         return new JsonObject {
             ["schemaVersion"] = 1, ["sourceSystem"] = input["sourceSystem"]!.DeepClone(), ["sourceSemanticsVersion"] = input["sourceSemanticsVersion"]!.DeepClone(), ["purpose"] = input["purpose"]!.DeepClone(),
-            ["sourceSchemaSha256"] = schemaHash, ["requirementsSha256"] = Data.Hash(Data.Canonical(new JsonArray(requirements.OfType<JsonObject>().Select(requirement => (JsonNode)new JsonObject { ["originalText"] = requirement["originalText"]!.DeepClone(), ["basis"] = requirement["basis"]!.DeepClone() }).ToArray()))), ["runtimeSha256"] = MappingRuntimeFingerprint.Value,
+            ["sourceSchemaSha256"] = schemaHash, ["requirementsSha256"] = Data.Hash(Data.Canonical(new JsonArray(requirements.OfType<JsonObject>().Select(requirement => (JsonNode)new JsonObject { ["originalText"] = requirement["originalText"]!.DeepClone(), ["basis"] = requirement["basis"]!.DeepClone() }).ToArray()))), ["runtimeSha256"] = runtimeFingerprint.Value,
             ["terminologyPins"] = new JsonArray(canonicalPins.Values.Select(pin => (JsonNode)pin).ToArray())
         };
     }
@@ -53,7 +48,7 @@ public sealed partial class ModelStore
         if (keys.Distinct(StringComparer.Ordinal).Count() != keys.Length) throw new ProcessingException("DUPLICATE_MODEL");
         foreach (var key in keys) if (GetModel(key, actor)["projectId"]?.GetValue<string>() != projectId) throw new ProcessingException("MODEL_PROJECT_MISMATCH");
         var direction = Data.Required(input, "direction");
-        if (direction is not ("source-direct-to-fhir" or "source-to-fhir" or "fhir-to-openehr")) throw new ProcessingException("MAPPING_SCOPE_REQUIRED");
+        if (direction is not ("source-direct-to-fhir" or "fhir-to-openehr" or "source-to-openehr" or "openehr-to-fhir")) throw new ProcessingException("MAPPING_SCOPE_REQUIRED");
         var limit = input["count"]?.GetValue<int>() ?? 10;
         if (limit is < 1 or > 50) throw new ProcessingException("REUSE_COUNT_INVALID");
         var expected = Data.Canonical(context); var selectedKeys = Data.Canonical(new JsonArray(keys.Select(key => (JsonNode)JsonValue.Create(key)!).ToArray()));

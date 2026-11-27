@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace Modeller.Core;
 
-public sealed record DeliveryReceipt(string ResourceSha256, string State, int? HttpStatus, string? DestinationResourceSha256 = null, string? DestinationSha256 = null);
+public sealed record DeliveryReceipt(string ResourceSha256, string State, int? HttpStatus, string? DestinationResourceSha256 = null, string? DestinationSha256 = null, string? DestinationReference = null);
 public sealed class FhirDelivery : IDisposable
 {
     private readonly DestinationConnection destination;
@@ -16,7 +16,7 @@ public sealed class FhirDelivery : IDisposable
     public FhirDelivery(Configuration config, DestinationConnection destination) { this.destination = destination; root = Network.DestinationUri(destination.BaseUrl, config); }
     public void Dispose() => http.Dispose();
     public string DestinationHash => Data.Hash(destination.Id + "\n" + root.AbsoluteUri);
-    private DeliveryReceipt Receipt(string hash, string state, int? status, string? actual = null) => new(hash, state, status, actual, DestinationHash);
+    private DeliveryReceipt Receipt(string hash, string state, int? status, string? actual = null, string? reference = null) => new(hash, state, status, actual, DestinationHash, reference);
     private HttpRequestMessage Request(HttpMethod method, Uri uri) {
         var request = new HttpRequestMessage(method, uri);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Network.Key(destination.TokenFile));
@@ -51,7 +51,7 @@ public sealed class FhirDelivery : IDisposable
             try {
                 using var request = Request(HttpMethod.Post, new Uri(root, type));
                 request.Content = JsonContent.Create(payload); request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/fhir+json");
-                request.Headers.Add("If-None-Exist", "identifier=" + Uri.EscapeDataString(system + "|" + value));
+                request.Headers.Add("If-None-Exist", "identifier=" + IdentifierQuery(system, value));
                 request.Headers.Add("Prefer", "return=representation");
                 using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
                 var status = (int)response.StatusCode;
@@ -69,7 +69,7 @@ public sealed class FhirDelivery : IDisposable
                         actual = await Network.Object(readResponse, cancellation);
                     }
                     if (!Equivalent(payload, actual)) return Receipt(hash, "EXISTING_CONTENT_CONFLICT", status);
-                    return Receipt(hash, status == 201 ? "CREATED" : "ALREADY_PRESENT", status, Data.Hash(Data.Canonical(actual)));
+                    return Receipt(hash, status == 201 ? "CREATED" : "ALREADY_PRESENT", status, Data.Hash(Data.Canonical(actual)), ReferenceOf(actual));
                 }
                 if (status == 202) return Receipt(hash, "UNCERTAIN", status);
                 if (status == 429 || status >= 500 || status == 408) {
@@ -83,7 +83,42 @@ public sealed class FhirDelivery : IDisposable
         }
         return Receipt(hash, "UNCERTAIN", null);
     }
-    private static bool Equivalent(JsonObject expected, JsonObject? actual) {
+    public static string IdentifierQuery(string system, string value) {
+        static string Escape(string input) => input.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("$", "\\$", StringComparison.Ordinal).Replace(",", "\\,", StringComparison.Ordinal).Replace("|", "\\|", StringComparison.Ordinal);
+        return Uri.EscapeDataString(Escape(system) + "|" + Escape(value));
+    }
+    private static string ReferenceOf(JsonObject actual) {
+        var reference = actual["resourceType"]?.GetValue<string>() + "/" + actual["id"]?.GetValue<string>();
+        if (!Regex.IsMatch(reference, "^[A-Z][A-Za-z0-9]{1,63}/[A-Za-z0-9.-]{1,64}$")) throw new ProcessingException("DESTINATION_RESOURCE_ID_REQUIRED");
+        return reference;
+    }
+    public async Task<JsonObject?> FindExact(string type, string system, string value, CancellationToken cancellation) {
+        if (!Regex.IsMatch(type, "^[A-Z][A-Za-z0-9]{1,63}$") || !(destination.ReadResourceTypes ?? destination.ResourceTypes).Contains(type, StringComparer.Ordinal)) throw new ProcessingException("DESTINATION_RESOURCE_SCOPE_REJECTED");
+        using var request = Request(HttpMethod.Get, new Uri(root, type + "?identifier=" + IdentifierQuery(system, value) + "&_count=2"));
+        using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
+        if (response.StatusCode != HttpStatusCode.OK) throw new ProcessingException("DESTINATION_LOOKUP_UNAVAILABLE");
+        var bundle = await Network.Object(response, cancellation);
+        if (bundle["resourceType"]?.GetValue<string>() != "Bundle" || bundle["type"]?.GetValue<string>() != "searchset") throw new ProcessingException("DESTINATION_SEARCH_BUNDLE_REQUIRED");
+        var entries = bundle["entry"] as JsonArray ?? new JsonArray();
+        if (entries.Count > 1 || bundle["total"]?.GetValue<int>() > 1 || (bundle["link"] as JsonArray)?.Any(link => link?["relation"]?.GetValue<string>() == "next") == true) throw new ProcessingException("DESTINATION_IDENTIFIER_AMBIGUOUS");
+        if (entries.Count == 0) return null;
+        var resource = entries[0]?["resource"] as JsonObject ?? throw new ProcessingException("DESTINATION_SEARCH_RESOURCE_REQUIRED");
+        _ = ReferenceOf(resource);
+        if (resource["resourceType"]?.GetValue<string>() != type || (resource["identifier"] as JsonArray)?.Any(identifier => identifier?["system"]?.GetValue<string>() == system && identifier?["value"]?.GetValue<string>() == value) != true) throw new ProcessingException("DESTINATION_SEARCH_IDENTITY_MISMATCH");
+        if (type == "Patient" && (resource["active"]?.GetValueKind() == System.Text.Json.JsonValueKind.False || (resource["link"] as JsonArray)?.Any(link => link?["type"]?.GetValue<string>() == "replaced-by") == true)) throw new ProcessingException("PATIENT_IDENTITY_REVIEW_REQUIRED");
+        return resource;
+    }
+    public async Task<JsonObject?> ReadExact(string reference, CancellationToken cancellation) {
+        if (!Regex.IsMatch(reference, "^[A-Z][A-Za-z0-9]{1,63}/[A-Za-z0-9.-]{1,64}$") || !(destination.ReadResourceTypes ?? destination.ResourceTypes).Contains(reference.Split('/')[0], StringComparer.Ordinal)) throw new ProcessingException("DESTINATION_RESOURCE_SCOPE_REJECTED");
+        using var request = Request(HttpMethod.Get, new Uri(root, reference));
+        using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
+        if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Gone) return null;
+        if (response.StatusCode != HttpStatusCode.OK) throw new ProcessingException("DESTINATION_LOOKUP_UNAVAILABLE");
+        var actual = await Network.Object(response, cancellation);
+        if (ReferenceOf(actual) != reference) throw new ProcessingException("DESTINATION_REFERENCE_IDENTITY_MISMATCH");
+        return actual;
+    }
+    public static bool Equivalent(JsonObject expected, JsonObject? actual) {
         if (actual is null) return false;
         bool Contains(JsonNode? left, JsonNode? right) {
             if (left is JsonObject obj && right is JsonObject other) return obj.All(p => other.ContainsKey(p.Key) && Contains(p.Value, other[p.Key]));
@@ -108,6 +143,7 @@ public sealed class FhirDelivery : IDisposable
                 continue;
             }
             if (!Regex.IsMatch(reference, "^[A-Z][A-Za-z0-9]{1,63}/[A-Za-z0-9.-]{1,64}$")) throw new ProcessingException("RECORD_LOCAL_DESTINATION_REFERENCE_REQUIRED");
+            if (!(destination.ReadResourceTypes ?? destination.ResourceTypes).Contains(reference.Split('/')[0], StringComparer.Ordinal)) throw new ProcessingException("DESTINATION_RESOURCE_SCOPE_REJECTED");
             using var request = Request(HttpMethod.Get, new Uri(root, reference)); using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
             if (response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.Gone) throw new ProcessingException("RECORD_REFERENCE_UNRESOLVED");
             if (response.StatusCode != HttpStatusCode.OK) throw new ProcessingException("DESTINATION_REFERENCE_CHECK_UNAVAILABLE");

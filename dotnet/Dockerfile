@@ -2,6 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0.404@sha256:8c6edfb26c85153f236d26efebd9ad
 WORKDIR /src
 COPY dotnet/global.json dotnet/global.json
 COPY dotnet/Modeller.Core/Modeller.Core.csproj dotnet/Modeller.Core/packages.lock.json dotnet/Modeller.Core/
+COPY dotnet/Modeller.Operational/Modeller.Operational.csproj dotnet/Modeller.Operational/packages.lock.json dotnet/Modeller.Operational/
 COPY dotnet/Modeller.Database/Modeller.Database.csproj dotnet/Modeller.Database/packages.lock.json dotnet/Modeller.Database/
 COPY dotnet/Modeller.Application/Modeller.Application.csproj dotnet/Modeller.Application/packages.lock.json dotnet/Modeller.Application/
 COPY dotnet/Modeller.Mcp/Modeller.Mcp.csproj dotnet/Modeller.Mcp/packages.lock.json dotnet/Modeller.Mcp/

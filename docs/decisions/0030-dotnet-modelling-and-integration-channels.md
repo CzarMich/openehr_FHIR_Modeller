@@ -1,5 +1,6 @@
 # ADR-0030: C# modelling core and optional integration-engine mode
 
+> Mapping-route semantics in this decision are superseded by [ADR-0031](0031-independent-clinical-routes-and-identity.md): source → FHIR, source → openEHR, openEHR → FHIR and FHIR → openEHR are separate operations. Historical combined definitions require a new reviewed version.
 Status: accepted for implementation, 2026-11-26. Delivery status remains partial
 until the executable acceptance evidence and deployment verification are recorded.
 
@@ -35,7 +36,7 @@ The existing Java/Node native compilers and validators remain specialised engine
 
 Store actual supplied model bytes, origin, version, hash and provenance. Draft
 origin claims and compiler results never constitute approval. Both FHIR and
-openEHR models used by an openEHR-mediated mapping require explicit selection;
+openEHR models used as an input or output require explicit selection;
 a direct FHIR mapping requires the supplied target StructureDefinitions, not a
 fictitious openEHR input. Human confirmation covers exact models and executable
 rules. Keep clinical approval/publication separate in the existing governance

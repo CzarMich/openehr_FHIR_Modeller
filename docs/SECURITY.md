@@ -75,3 +75,16 @@ Application errors exposed to clients use fixed safe codes rather than raw datab
 Run dependency audits and meaningful negative tests for authentication, replay, tenant/project boundaries, input ambiguity, source permissions and destination delivery. Maintain the tested-version/connector inventory and installation-specific acceptance evidence. Incident response, patching, rate limits, monitoring, backup restoration, high availability and jurisdiction-specific privacy obligations remain operational responsibilities.
 
 See [source connector status](SOURCE_CONNECTORS.md), [database discovery](DATABASE_DISCOVERY.md), [architecture](ARCHITECTURE.md), [identity](IDENTITY_AND_ACCESS.md), [governance](GOVERNANCE.md), [private processing](INTEGRATION_ENGINE.md) and [production delivery](FHIR_PRODUCTION_DELIVERY.md).
+
+
+## Private clinical identity state
+
+The clinical-runtime branch adds an encrypted internal identity/dependency store, a mandatory verified patient prerequisite and a destination privacy policy pinned to each confirmed mapping. This SQLite store is platform state; clinical/source databases remain strictly READ ONLY without an override. Source trust and privacy changes require fresh authenticated human review and retain actor/version evidence. General MCP tools never return patient crosswalks, held records or private job results.
+
+Back up the original operational encryption key with the encrypted store. The browser service will not create a replacement key alongside an existing identity database. A wrong key or integrity failure stops access. Do not reset this state to change a destination identity policy: after identity use, a reviewed migration is required. Pseudonymisation is not anonymisation, and output minimisation remains part of the approved mapping contract. See [HL7 and identity operations](HL7_AND_IDENTITY.md) for qualification and pending operational controls. These changes require release acceptance before being described as deployed.
+
+## Clinical recovery and private originals
+
+Clinical recovery is a separate authenticated human review API, never a general MCP patient tool. It requires an owned private job, current project write permission, approver/administrator rights, a fresh decision, the exact record revision and original source hash. Missing relationship resolution authenticates the configured destination and verifies the same Patient binding. The application retains original inputs unchanged and records identity/relationship corrections as audited processing overlays.
+
+Before destination writes, the worker persists an encrypted complete delivery plan. An uncertain response or interrupted lease requires read-back reconciliation; the worker never blindly repeats the write. Read resource grants are distinct from destination create grants. Private received-source downloads recover only the owned stored original and do not publish it to models, shared monitoring or reusable AI context. These controls do not replace clinical approval, destination authorisation, retention procedures or installation qualification.

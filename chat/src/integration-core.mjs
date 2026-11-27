@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { createHash, createHmac, randomBytes } from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, writeFileSync, existsSync, lstatSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { problem } from "./personal-http.mjs";
 
 export class IntegrationCore {
@@ -20,12 +20,34 @@ export class IntegrationCore {
             throw problem("Integration requires verified human review.", 503);
         const directory = join(this.config.dataDir, "integration-service");
         mkdirSync(directory, { recursive: true, mode: 0o700 });
+        const operationalKeyFile = join(directory, "operational-key");
+        if (!existsSync(operationalKeyFile)) {
+            if (existsSync(join(this.config.dataDir, "integration-operational", "operational.sqlite")))
+                throw problem(
+                    "The patient identity encryption key is missing. Restore the original key before starting.",
+                    503,
+                );
+            try {
+                writeFileSync(operationalKeyFile, randomBytes(32), { mode: 0o600, flag: "wx" });
+            } catch (error) {
+                if (error.code !== "EEXIST") throw error;
+            }
+        }
+        if (lstatSync(operationalKeyFile).isSymbolicLink() || lstatSync(operationalKeyFile).size !== 32)
+            throw problem("The patient identity encryption key is invalid.", 503);
         const configuration = {
             modelRoot: join(this.config.dataDir, "integration-models"),
             fhirUrl: this.config.integrationFhirUrl,
             fhirKeyFile: this.config.integrationFhirKeyFile,
             nativeUrl: this.config.integrationNativeUrl,
             nativeKeyFile: this.config.integrationNativeKeyFile,
+            operationalRoot: join(this.config.dataDir, "integration-operational"),
+            operationalKeyFile,
+            connectionsFile: this.config.integrationConnectionsFile || null,
+            runtimeFiles: [
+                join(dirname(this.config.integrationWorker), "Modeller.Processing.dll"),
+                join(dirname(this.config.integrationWorker), "Modeller.Operational.dll"),
+            ],
             sources: [],
             destinations: [],
             requireTerminology: true,
@@ -38,6 +60,7 @@ export class IntegrationCore {
         const env = {
             PATH: process.env.PATH,
             LANG: "C.UTF-8",
+            HTTP_CA_BUNDLE: process.env.HTTP_CA_BUNDLE,
             DOTNET_ENVIRONMENT: "Production",
             DOTNET_EnableDiagnostics: "0",
             DOTNET_GCHeapHardLimit: "0x18000000",
@@ -88,7 +111,7 @@ export class IntegrationCore {
     async request(session, method, target, input) {
         if (!this.ready) throw problem("The C# modelling service is unavailable.", 503);
         if (
-            !/^\/api\/v1\/integration\/(?:projects(?:\/[A-Za-z0-9][A-Za-z0-9_.-]{0,63}(?:\/(?:models|mappings|reuse))?)?|mappings\/[a-f0-9]{64}(?:\/decisions)?|execute)$/.test(
+            !/^\/api\/v1\/integration\/(?:projects(?:\/[A-Za-z0-9][A-Za-z0-9_.-]{0,63}(?:\/(?:models|mappings|reuse|source-trust|pending\/(?:inspect|resolve-patient|resolve-relationship|recover)|destinations\/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}\/privacy))?)?|mappings\/[a-f0-9]{64}(?:\/decisions)?|execute)$/.test(
                 target,
             )
         )

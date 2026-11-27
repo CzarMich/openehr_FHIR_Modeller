@@ -28,9 +28,19 @@ public sealed partial class ModelStore
     private readonly string root;
     private readonly Dictionary<string, string> keys;
     private readonly string activeKey;
-    public ModelStore(string root, Dictionary<string, string> approvalKeys, string activeKey) {
+    private readonly Lazy<string> runtimeFingerprint;
+    public ModelStore(string root, Dictionary<string, string> approvalKeys, string activeKey, string[]? runtimeFiles = null) {
         if (!Path.IsPathFullyQualified(root) || !approvalKeys.TryGetValue(activeKey, out var secret) || secret.Length < 32 || approvalKeys.Count > 8 || approvalKeys.Values.Any(v => v.Length < 32)) throw new ProcessingException("MODEL_STORE_CONFIGURATION_REQUIRED");
         this.root = root; keys = approvalKeys; this.activeKey = activeKey;
+        var files = new[] { typeof(Mapping).Assembly.Location }.Concat(runtimeFiles ?? []).Distinct(StringComparer.Ordinal).ToArray();
+        if (files.Length > 8) throw new ProcessingException("REUSE_RUNTIME_COMPONENT_LIMIT");
+        runtimeFingerprint = new(() => {
+            var manifest = files.Select(path => {
+                if (!Path.IsPathFullyQualified(path) || !File.Exists(path) || new FileInfo(path).Length > 67108864) throw new ProcessingException("REUSE_RUNTIME_FINGERPRINT_UNAVAILABLE");
+                return Path.GetFileName(path) + ":" + Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path)));
+            }).Order(StringComparer.Ordinal);
+            return Data.Hash(string.Join("\n", manifest));
+        });
         Directory.CreateDirectory(root);
         if (new DirectoryInfo(root).LinkTarget is not null) throw new ProcessingException("MODEL_STORE_LINK_REJECTED");
         if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(root, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
@@ -82,13 +92,15 @@ public sealed partial class ModelStore
         var id = Data.Required(input, "id"); Id(id); var version = Data.Required(input, "version");
         if (version.Length > 100 || version.Any(char.IsWhiteSpace) || version.Any(char.IsControl) || version.IndexOfAny(['|', '"', '\'', '<', '>', '\\']) >= 0 || version == "*") throw new ProcessingException("MODEL_VERSION_INVALID");
         var standard = Data.Required(input, "standard"); var content = Data.Required(input, "content"); var origin = Data.Required(input, "origin");
-        if (Encoding.UTF8.GetByteCount(content) > 2097152 || origin is not ("externally-provided" or "agent-modelled") || standard is not ("FHIR" or "openEHR")) throw new ProcessingException("MODEL_INPUT_INVALID");
+        if (Encoding.UTF8.GetByteCount(content) > 2097152 || origin is not ("externally-provided" or "agent-modelled") || standard is not ("FHIR" or "openEHR" or "source-contract")) throw new ProcessingException("MODEL_INPUT_INVALID");
         if (standard == "FHIR") {
             var resource = Data.ParseStrict(Encoding.UTF8.GetBytes(content)) as JsonObject ?? throw new ProcessingException("STRUCTURE_DEFINITION_REQUIRED");
             if (resource["resourceType"]?.GetValue<string>() != "StructureDefinition" || (resource["version"]?.GetValue<string>() ?? "sha256-" + Data.Hash(content)) != version) throw new ProcessingException("STRUCTURE_DEFINITION_VERSION_REQUIRED");
             Canonical(Data.Required(resource, "url")); _ = Data.Required(resource, "type");
             var declared = resource["fhirVersion"]?.GetValue<string>();
             if (declared is not null && declared != project["fhirVersion"]?.GetValue<string>() && !(declared == "4.0.0" && project["fhirVersion"]?.GetValue<string>() == "4.0.1")) throw new ProcessingException("MODEL_RELEASE_MISMATCH");
+        } else if (standard == "source-contract") {
+            _ = new SourceContract(content);
         } else {
             using var reader = XmlReader.Create(new StringReader(content), new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 2097152 });
             while (reader.Read()) if (reader.Depth > 64) throw new ProcessingException("MODEL_DEPTH_LIMIT");
@@ -125,9 +137,11 @@ public sealed partial class ModelStore
             }
             modelPins.Add(new JsonObject { ["key"] = model["key"]!.DeepClone(), ["sha256"] = model["sha256"]!.DeepClone(), ["version"] = model["version"]!.DeepClone(), ["standard"] = model["standard"]!.DeepClone(), ["origin"] = model["origin"]!.DeepClone() });
             standards.Add(Data.Required(model, "standard")); bytes += Encoding.UTF8.GetByteCount(Data.Required(model, "content"));
+            if (model["standard"]?.GetValue<string>() == "source-contract" && key != mapping.SourceProfileKey) throw new ProcessingException("SOURCE_PROFILE_SELECTION_MISMATCH");
         }
-        if (bytes > 4194304 || !standards.Contains("FHIR", StringComparer.Ordinal) || mapping.Direction != "source-direct-to-fhir" && !standards.Contains("openEHR", StringComparer.Ordinal)
-            || mapping.Direction == "source-direct-to-fhir" && standards.Contains("openEHR", StringComparer.Ordinal)) throw new ProcessingException("PIPELINE_MODELS_INVALID");
+        if (standards.Count(standard => standard == "source-contract") != (mapping.SourceProfileKey is null ? 0 : 1)) throw new ProcessingException("EXACT_SOURCE_PROFILE_REQUIRED");
+        if (bytes > 4194304 || standards.Contains("FHIR", StringComparer.Ordinal) != mapping.NeedsFhirModel
+            || standards.Contains("openEHR", StringComparer.Ordinal) != mapping.NeedsOpenEhrModel) throw new ProcessingException("PIPELINE_MODELS_INVALID");
         var definition = new JsonObject { ["project"] = projectId, ["projectConfiguration"] = project.DeepClone(), ["modelKeys"] = new JsonArray(modelKeys.Select(k => (JsonNode)JsonValue.Create(k)!).ToArray()), ["modelPins"] = modelPins, ["executionMapping"] = mappingText, ["mappingSha256"] = Data.Hash(mappingText), ["direction"] = mapping.Direction };
         var mappingDocument = JsonNode.Parse(mappingText) as JsonObject ?? throw new ProcessingException("MAPPING_INVALID");
         if (input["reuseContext"] is JsonObject reuse) definition["reuseContext"] = ReuseContext(reuse,mapping.SchemaHash,mappingDocument["requirements"] as JsonArray ?? throw new ProcessingException("NARRATIVE_REQUIREMENTS_REQUIRED"));

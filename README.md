@@ -2,8 +2,9 @@
 
 Discover clinical source structures, build reusable clinical models, and define explicit mappings from source data to openEHR and FHIR. Use an MCP agent or the browser workspace to inspect source definitions,
 reuse archetypes and profiles, author templates, compile models and review the
-rules that will transform records. FHIR is the primary exchange output; incoming
-FHIR needs its own explicit mapping to openEHR.
+rules that will transform records. Choose independently between source → FHIR,
+source → openEHR, openEHR → FHIR and FHIR → openEHR. Each route needs its own
+reviewed rules and applicable approved models.
 
 For clinical modellers, interoperability engineers and integration teams. The long-term direction is a standards-based platform for clinical data discovery, cleansing, terminology enrichment, mapping and delivery across healthcare settings. Connector availability, clinical acceptance, terminology licensing, localisation and operational qualification must be established for each deployment; this is not a claim of universal coverage or certification. The
 modeller helps develop and validate interoperability specifications; the existing
@@ -33,6 +34,10 @@ HTTPS does not imply encryption on every private service hop. See the
 
 Create an explicit source-discovery job: choose the database or platform/API connector, an operator-managed profile, purpose and original narrative. The catalogue includes SQL Server, Oracle, PostgreSQL, MySQL, MariaDB and SAP HANA, plus Epic, SAP BW and configured clinical APIs. Each choice reports its own implementation and qualification status; selection alone does not make a connector operational. SQL Server currently has executable metadata discovery. See [source jobs and connector status](docs/SOURCE_CONNECTORS.md).
 
+## HL7 and patient identity
+
+The clinical runtime provides bounded HL7 v2 ER7/XML and supplied-profile HL7 v3/CDA file intake. It includes private durable holding for missing Patients/Encounters, reviewed logical or literal FHIR references, a mandatory verified patient-identity gate and optional destination pseudonymisation. A network MLLP listener/ACK exchange, universal v3 interaction support and full CDA Schematron validation are not implemented. Availability requires promotion of the exact validated images; each installation still needs interface qualification. See [HL7 support, dependencies and patient identity](docs/HL7_AND_IDENTITY.md) for the actual implementation status and qualification requirements.
+
 ## Reuse work and reduce AI calls
 
 The feature branch provides a deterministic **Find existing work without AI** action in the Integration workspace. It searches saved drafts and currently confirmed mappings using the source identity/meaning version, schema, purpose, original requirements, exact models, terminology pins and runtime. Loading an existing mapping requires no new generation. Human corrections become new versioned proposals for confirmation; they are not silently promoted into approved rules.
@@ -49,7 +54,7 @@ Encrypted model-read caching and private task checkpoints also reduce repeated r
 - Discover actual SQL Server schemas, tables, columns and keys without returning patient rows to an agent. Use the installation’s dictionary and user guidance to resolve clinical meaning.
 - Use local terminology catalogues or configured FHIR terminology services to investigate codes, value sets and mapping candidates.
 - Inspect synthetic CSV/custom JSON, identify missing information and preview
-  explicit source → openEHR representation → FHIR mapping rules.
+  the four independent mapping routes without an implicit intermediate standard.
 - Define a separate FHIR → openEHR mapping and check declared round-trip invariants.
 - Browse projects, discuss proposals with an agent and submit models for human review.
 
@@ -89,14 +94,15 @@ Upload a private file or select a registered folder. Inspect its field schema, s
 2. **Inspect a synthetic source.** Provide a small CSV or JSON fixture and its
    data dictionary. Ask the agent to report structure, missingness and unresolved
    clinical meanings. Keep real patient records in the private processing runtime.
-3. **Reuse or model openEHR.** Search configured CKMs first. Supply an existing
-   template or author and compile a draft from pinned archetypes. Inspect exact
-   nodes and constraints; compilation is a technical check.
-4. **Reuse or model FHIR.** Supply the actual StructureDefinitions from the chosen
-   IG, or draft and compile profiles. Preserve canonical URLs, versions,
-   dependencies, terminology and the original source.
-5. **Review model selection and rules.** A route through openEHR or a reverse
-   mapping needs both standards; direct source-to-FHIR needs its actual FHIR SDs.
+3. **Provide the source contract.** Define exact fields, identifiers, assigning
+   authorities and meanings using the source dictionary. For direct source-to-FHIR,
+   no intermediate openEHR template is required.
+4. **Reuse or model the target.** Supply the actual FHIR StructureDefinitions from
+   the chosen IG, or draft and compile profiles. Preserve canonical URLs, versions,
+   dependencies, terminology and the original source. For an openEHR target, supply
+   its exact compiled template; a cross-standard route also requires the applicable
+   input models. Search existing models before authoring new ones.
+5. **Review model selection and rules.** Each independent route needs its applicable input/output models: source-to-FHIR needs target SDs, source-to-openEHR needs its target template, and cross-standard mappings need both.
    Supply external models with content and provenance, then confirm the exact
    models and rules, including agent-modelled proposals. Inspect assumptions,
    missing/null behaviour and information loss. Changes to the declared schema,
@@ -122,7 +128,7 @@ Start with this request in browser chat or your connected MCP agent:
 > send resources to a destination from this preview.
 
 For a reproducible first tool call and expected results, follow the
-[compatibility laboratory preview walkthrough](docs/workflows/source-to-fhir-laboratory.md).
+[independent laboratory mapping walkthrough](docs/workflows/source-to-fhir-laboratory.md).
 Use the [C# integration guide](docs/INTEGRATION_ENGINE.md) for new mappings, private jobs and channels; its model/rule confirmation and run authorisation are separate, request-bound decisions.
 
 ## Available today and remaining work
@@ -136,7 +142,7 @@ The detailed [capability matrix](CAPABILITIES.md) and
 | openEHR modelling | CKM discovery, versioned repositories, template authoring, native ADL/OPT validation and supported template compilation |
 | FHIR modelling | R4/R4B/R5 packages, profile proposals, real SUSHI compilation, validator evidence, examples and IG draft handoff |
 | Source understanding | C# file adapters for CSV, object-array JSON, constrained XML and one-sheet XLSX; FHIR JSON classification requires actual validation before reverse mapping |
-| Executable mapping | Versioned narrative-guided rules; source → openEHR → FHIR, direct source → supplied FHIR SD, and separately defined reverse mappings |
+| Executable mapping | Versioned narrative-guided rules; source → FHIR, source → openEHR, openEHR → FHIR and FHIR → openEHR as independent reviewed mappings |
 | Model review | Protected human openEHR review and exact cross-standard mapping-selection confirmation |
 | Operational runs/channels | Optional C# private file workers, checkpointing, quarantine, manual restart and confirmed mapping assignments; previews remain synthetic |
 | Export and FHIR destination push | Private NDJSON export; separately enabled HTTPS conditional create by business identifier against an operator-registered FHIR destination |

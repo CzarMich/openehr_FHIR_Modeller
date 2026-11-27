@@ -2726,3 +2726,165 @@ test("Leticia supports keyboard movement and resetting the saved position", asyn
     expect(await page.evaluate(() => localStorage.getItem("modeller.leticia.position"))).toBeNull();
     expect(await page.locator("#michael-companion").evaluate((root) => root.style.left)).toBe("");
 });
+
+test("destination pseudonymisation is reviewed and its exact revision is bound to a mapping draft", async ({
+    page,
+}) => {
+    const sourceKey = "a".repeat(64),
+        targetKey = "b".repeat(64);
+    let changed,
+        decisions = 0;
+    await page.route("**/chat/api/session", (route) =>
+        route.fulfill({ json: { authenticated: true, csrf: "synthetic", integrationReady: true } }),
+    );
+    await page.route("**/chat/api/integration/**", async (route) => {
+        const url = new URL(route.request().url()),
+            target = url.searchParams.get("target");
+        let result = { items: [] };
+        if (target === "/api/v1/integration/projects")
+            result = { items: [{ id: "lab", name: "Synthetic laboratory", fhirVersion: "4.0.1" }] };
+        else if (target?.endsWith("/models"))
+            result = {
+                items: [
+                    {
+                        key: sourceKey,
+                        standard: "source-contract",
+                        id: "synthetic-interface",
+                        version: "1.0.0",
+                        origin: "externally-provided",
+                        sha256: sourceKey,
+                    },
+                    {
+                        key: targetKey,
+                        standard: "FHIR",
+                        id: "synthetic-observation",
+                        version: "1.0.0",
+                        origin: "agent-modelled",
+                        sha256: targetKey,
+                    },
+                ],
+            };
+        else if (target?.endsWith("/privacy")) {
+            if (route.request().method() === "POST") changed = route.request().postDataJSON();
+            result = {
+                revision: changed ? 1 : 0,
+                pseudonymisePatientIdentifiers: !!changed,
+                pseudonymSystem: changed ? "urn:synthetic:pseudonym" : null,
+                patientIdentityRequired: true,
+            };
+        } else if (target?.endsWith("/decisions")) decisions++;
+        else if (url.pathname.endsWith("/connections"))
+            result = { sources: [], destinations: [], clinicalDatabasePolicy: "READ_ONLY" };
+        await route.fulfill({ json: result });
+    });
+    await page.goto("/chat/integration/");
+    await expect(page.locator("#notice")).toContainText("Project loaded");
+    await page.getByRole("tab", { name: "Models", exact: true }).click();
+    for (const key of [sourceKey, targetKey]) await page.locator(`[data-model][value="${key}"]`).check();
+    await page.getByRole("tab", { name: "Mapping & review", exact: true }).click();
+    await page.locator("#identity-settings > summary").click();
+    await page.locator("#mapping-json").fill('{"schemaVersion":2,"name":"synthetic-draft","version":"1.0.0"}');
+    await page.locator("#identity-domain").fill("synthetic-hospital");
+    await page.locator("#identity-destination").fill("synthetic-cdr");
+    await page.locator("#privacy-load").click();
+    await expect(page.locator("#patient-required")).toBeChecked();
+    await expect(page.locator("#patient-required")).toBeDisabled();
+    await page.locator("#pseudonymise").check();
+    await page.locator("#pseudonym-system").fill("urn:synthetic:pseudonym");
+    await page.locator("#privacy-save").click();
+    await expect(page.locator("#notice")).toContainText("acknowledge your review");
+    expect(changed).toBeUndefined();
+    await page.locator("#privacy-reviewed").check();
+    await page.locator("#privacy-save").click();
+    await expect(page.locator("#privacy-status")).toContainText("revision 1");
+    expect(changed).toEqual({
+        expectedRevision: 0,
+        pseudonymisePatientIdentifiers: true,
+        pseudonymSystem: "urn:synthetic:pseudonym",
+    });
+    await page.locator("#reference-add").click();
+    const row = page.locator("#identity-references tr");
+    await row.getByLabel("Source role", { exact: true }).fill("patient");
+    await row.getByLabel("Target type", { exact: true }).fill("Patient");
+    await row.getByLabel("Output path", { exact: true }).fill("/subject");
+    await row.getByLabel("Reference mode", { exact: true }).selectOption("logical");
+    await page.locator("#identity-apply").click();
+    await expect(page.locator("#notice")).toContainText("Increment the mapping version");
+    const draft = JSON.parse(await page.locator("#mapping-json").inputValue());
+    expect(draft.sourceProfileKey).toBe(sourceKey);
+    expect(draft.clinicalPolicy).toEqual({
+        schemaVersion: 1,
+        identityDomain: "synthetic-hospital",
+        destinationId: "synthetic-cdr",
+        privacyPolicyRevision: 1,
+        pseudonymisePatientIdentifiers: true,
+        pseudonymSystem: "urn:synthetic:pseudonym",
+        references: [
+            { role: "patient", targetType: "Patient", path: "/subject", mode: "logical", requireDestination: true },
+        ],
+        publications: [],
+        holdDays: 30,
+    });
+    expect(decisions).toBe(0);
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    const { default: AxeBuilder } = await import("@axe-core/playwright");
+    const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
+    expect(accessibility.violations).toEqual([]);
+});
+
+test("held-patient review opens its confirmation tab and requires an explicit decision", async ({ page }) => {
+    const jobId = "a".repeat(64);
+    let previews = 0,
+        commits = 0;
+    await page.route("**/chat/api/session", (route) =>
+        route.fulfill({ json: { authenticated: true, csrf: "synthetic", integrationReady: true } }),
+    );
+    await page.route("**/chat/api/integration/**", async (route) => {
+        const url = new URL(route.request().url()),
+            target = url.searchParams.get("target");
+        let result = { items: [] };
+        if (target === "/api/v1/integration/projects")
+            result = { items: [{ id: "lab", name: "Synthetic laboratory", fhirVersion: "4.0.1" }] };
+        else if (url.pathname.endsWith("/connections"))
+            result = { sources: [], destinations: [], clinicalDatabasePolicy: "READ ONLY" };
+        else if (url.pathname.endsWith("/jobs")) result = { items: [{ id: jobId, status: "WAITING_DEPENDENCIES" }] };
+        else if (url.pathname.endsWith("/patient-resolution/preview")) {
+            previews++;
+            expect(route.request().postDataJSON().patientValue).toBe("000001");
+            result = {
+                confirmation: "synthetic-review-ticket",
+                summary: {
+                    sourceSha256: "b".repeat(64),
+                    patientValue: "000001",
+                    comment: "Inspected original registration evidence",
+                },
+            };
+        } else if (url.pathname.endsWith("/patient-resolution/commit")) {
+            commits++;
+            expect(route.request().postDataJSON().confirmation).toBe("synthetic-review-ticket");
+            result = { state: "READY" };
+        }
+        await route.fulfill({ json: result });
+    });
+    await page.goto("/chat/integration/#jobs-step");
+    await page.getByRole("tab", { name: "Jobs & monitoring", exact: true }).click();
+    await page.locator("#recovery-panel > summary").click();
+    await page.getByText("Resolve a missing patient identifier", { exact: true }).click();
+    await page.locator("#resolve-patient-system").fill("urn:synthetic:patient");
+    await page.locator("#resolve-patient-value").fill("000001");
+    await page.locator("#resolve-patient-comment").fill("Inspected original registration evidence");
+    await page.locator("#resolve-patient-preview").click();
+    await expect(page.locator("#confirmation")).toBeVisible();
+    expect(previews).toBe(1);
+    expect(commits).toBe(0);
+    await page.locator("#dismiss").click();
+    expect(commits).toBe(0);
+    await page.getByRole("tab", { name: "Jobs & monitoring", exact: true }).click();
+    await page.locator("#resolve-patient-preview").click();
+    await page.locator("#commit").click();
+    await expect(page.locator("#notice")).toContainText("Operation confirmed");
+    expect(commits).toBe(1);
+    await page.getByRole("tab", { name: "Jobs & monitoring", exact: true }).click();
+    await expect(page.locator("#resolve-patient-value")).toHaveValue("");
+});

@@ -13,4 +13,5 @@
     <NuGetAuditLevel>low</NuGetAuditLevel>
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="../Modeller.Core/Modeller.Core.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../Modeller.Operational/Modeller.Operational.csproj" /></ItemGroup>
 </Project>

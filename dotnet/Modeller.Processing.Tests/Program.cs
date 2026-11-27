@@ -22,15 +22,16 @@ Reject(() => ExactNumber.Convert(.0000000000000000000000000001m, .1m, 0m), "RECO
 Reject(() => ExactNumber.Parse("79228162514264337593543950336"), "RECORD_NUMBER_PRECISION");
 Reject(() => ExactNumber.Parse("1,25"), "RECORD_NUMBER");
 JsonObject Rule(string source, string target, string operation = "copy") => new() { ["source"] = source, ["target"] = target, ["operation"] = operation, ["description"] = "Synthetic declared rule", ["interpretation"] = "Copy/conversion at the exact declared paths", ["assumptions"] = new JsonArray(), ["missing"] = "reject", ["null"] = "reject" };
-var number = Rule("/value", "/measurement/value", "number"); number["factor"] = .1m;
-var unit = Rule("/unit", "/measurement/unit", "translate"); unit["dictionary"] = new JsonObject { ["mg/dL"] = "declared-unit" };
-var plan = new JsonObject { ["schemaVersion"] = 2, ["version"] = "1.0.0", ["direction"] = "source-to-fhir", ["sourceSchemaSha256"] = Sources.SchemaHash(records), ["reversibility"] = "lossy", ["description"] = "Synthetic test; not a clinical mapping", ["stages"] = new JsonArray(
-    new JsonObject { ["seed"] = new JsonObject(), ["rules"] = new JsonArray(number, unit, Rule("/id", "/id")) },
-    new JsonObject { ["seed"] = new JsonObject { ["resourceType"] = "Observation" }, ["rules"] = new JsonArray(Rule("/measurement/value", "/valueQuantity/value"), Rule("/measurement/unit", "/valueQuantity/unit"), Rule("/id", "/id")) }) };
+var number = Rule("/value", "/valueQuantity/value", "number"); number["factor"] = .1m;
+var unit = Rule("/unit", "/valueQuantity/unit", "translate"); unit["dictionary"] = new JsonObject { ["mg/dL"] = "declared-unit" };
+var plan = new JsonObject { ["schemaVersion"] = 2, ["version"] = "1.0.0", ["direction"] = "source-direct-to-fhir", ["sourceSchemaSha256"] = Sources.SchemaHash(records), ["reversibility"] = "lossy", ["description"] = "Synthetic test; not a clinical mapping", ["stages"] = new JsonArray(
+    new JsonObject { ["seed"] = new JsonObject { ["resourceType"] = "Observation" }, ["rules"] = new JsonArray(number, unit, Rule("/id", "/id")) }) };
 plan["name"] = "synthetic-numeric";
 plan["requirements"] = new JsonArray(new JsonObject { ["id"] = "USER-1", ["originalText"] = "Convert the synthetic value by the explicitly declared factor and retain zero.", ["basis"] = "user-instruction" });
 plan["unresolvedQuestions"] = new JsonArray();
 plan["examples"] = new JsonArray(new JsonObject { ["synthetic"] = true, ["input"] = records[0].DeepClone(), ["expected"] = new JsonArray(new JsonObject { ["resourceType"] = "Observation", ["valueQuantity"] = new JsonObject { ["value"] = 0m, ["unit"] = "declared-unit" }, ["id"] = "one" }) });
+var retired = (JsonObject)plan.DeepClone(); retired["direction"] = "source-to-fhir";
+Reject(() => new Mapping(retired.ToJsonString()), "LEGACY_CHAINED_MAPPING_REVIEW_REQUIRED");
 var mapping = new Mapping(plan.ToJsonString());
 mapping.VerifyExamples();
 var result = mapping.Transform(records[0]); Check(result[0].Output["valueQuantity"]!["value"]!.GetValue<decimal>() == 0m, "Zero retained");
@@ -39,13 +40,13 @@ Reject(() => mapping.Transform(records[2]), "RECORD_NUMBER");
 var nullRecord = (JsonObject)records[0].DeepClone(); nullRecord["value"] = null; Reject(() => mapping.Transform(nullRecord), "RECORD_REQUIRED");
 var missingRecord = (JsonObject)records[0].DeepClone(); missingRecord.Remove("value"); Reject(() => mapping.Transform(missingRecord), "RECORD_REQUIRED");
 var badCode = (JsonObject)records[0].DeepClone(); badCode["unit"] = "unknown"; Reject(() => mapping.Transform(badCode), "RECORD_TERMINOLOGY");
-Check(result[0].Provenance.Count == 6, "Field provenance covers both stages");
+Check(result[0].Provenance.Count == 3, "Field provenance covers the independent source-to-FHIR rules");
 Check(Data.Canonical(mapping.Transform(records[1])[0].Output) == Data.Canonical(mapping.Transform(records[1])[0].Output), "Deterministic rerun");
 var time = Rule("/time", "/normalised", "datetime-utc"); var datePlan = (JsonObject)plan.DeepClone(); datePlan["direction"] = "fhir-to-openehr"; datePlan["stages"] = new JsonArray(new JsonObject { ["seed"] = new JsonObject(), ["rules"] = new JsonArray(time) });
 var dates = new Mapping(datePlan.ToJsonString());
 Check(dates.Transform(new JsonObject { ["time"] = "2026-11-26T10:15:00.123+02:00" })[0].Output["normalised"]!.GetValue<string>() == "2026-11-26T08:15:00.1230000+00:00", "Timezone and instant");
 Reject(() => dates.Transform(new JsonObject { ["time"] = "2026-11-26T10:15:00" }), "RECORD_TIMEZONE_REQUIRED");
-var invalid = (JsonObject)plan.DeepClone(); ((JsonArray)invalid["stages"]![0]!["rules"]!).Add(Rule("/id", "/measurement")); Reject(() => new Mapping(invalid.ToJsonString()), "MAPPING_TARGET_OVERLAP");
+var invalid = (JsonObject)plan.DeepClone(); ((JsonArray)invalid["stages"]![0]!["rules"]!).Add(Rule("/id", "/valueQuantity")); Reject(() => new Mapping(invalid.ToJsonString()), "MAPPING_TARGET_OVERLAP");
 var sourceRoot = Path.Combine(Path.GetTempPath(), "processing-sources-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(sourceRoot);
 try {
     File.WriteAllText(Path.Combine(sourceRoot, "fixture.csv"), "id,value\n1,0");
@@ -110,6 +111,22 @@ try {
     File.WriteAllText(eventPath, File.ReadAllText(eventPath).Replace("CONFIRMED", "REVOKED"));
     Reject(() => store.GetDefinition(subject, actor), "DECISION_AUDIT_INTEGRITY_FAILED");
 } finally { Directory.Delete(storeRoot, true); }
+// The new routes retain explicit model selection and do not invent a FHIR output.
+var ehrOnly = (JsonObject)plan.DeepClone();
+ehrOnly["direction"] = "source-to-openehr";
+ehrOnly["name"] = "synthetic-composition-only";
+ehrOnly["stages"] = new JsonArray(new JsonObject { ["seed"] = new JsonObject { ["_type"] = "COMPOSITION" }, ["rules"] = new JsonArray(Rule("/value", "/syntheticValue")) });
+ehrOnly["examples"] = new JsonArray(new JsonObject { ["synthetic"] = true, ["input"] = records[0].DeepClone(), ["expected"] = new JsonArray(new JsonObject { ["_type"] = "COMPOSITION", ["syntheticValue"] = "0" }) });
+var ehrMapping = new Mapping(ehrOnly.ToJsonString()); ehrMapping.VerifyExamples();
+Check(ehrMapping.ProducesOpenEhr && !ehrMapping.ProducesFhir && !ehrMapping.NeedsFhirModel && ehrMapping.NeedsOpenEhrModel, "Composition-only route does not require an unrelated FHIR model");
+var ehrInput = Sources.Parse(Encoding.UTF8.GetBytes("{\"_type\":\"COMPOSITION\",\"syntheticValue\":\"0\"}"), "openehr-json");
+Check(ehrInput.Count == 1 && ehrInput[0]["syntheticValue"]!.GetValue<string>() == "0", "Canonical composition input retains clinical values without conversion");
+Reject(() => Sources.Parse(Encoding.UTF8.GetBytes("{\"_type\":\"OBSERVATION\"}"), "openehr-json"), "OPENEHR_COMPOSITION_REQUIRED");
+var ehrForward = (JsonObject)ehrOnly.DeepClone(); ehrForward["direction"] = "openehr-to-fhir";
+ehrForward["stages"] = new JsonArray(new JsonObject { ["seed"] = new JsonObject { ["resourceType"] = "Observation" }, ["rules"] = new JsonArray(Rule("/syntheticValue", "/valueString")) });
+ehrForward["examples"] = new JsonArray(new JsonObject { ["synthetic"] = true, ["input"] = ehrInput[0].DeepClone(), ["expected"] = new JsonArray(new JsonObject { ["resourceType"] = "Observation", ["valueString"] = "0" }) });
+var ehrForwardMapping = new Mapping(ehrForward.ToJsonString()); ehrForwardMapping.VerifyExamples();
+Check(ehrForwardMapping.RequiresOpenEhrInput && ehrForwardMapping.ProducesFhir && ehrForwardMapping.NeedsOpenEhrModel && ehrForwardMapping.NeedsFhirModel, "Composition-to-FHIR requires both the source template and target profile");
 Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new { coreChecks = count, status = "PASS" }));
 
 // Isolated synthetic HTTP destination: no production endpoint or clinical database.

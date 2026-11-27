@@ -3,9 +3,8 @@ import assert from 'node:assert/strict';
 import {describe,inspectDataset,previewMapping} from '../lib/pipeline.mjs';
 const rule=(source,target,extra={}) => ({source,target,description:'Explicit synthetic rule',operation:'copy',missing:'reject',null:'reject',...extra});
 const records=[{patient:'synthetic-1',value:0,unit:'mg',extra:'unmapped'},{patient:'synthetic-2',value:null,unit:'mg'},{patient:'synthetic-3',unit:'mg'},{patient:'synthetic-4',value:'bad',unit:'mg'}];
-const mapping=() => ({schemaVersion:1,version:'1.0.0',direction:'source-to-fhir',reversibility:'lossy',sourceSchemaSha256:describe(records,'lab','1').schemaSha256,
-  stages:[{rules:[rule('/patient','/subject'),rule('/value','/magnitude',{operation:'number'}),rule('/unit','/units',{operation:'translate',dictionary:{mg:'mg'}})]},
-    {rules:[rule('/subject','/subject/reference'),rule('/magnitude','/valueQuantity/value'),rule('/units','/valueQuantity/unit')]}]});
+const mapping=() => ({schemaVersion:1,version:'1.0.0',direction:'source-direct-to-fhir',reversibility:'lossy',sourceSchemaSha256:describe(records,'lab','1').schemaSha256,
+  stages:[{rules:[rule('/patient','/subject/reference'),rule('/value','/valueQuantity/value',{operation:'number'}),rule('/unit','/valueQuantity/unit',{operation:'translate',dictionary:{mg:'mg'}})]}]});
 const preview=(map=mapping(),input=records) => previewMapping({synthetic:true,sourceId:'lab',sourceVersion:'1',records:input,mapping:map});
 test('CSV/JSON preserve structure, missingness and locations without exposing sample values',()=>{
   const result=inspectDataset({synthetic:true,format:'csv',content:'patient,value\r\n"synthetic,one",0\r\nsynthetic-two,\r\n',sourceId:'lab',sourceVersion:'1'});
@@ -16,10 +15,10 @@ test('CSV/JSON preserve structure, missingness and locations without exposing sa
   assert.equal(json.fields.find(f=>f.path==='/value').nulls,1);
   assert.equal(json.clinicalInterpretation,'UNRESOLVED');
 });
-test('forward stages preserve zero, reject absent/null/bad values and report loss',()=>{
+test('independent source-to-FHIR rules preserve zero, reject absent/null/bad values and report loss',()=>{
   const result=preview(); assert.deepEqual(result.counts,{read:4,transformed:1,rejected:3,emitted:0});
   assert.equal(result.outputs[0].output.valueQuantity.value,0);
-  assert.equal(result.outputs[0].stages[0].magnitude,0);
+  assert.equal(result.outputs[0].stages[0].valueQuantity.value,0);
   assert.equal(result.outputs[0].unmapped[0].path,'/extra');
   assert.equal(JSON.stringify(result.rejected).includes('bad'),false);
   assert.equal(result.validation.status,'NOT_EXECUTED');
@@ -40,7 +39,7 @@ test('schema drift, unsafe paths, overlapping targets and implicit rules are rej
   for(const target of ['/__proto__/polluted','/constructor/x','/a/0','/a~9']) {
     const unsafe=mapping(); unsafe.stages[0].rules[0].target=target; assert.throws(()=>preview(unsafe),{code:'RULE_PATH'});
   }
-  const overlap=mapping(); overlap.stages[0].rules[1].target='/subject/nested'; assert.throws(()=>preview(overlap),{code:'MAPPING_TARGET'});
+  const overlap=mapping(); overlap.stages[0].rules[1].target='/subject'; assert.throws(()=>preview(overlap),{code:'MAPPING_TARGET'});
   const invalid=mapping(); invalid.stages[0].rules[0].operation='eval'; assert.throws(()=>preview(invalid),{code:'MAPPING_RULE'});
 });
 test('terminology translation rejects unknown values rather than silently copying',()=>{
@@ -63,4 +62,11 @@ test('numeric conversion rejects unsafe integer precision',()=>{
 
 test('preview record bounds count UTF-8 bytes, including multibyte values',()=>{
   assert.throws(()=>describe([{value:'é'.repeat(140000)}],'lab','1'),{code:'SOURCE_BOUND'});
+});
+
+test('all four independent routes use one stage and retired combined definitions require review',()=>{
+  for (const direction of ['source-direct-to-fhir','source-to-openehr','openehr-to-fhir','fhir-to-openehr']) {
+    const map=mapping();map.direction=direction;assert.equal(preview(map).outputs[0].stages.length,1);
+  }
+  const old=mapping();old.direction='source-to-fhir';assert.throws(()=>preview(old),{code:'LEGACY_CHAINED_MAPPING_REVIEW_REQUIRED'});
 });

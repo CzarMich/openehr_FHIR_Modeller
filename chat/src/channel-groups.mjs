@@ -270,6 +270,7 @@ export class ChannelGroups {
             ? channel.status
             : "UNKNOWN";
         summary.hasFailure = !!channel.error;
+        summary.waitingJobs = Math.min(1000000, channel.waitingJobs?.length || 0);
         summary.completedFiles = Math.min(1000000, Object.keys(channel.completedFiles || {}).length);
         if (channel.activeJob) {
             // Never forward the complete private job/report, filenames, errors or output.
@@ -283,10 +284,13 @@ export class ChannelGroups {
                 "COMPLETED",
                 "COMPLETED_WITH_FAILURES",
                 "FAILED",
+                "WAITING_DEPENDENCIES",
+                "DELIVERY_UNCERTAIN",
+                "BLOCKED",
             ].includes(state.status)
                 ? state.status
                 : "UNKNOWN";
-            for (const key of ["read", "rejected", "emitted"])
+            for (const key of ["read", "rejected", "emitted", "held"])
                 if (Number.isSafeInteger(state[key]) && state[key] >= 0) summary[key] = state[key];
         }
         return summary;

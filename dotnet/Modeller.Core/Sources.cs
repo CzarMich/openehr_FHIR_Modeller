@@ -43,6 +43,7 @@ public static class Sources
             "csv" => Csv(new UTF8Encoding(false, true).GetString(bytes).TrimStart('\ufeff')),
             "json" => JsonRecords(Data.ParseStrict(bytes)),
             "fhir-json" => FhirRecords(Data.ParseStrict(bytes)),
+            "openehr-json" => OpenEhrRecords(Data.ParseStrict(bytes)),
             "xlsx" => Xlsx(bytes),
             "xml" => XmlRecords(bytes),
             _ => throw new ProcessingException("SOURCE_FORMAT_UNSUPPORTED")
@@ -54,6 +55,11 @@ public static class Sources
     private static List<JsonObject> JsonRecords(JsonNode? value) {
         if (value is not JsonArray array || array.Any(x => x is not JsonObject)) throw new ProcessingException("SOURCE_RECORD_ARRAY_REQUIRED");
         return array.Select(x => (JsonObject)x!).ToList();
+    }
+    private static List<JsonObject> OpenEhrRecords(JsonNode? value) {
+        var records = value is JsonObject composition ? new List<JsonObject> { composition } : JsonRecords(value);
+        if (records.Any(record => record["_type"]?.GetValue<string>() != "COMPOSITION" && record["composition"]?["_type"]?.GetValue<string>() != "COMPOSITION")) throw new ProcessingException("OPENEHR_COMPOSITION_REQUIRED");
+        return records; // Declared RM shape only; the exact-template validator must still run.
     }
     private static List<JsonObject> FhirRecords(JsonNode? value) {
         // Classification remains unvalidated until the actual release/profile validator passes.

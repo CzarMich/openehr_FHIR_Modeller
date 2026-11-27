@@ -40,7 +40,7 @@ test("private uploads do not enter the model registry; connections and metadata 
         const content = Buffer.from("id,value\nsynthetic-private-canary,0\n");
         const upload = await f.workspace.upload(
             f.session,
-            { projectId: "lab", format: "csv", name: "private.csv" },
+            { projectId: "lab", identityDomain: "synthetic-hospital", format: "csv", name: "private.csv" },
             content,
         );
         assert.equal(upload.sha256, hash(content));
@@ -66,7 +66,7 @@ test("run tickets bind owner and content; a changed source cannot be committed",
     try {
         const upload = await f.workspace.upload(
             f.session,
-            { projectId: "lab", format: "csv", name: "x.csv" },
+            { projectId: "lab", identityDomain: "synthetic-hospital", format: "csv", name: "x.csv" },
             Buffer.from("id\n1\n"),
         );
         const ticket = await f.workspace.previewJob(f.session, {
@@ -90,7 +90,7 @@ test("ordinary source access cannot enable destination delivery", async () => {
     try {
         const upload = await f.workspace.upload(
             f.session,
-            { projectId: "lab", format: "csv", name: "x.csv" },
+            { projectId: "lab", identityDomain: "synthetic-hospital", format: "csv", name: "x.csv" },
             Buffer.from("id\n1\n"),
         );
         await assert.rejects(
@@ -115,7 +115,7 @@ test("channels pin the confirmed mapping and cannot silently change while runnin
     try {
         const upload = await f.workspace.upload(
             f.session,
-            { projectId: "lab", format: "csv", name: "x.csv" },
+            { projectId: "lab", identityDomain: "synthetic-hospital", format: "csv", name: "x.csv" },
             Buffer.from("id\n1\n"),
         );
         const input = {
@@ -229,7 +229,7 @@ test("a failed worker preflight cannot reuse an old successful job status", asyn
     try {
         const source = await f.workspace.upload(
             f.session,
-            { projectId: "lab", format: "csv", name: "synthetic.csv" },
+            { projectId: "lab", identityDomain: "synthetic-hospital", format: "csv", name: "synthetic.csv" },
             Buffer.from("id\n1\n"),
         );
         const owner = hash(f.session.identity);
@@ -267,14 +267,14 @@ test("unrelated source uploads do not revoke an active job's scoped connection",
     try {
         const source = await f.workspace.upload(
             f.session,
-            { projectId: "lab", format: "csv", name: "first.csv" },
+            { projectId: "lab", identityDomain: "synthetic-hospital", format: "csv", name: "first.csv" },
             Buffer.from("id\n1\n"),
         );
         const request = { owner: hash(f.session.identity), projectId: "lab", sourceId: source.id, mode: "export" };
         const original = f.workspace.connectionFingerprint(request);
         await f.workspace.upload(
             f.session,
-            { projectId: "lab", format: "csv", name: "second.csv" },
+            { projectId: "lab", identityDomain: "synthetic-hospital", format: "csv", name: "second.csv" },
             Buffer.from("id\n2\n"),
         );
         assert.equal(f.workspace.connectionFingerprint(request), original);
@@ -335,4 +335,232 @@ test("mapping reuse uses ordinary session age without widening fresh-write autho
         /Refresh sign-in/,
     );
     assert.equal(calls, 1);
+});
+
+test("held channel work survives source removal and resumes while later files continue", async () => {
+    const f = fixture();
+    try {
+        clearInterval(f.workspace.timer);
+        let now = 100000,
+            patientProcessed = false;
+        f.workspace.clock = () => now;
+        const inbox = join(f.root, "synthetic-inbox");
+        mkdirSync(inbox);
+        writeFileSync(join(inbox, "a-observation.json"), '[{"synthetic":"observation-before-patient"}]');
+        writeFileSync(join(inbox, "b-patient.json"), '[{"synthetic":"patient"}]');
+        const connections = join(f.root, "synthetic-connections.json");
+        writeFileSync(
+            connections,
+            JSON.stringify({
+                sources: [
+                    {
+                        id: "synthetic-folder",
+                        root: inbox,
+                        format: "json",
+                        projects: ["lab"],
+                        owners: [hash(f.session.identity)],
+                        identityDomain: "synthetic-hospital",
+                    },
+                ],
+                destinations: [],
+            }),
+        );
+        f.workspace.config.integrationConnectionsFile = connections;
+        const ticket = await f.workspace.previewChannel(f.session, {
+            name: "Synthetic dependency channel",
+            projectId: "lab",
+            subject: f.subject,
+            sourceId: "synthetic-folder",
+            mode: "export",
+            pollSeconds: 5,
+            failurePolicy: "pause",
+        });
+        const channel = await f.workspace.commitChannel(f.session, ticket.confirmation);
+        f.workspace.launcher = (executable, args) => {
+            const child = new EventEmitter();
+            child.stdout = new PassThrough();
+            child.stderr = new PassThrough();
+            child.kill = () => true;
+            queueMicrotask(() => {
+                const request = JSON.parse(readFileSync(join(args[2], "request.json"), "utf8"));
+                if (request.file === "b-patient.json") patientProcessed = true;
+                const state = {
+                    status:
+                        request.file === "a-observation.json" && !patientProcessed
+                            ? "WAITING_DEPENDENCIES"
+                            : "COMPLETED",
+                    held: !patientProcessed ? 1 : 0,
+                };
+                writeFileSync(join(args[2], "state.json"), JSON.stringify(state));
+                child.emit("exit", 0);
+            });
+            return child;
+        };
+        await f.workspace.controlChannel(f.session, channel.id, "start");
+        const poll = async () => {
+            now += 6000;
+            await f.workspace.tick();
+            await new Promise((resolve) => setImmediate(resolve));
+        };
+        await poll();
+        await poll();
+        assert.equal(channel.status, "RUNNING");
+        assert.equal(channel.waitingJobs.length, 1);
+        const heldId = channel.waitingJobs[0];
+        rmSync(join(inbox, "a-observation.json"));
+        for (let i = 0; i < 5 && channel.waitingJobs.length; i++) await poll();
+        assert.equal(patientProcessed, true);
+        assert.equal(channel.status, "RUNNING");
+        assert.equal(channel.waitingJobs.length, 0);
+        assert.equal(f.workspace.status(hash(f.session.identity), heldId).status, "COMPLETED");
+        assert.equal(f.workspace.active.size, 0);
+    } finally {
+        f.close();
+    }
+});
+
+test("HL7 upload selection is explicit and a missing identity domain cannot silently create a source", async () => {
+    const f = fixture();
+    try {
+        await assert.rejects(
+            f.workspace.upload(
+                f.session,
+                { projectId: "lab", format: "hl7-v2", name: "synthetic.hl7" },
+                Buffer.from("synthetic"),
+            ),
+            /supported private source/,
+        );
+        const item = await f.workspace.upload(
+            f.session,
+            { projectId: "lab", format: "hl7-v2", name: "synthetic.hl7", identityDomain: "synthetic-hospital" },
+            Buffer.from("synthetic"),
+        );
+        const source = f.workspace.listConnections(f.session, "lab").sources.find((source) => source.id === item.id);
+        assert.equal(source.format, "hl7-v2");
+        assert.equal(source.identityDomain, "synthetic-hospital");
+        assert.equal(source.trustPatientRegistration, false);
+    } finally {
+        f.close();
+    }
+});
+test("private recovery reviews bind actor, record revision and original hash before dispatch", async () => {
+    const f = fixture();
+    try {
+        const requests = [];
+        let revision = 7;
+        f.workspace.recoveryContext = async (_session, jobId, record) => {
+            assert.equal(jobId, "synthetic-job");
+            assert.equal(record, 1);
+            return {
+                request: { projectId: "lab" },
+                pending: { id: "c".repeat(64), revision, sourceSha256: "d".repeat(64), patientIdentityPresent: false },
+                scope: { pendingId: "c".repeat(64), sourceSystem: "hospital", destinationId: "fhir" },
+                target: "/api/v1/integration/projects/lab/pending/",
+            };
+        };
+        f.core.request = async (_session, _method, target, body) => {
+            requests.push({ target, body });
+            return { revision: ++revision, state: "RECONCILIATION_REQUIRED", verifiedPresent: 1, missing: 1 };
+        };
+        const input = {
+            jobId: "synthetic-job",
+            record: 1,
+            patientSystem: "urn:synthetic:patient",
+            patientValue: "000001",
+            comment: "Reviewed original registration evidence",
+        };
+        const patient = await f.workspace.previewPatientResolution(f.session, input);
+        await assert.rejects(f.workspace.commitPatientResolution({ identity: "another" }, patient.confirmation));
+        assert.equal(requests.length, 0);
+        const current = await f.workspace.previewPatientResolution(f.session, input);
+        revision++;
+        await assert.rejects(f.workspace.commitPatientResolution(f.session, current.confirmation), /changed/);
+        assert.equal(requests.length, 0);
+        const accepted = await f.workspace.previewPatientResolution(f.session, input);
+        await f.workspace.commitPatientResolution(f.session, accepted.confirmation);
+        assert.equal(requests[0].body.patientValue, "000001");
+        assert.equal(requests[0].body.sourceSha256, "d".repeat(64));
+        const recovery = await f.workspace.previewRecovery(f.session, {
+            jobId: "synthetic-job",
+            record: 1,
+            action: "retry-missing",
+            comment: "Only retry outputs verified absent",
+        });
+        assert.equal(requests[1].body.action, "check");
+        assert.equal(requests.length, 2);
+        await f.workspace.commitRecovery(f.session, recovery.confirmation);
+        assert.equal(requests[2].body.action, "retry-missing");
+        await assert.rejects(f.workspace.commitRecovery(f.session, recovery.confirmation), /expired/);
+        assert.equal(requests.length, 3);
+    } finally {
+        f.close();
+    }
+});
+test("relationship review cannot silently follow a changed held record", async () => {
+    const f = fixture();
+    try {
+        let revision = 2,
+            writes = 0;
+        f.workspace.recoveryContext = async () => ({
+            pending: { id: "c".repeat(64), revision, sourceSha256: "d".repeat(64) },
+            scope: {},
+            target: "/pending/",
+        });
+        f.core.request = async (_session, _method, target, body) => {
+            writes++;
+            assert.equal(target, "/pending/resolve-relationship");
+            assert.equal(body.role, "encounter");
+        };
+        const input = {
+            jobId: "synthetic-job",
+            record: 1,
+            role: "encounter",
+            identifierSystem: "urn:synthetic:encounter",
+            identifierValue: "001",
+            comment: "Verified actual same-patient Encounter",
+        };
+        const stale = await f.workspace.previewRelationshipResolution(f.session, input);
+        revision++;
+        await assert.rejects(f.workspace.commitRelationshipResolution(f.session, stale.confirmation), /changed/);
+        assert.equal(writes, 0);
+        const current = await f.workspace.previewRelationshipResolution(f.session, input);
+        await f.workspace.commitRelationshipResolution(f.session, current.confirmation);
+        assert.equal(writes, 1);
+    } finally {
+        f.close();
+    }
+});
+
+test("source trust review fingerprints Unicode connection metadata exactly", async () => {
+    const f = fixture();
+    try {
+        const source = {
+            id: 'source-é+"',
+            root: '/synthetic/医院+"',
+            format: "json",
+            projects: ["lab"],
+            owners: ["owner"],
+            identityDomain: "hospital-é",
+            trustPatientRegistration: false,
+        };
+        f.workspace.selection = async () => ({
+            executionMapping: JSON.stringify({
+                clinicalPolicy: { identityDomain: "hospital-é", destinationId: "fhir" },
+            }),
+        });
+        f.workspace.configuration = () => ({ sources: [source] });
+        f.core.request = async (_session, _method, _target, body) => {
+            assert.equal(body.connectionSha256, "d206ae7fab0a75d3235ea629932f621d4128c634ccb712e303ef3da2f3714a41");
+            return {};
+        };
+        const ticket = await f.workspace.previewSourceTrust(f.session, {
+            projectId: "lab",
+            subject: f.subject,
+            sourceId: source.id,
+            comment: "Reviewed exact synthetic registration interface",
+        });
+        await f.workspace.commitSourceTrust(f.session, ticket.confirmation);
+    } finally {
+        f.close();
+    }
 });
