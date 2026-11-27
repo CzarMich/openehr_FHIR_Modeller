@@ -84,6 +84,59 @@
                     Changing the model selection, instructions or rules requires a new mapping version and a new
                     confirmation.
                 </p>
+                <details>
+                    <summary>Reuse verified work and save AI calls</summary>
+                    <p>
+                        Look for existing work before generating a new mapping. Select the actual supplied target models
+                        above. Matching checks the source schema, declared source meaning/version, purpose, original
+                        user requirements, terminology snapshots and current runtime. Names and column types alone do
+                        not establish clinical meaning.
+                    </p>
+                    <label
+                        >Stable source system / profile identifier <input id="reuse-source-system" maxlength="100"
+                    /></label>
+                    <label
+                        >Verified source dictionary / meaning version <input id="reuse-semantics" maxlength="100"
+                    /></label>
+                    <label>Intended use / purpose <input id="reuse-purpose" maxlength="500" /></label>
+                    <label>Current source schema SHA-256 <input id="reuse-schema" maxlength="64" /></label>
+                    <label
+                        >Mapping direction
+                        <select id="reuse-direction">
+                            <option value="source-direct-to-fhir">Source directly to FHIR</option>
+                            <option value="source-to-fhir">Source through openEHR to FHIR</option>
+                            <option value="fhir-to-openehr">FHIR to openEHR</option>
+                        </select></label
+                    >
+                    <label
+                        >Original user instructions (one requirement per blank-line-separated paragraph)<textarea
+                            id="reuse-narrative"
+                            rows="4"
+                        ></textarea>
+                    </label>
+                    <details>
+                        <summary>Exact terminology snapshots</summary>
+                        <label
+                            >Terminology pins JSON
+                            <textarea id="reuse-terminology" rows="3" spellcheck="false">[]</textarea>
+                        </label>
+                        <p>
+                            Each pin requires canonical, exact version and SHA-256. Use an empty list only when no
+                            external terminology snapshots are dependencies; embedded rule dictionaries are already
+                            pinned in the mapping. Do not invent versions or hashes.
+                        </p>
+                    </details>
+                    <button id="find-reuse">Find existing work without AI</button>
+                    <div id="reuse-results" aria-live="polite"></div>
+                    <label
+                        ><input id="save-for-reuse" type="checkbox" /> Include this source/purpose/terminology context
+                        when preparing the next mapping, so it can be reused after human confirmation.</label
+                    >
+                    <p>
+                        Corrections create a new version for human confirmation. Reuse does not train a model, create
+                        clinical approval, or start a delivery. No patient records belong in this form.
+                    </p>
+                </details>
                 <label
                     >Mapping definition JSON
                     <textarea

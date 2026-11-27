@@ -33,6 +33,12 @@ HTTPS does not imply encryption on every private service hop. See the
 
 Create an explicit source-discovery job: choose the database or platform/API connector, an operator-managed profile, purpose and original narrative. The catalogue includes SQL Server, Oracle, PostgreSQL, MySQL, MariaDB and SAP HANA, plus Epic, SAP BW and configured clinical APIs. Each choice reports its own implementation and qualification status; selection alone does not make a connector operational. SQL Server currently has executable metadata discovery. See [source jobs and connector status](docs/SOURCE_CONNECTORS.md).
 
+## Reuse work and reduce AI calls
+
+The feature branch provides a deterministic **Find existing work without AI** action in the Integration workspace. It searches saved drafts and currently confirmed mappings using the source identity/meaning version, schema, purpose, original requirements, exact models, terminology pins and runtime. Loading an existing mapping requires no new generation. Human corrections become new versioned proposals for confirmation; they are not silently promoted into approved rules.
+
+Encrypted model-read caching and private task checkpoints also reduce repeated retrieval and recovery work. Reuse never caches an approval decision: access, exact models and current confirmation are checked again. Patient records and credentials do not belong in project memory or AI training. See [reuse, learning and credit controls](docs/REUSE_AND_LEARNING.md) for the workflow, invalidation rules, privacy and implementation status. These source changes require release/deployment before they are available in an environment.
+
 ## What you can use it for
 
 - Discover and reuse openEHR archetypes/templates and exact-version FHIR packages.

@@ -11,7 +11,7 @@ public sealed class WorkspaceProtocol(Workspace workspace, bool allowDraftWrites
     private static readonly Dictionary<string, string[]> Actions = new(StringComparer.Ordinal) {
         ["modelling_project"] = ["list", "get", "create"],
         ["modelling_model"] = ["list", "get", "provide"],
-        ["modelling_mapping"] = ["help", "list", "get", "prepare", "preview"],
+        ["modelling_mapping"] = ["help", "list", "get", "reuse", "prepare", "preview"],
         ["source_inspect"] = ["inspect"], ["modelling_engine"] = ["fhir", "openehr"]
     };
     public static bool Mutation(string tool, string action, JsonObject args) => action is "create" or "provide" or "prepare" || tool == "modelling_engine" && args["operation"]?.GetValue<string>() == "package.install";
@@ -19,7 +19,7 @@ public sealed class WorkspaceProtocol(Workspace workspace, bool allowDraftWrites
         var description = entry.Key switch {
             "modelling_project" => "Create/list/read immutable C# modelling projects with an exact FHIR release and dependencies. arguments is JSON configuration for create. No clinical database writes.",
             "modelling_model" => "Provide/list/read actual FHIR StructureDefinitions or openEHR template XML in the C# workspace. provide requires id, standard, exact version, origin, content and provenance. Parsed models are not clinically approved.",
-            "modelling_mapping" => "Call help for the version-2 format and executable synthetic example. Prepare/list/read versioned narrative-guided executable mappings; preview is synthetic only. prepare needs modelKeys and executionMapping JSON string. A human confirms exact models/rules in the browser; agents cannot approve. Direct source-to-FHIR, via openEHR, and separate reverse modes are explicit.",
+            "modelling_mapping" => "Call help for the version-2 format and executable synthetic example. Before generating, call reuse with context, sourceSchemaSha256, requirements, modelKeys and direction to find existing exact-context work without provider calls. Optional reuseContext on prepare pins sourceSystem, sourceSemanticsVersion, purpose and terminologyPins (canonical/version/sha256). Reuse cannot create approval. Prepare/list/read versioned narrative-guided executable mappings; preview is synthetic only. prepare needs modelKeys and executionMapping JSON string. A human confirms exact models/rules in the browser; agents cannot approve. Direct source-to-FHIR, via openEHR, and separate reverse modes are explicit.",
             "source_inspect" => "Inspect bounded synthetic CSV, custom/FHIR JSON or XML content using the C# parser. arguments requires synthetic:true, format and content. Returns structure and unresolved meanings without record samples. A synthetic marker does not detect PHI; never supply patient records.",
             _ => "Use the configured private FHIR or openEHR compiler/validator. arguments contains fixed operation and parameters; patient-data operations and database writes are unavailable. Validation/FHIRPath instance inputs require synthetic:true. Reports retain their actual scope and do not grant approval."
         };

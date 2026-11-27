@@ -25,6 +25,7 @@ public sealed class Workspace(ModelStore models, Configuration configuration)
             if (action == "get") return models.GetDefinition(Data.Required(arguments, "subject"), actor);
             if (projectId is null) throw new ProcessingException("PROJECT_REQUIRED");
             if (action == "list") return new JsonObject { ["items"] = models.Definitions(projectId, actor) };
+            if (action == "reuse") return models.Reuse(projectId, arguments, actor);
             if (action == "prepare") return models.Prepare(projectId, arguments, actor);
             if (action == "preview") {
                 Data.Keys(arguments, "subject", "synthetic", "records");

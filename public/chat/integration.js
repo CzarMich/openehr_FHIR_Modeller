@@ -75,6 +75,7 @@ function showReview(view) {
         state: view.state,
         sequence: view.sequence,
         mapping: JSON.parse(view.executionMapping),
+        reuseContext: view.reuseContext || null,
         clinicalApproval: view.clinicalApproval,
     });
     $("review").append(rules);
@@ -277,6 +278,7 @@ $("prepare").onclick = () =>
         const view = await models("projects/" + project() + "/mappings", {
             modelKeys: [...document.querySelectorAll("[data-model]:checked")].map((e) => e.value),
             executionMapping: JSON.stringify(JSON.parse($("mapping-json").value)),
+            ...($("save-for-reuse").checked ? { reuseContext: reuseContext() } : {}),
         });
         await load();
         $("mapping").value = view.subject;
@@ -327,9 +329,13 @@ $("files").onclick = () => run(files);
 $("source").onchange = () => run(files);
 $("inspect").onclick = () =>
     run(async () => {
-        $("inspection").textContent = pretty(
-            await api("sources/inspect", { projectId: project(), sourceId: $("source").value, file: $("file").value }),
-        );
+        const inspection = await api("sources/inspect", {
+            projectId: project(),
+            sourceId: $("source").value,
+            file: $("file").value,
+        });
+        $("inspection").textContent = pretty(inspection);
+        if (typeof inspection.schemaSha256 === "string") $("reuse-schema").value = inspection.schemaSha256;
     });
 $("run-preview").onclick = () => run(async () => reviewOperation("jobs", await api("jobs/preview", input())));
 $("channel-preview").onclick = () =>
@@ -571,4 +577,76 @@ $("group-audit").onclick = () =>
         const group = currentGroup();
         if (!group) throw new Error("Choose a group first.");
         $("group-access-history").textContent = pretty(await api("channel-groups/" + group.id + "/audit"));
+    });
+
+function reuseContext() {
+    const context = {
+        sourceSystem: $("reuse-source-system").value.trim(),
+        sourceSemanticsVersion: $("reuse-semantics").value.trim(),
+        purpose: $("reuse-purpose").value.trim(),
+        terminologyPins: JSON.parse($("reuse-terminology").value),
+    };
+    if (
+        !context.sourceSystem ||
+        !context.sourceSemanticsVersion ||
+        !context.purpose ||
+        !Array.isArray(context.terminologyPins)
+    )
+        throw new Error("Provide the verified source identity, meaning version, intended use and terminology pins.");
+    return context;
+}
+$("find-reuse").onclick = () =>
+    run(async () => {
+        const requirements = $("reuse-narrative")
+            .value.trim()
+            .split(/\n\s*\n/)
+            .filter(Boolean)
+            .map((text, index) => ({ id: "USER-" + (index + 1), originalText: text, basis: "user-instruction" }));
+        if (!requirements.length) throw new Error("Provide the original user instructions for the work to reuse.");
+        const result = await api("mapping-reuse", {
+            projectId: project(),
+            query: {
+                context: reuseContext(),
+                sourceSchemaSha256: $("reuse-schema").value.trim(),
+                requirements,
+                modelKeys: [...document.querySelectorAll("[data-model]:checked")].map((check) => check.value),
+                direction: $("reuse-direction").value,
+            },
+        });
+        $("reuse-results").replaceChildren();
+        for (const item of result.items) {
+            const row = document.createElement("div"),
+                label = document.createElement("p");
+            row.className = "item";
+            label.textContent =
+                item.name +
+                " " +
+                item.version +
+                " · " +
+                (item.eligibleForReuse
+                    ? "Exact context; currently confirmed"
+                    : "Existing draft requires human confirmation");
+            row.append(
+                label,
+                button("Inspect saved mapping", async () => {
+                    const view = await models("mappings/" + item.subject);
+                    $("mapping-json").value = view.executionMapping;
+                    $("mapping").value = item.subject;
+                    showReview(view);
+                    notice(
+                        "Loaded saved work without AI generation. Processing still checks confirmation, source, validation and destination permissions.",
+                    );
+                }),
+            );
+            $("reuse-results").append(row);
+        }
+        if (!result.items.length)
+            $("reuse-results").textContent =
+                "No exact context match. Existing mappings without a confirmed reuse context remain available in the mapping list for manual inspection; no new AI request was made.";
+        notice(
+            "Reuse lookup made " +
+                result.providerCalls +
+                " provider calls." +
+                (result.complete ? "" : " Search limit reached; narrow the project or inspect saved mappings."),
+        );
     });

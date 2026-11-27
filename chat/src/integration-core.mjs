@@ -88,7 +88,7 @@ export class IntegrationCore {
     async request(session, method, target, input) {
         if (!this.ready) throw problem("The C# modelling service is unavailable.", 503);
         if (
-            !/^\/api\/v1\/integration\/(?:projects(?:\/[A-Za-z0-9][A-Za-z0-9_.-]{0,63}(?:\/(?:models|mappings))?)?|mappings\/[a-f0-9]{64}(?:\/decisions)?|execute)$/.test(
+            !/^\/api\/v1\/integration\/(?:projects(?:\/[A-Za-z0-9][A-Za-z0-9_.-]{0,63}(?:\/(?:models|mappings|reuse))?)?|mappings\/[a-f0-9]{64}(?:\/decisions)?|execute)$/.test(
                 target,
             )
         )
@@ -98,7 +98,11 @@ export class IntegrationCore {
         if (
             typeof session?.identity !== "string" ||
             !identity ||
-            now - identity.started > (method === "GET" ? this.config.sessionSeconds : this.config.reviewSessionSeconds)
+            now - identity.started >
+                (method === "GET" ||
+                /^\/api\/v1\/integration\/projects\/[A-Za-z0-9][A-Za-z0-9_.-]{0,63}\/reuse$/.test(target)
+                    ? this.config.sessionSeconds
+                    : this.config.reviewSessionSeconds)
         )
             throw problem("Refresh sign-in before changing an integration.", 401);
         const body = input === undefined ? "" : JSON.stringify(input);

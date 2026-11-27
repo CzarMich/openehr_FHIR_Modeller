@@ -1,7 +1,7 @@
 export const INTEGRATION_ACTIONS = Object.freeze({
     modelling_project: { read: ["list", "get"], write: ["create"] },
     modelling_model: { read: ["list", "get"], write: ["provide"] },
-    modelling_mapping: { read: ["help", "list", "get", "preview"], write: ["prepare"] },
+    modelling_mapping: { read: ["help", "list", "get", "reuse", "preview"], write: ["prepare"] },
     source_inspect: { read: ["inspect"], write: [] },
     modelling_engine: { read: ["fhir", "openehr"], write: [] },
 });

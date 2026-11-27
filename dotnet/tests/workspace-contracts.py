@@ -71,11 +71,24 @@ with tempfile.TemporaryDirectory(prefix='modeller-workspace-contracts-') as temp
             seed={'resourceType':'Patient','identifier':[{'system':'urn:uuid:991c7a7a-c903-4da4-944c-23329b16797a'}],'active':True}
             output={**seed,'identifier':[{'system':'urn:uuid:991c7a7a-c903-4da4-944c-23329b16797a','value':'syn-1'}],'name':[{'text':'Synthetic One'}]}
             mapping={'schemaVersion':2,'name':'synthetic-patients','version':'1.0.0','direction':'source-direct-to-fhir','sourceSchema':schema,'sourceSchemaSha256':digest(canonical(schema)),'reversibility':'retained-context','description':'Synthetic acceptance, not a clinical mapping','requirements':[{'id':'USER-1','originalText':'Use the supplied profile; copy synthetic id and display name. Reject missing names.','basis':'user-instruction'}],'unresolvedQuestions':[],'examples':[{'synthetic':True,'input':{'id':'syn-1','name':'Synthetic One'},'expected':[output]},{'synthetic':True,'input':{'id':'syn-missing'},'expectedError':'RECORD_REQUIRED'}],'stages':[{'seed':seed,'rules':[rule('/id','/identifier/0/value'),rule('/name','/name/0/text')]}]}
-            view=request('/api/v1/integration/projects/synthetic/mappings',{'modelKeys':[model['key']],'executionMapping':compact(mapping)})
+            reuse_context={'sourceSystem':'synthetic-lab','sourceSemanticsVersion':'dictionary-1','purpose':'Synthetic patient transformation','terminologyPins':[]}
+            reuse_query={'context':reuse_context,'sourceSchemaSha256':mapping['sourceSchemaSha256'],'requirements':mapping['requirements'],'modelKeys':[model['key']],'direction':mapping['direction']}
+            view=request('/api/v1/integration/projects/synthetic/mappings',{'modelKeys':[model['key']],'executionMapping':compact(mapping),'reuseContext':reuse_context})
+            reuse_target='/api/v1/integration/projects/synthetic/reuse'
+            reusable=request(reuse_target,reuse_query)
+            assert reusable['providerCalls']==0 and len(reusable['items'])==1 and not reusable['items'][0]['eligibleForReuse']
             assert not view['mappingConfirmed'];subject=view['subject'];target='/api/v1/integration/mappings/'+subject+'/decisions'
             request(target,{'decision':'CONFIRMED','expectedSequence':0,'comment':'Inspected exact synthetic model and rules'},token=False,expected=401)
             view=request(target,{'decision':'CONFIRMED','expectedSequence':0,'comment':'Inspected exact synthetic model and rules'})
             assert view['mappingConfirmed'] and not view['clinicalApproval']
+            older=proof('POST',reuse_target,compact(reuse_query),session_started=int(time.time())-1200)
+            reusable=request(reuse_target,reuse_query,token=older)
+            assert reusable['items'][0]['eligibleForReuse'] and not reusable['automaticExecution']
+            changed_query=json.loads(compact(reuse_query));changed_query['context']['sourceSemanticsVersion']='dictionary-2'
+            assert request(reuse_target,changed_query)['items']==[]
+            preparation={'modelKeys':[model['key']],'executionMapping':compact(mapping),'reuseContext':reuse_context}
+            write_target='/api/v1/integration/projects/synthetic/mappings'
+            request(write_target,preparation,token=proof('POST',write_target,compact(preparation),session_started=int(time.time())-1200),expected=401)
             request(target,{'decision':'CONFIRMED','expectedSequence':0,'comment':'Stale sequence'},expected=409)
             if args.installed_fhir:
                 source=fixture/'source';source.mkdir();(source/'records.json').write_text(compact([{'id':'syn-1','name':'Synthetic One'},{'id':'syn-2','name':'Synthetic Two'},{'id':'syn-missing'}]))

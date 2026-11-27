@@ -20,7 +20,7 @@ public static class WorkspaceHttp
                 }
                 var authorization = context.Request.Headers.Authorization.ToString();
                 if (!authorization.StartsWith("Bearer ", StringComparison.Ordinal)) return Results.Json(new { error = "INTERACTIVE_ASSERTION_REQUIRED" }, statusCode: 401);
-                var actor = proof.Verify(authorization[7..], context.Request.Method, context.Request.GetEncodedPathAndQuery(), body, context.Request.Method == "GET" ? 3600 : 600);
+                var actor = proof.Verify(authorization[7..], context.Request.Method, context.Request.GetEncodedPathAndQuery(), body, context.Request.Method == "GET" || System.Text.RegularExpressions.Regex.IsMatch(path, "^projects/[A-Za-z0-9][A-Za-z0-9_.-]{0,63}/reuse$") ? 3600 : 600);
                 JsonObject args = body.Length == 0 ? new JsonObject() : Data.ParseStrict(Encoding.UTF8.GetBytes(body)) as JsonObject ?? throw new ProcessingException("ARGUMENTS_OBJECT_REQUIRED");
                 JsonObject result;
                 var parts = path.Split('/');
@@ -29,6 +29,7 @@ public static class WorkspaceHttp
                     Data.Keys(args, "projectId", "configuration");
                     result = await protocol.Workspace.Execute("modelling_project", "create", Data.Required(args, "projectId"), args["configuration"] as JsonObject ?? throw new ProcessingException("PROJECT_CONFIGURATION_REQUIRED"), actor, context.RequestAborted);
                 } else if (parts.Length == 2 && parts[0] == "projects" && context.Request.Method == "GET") result = protocol.Workspace.Models.GetProject(parts[1], actor);
+                else if (parts.Length == 3 && parts[0] == "projects" && parts[2] == "reuse" && context.Request.Method == "POST") result = protocol.Workspace.Models.Reuse(parts[1], args, actor);
                 else if (parts.Length == 3 && parts[0] == "projects" && parts[2] == "models") result = await protocol.Workspace.Execute("modelling_model", context.Request.Method == "GET" ? "list" : "provide", parts[1], args, actor, context.RequestAborted);
                 else if (parts.Length == 3 && parts[0] == "projects" && parts[2] == "mappings") result = await protocol.Workspace.Execute("modelling_mapping", context.Request.Method == "GET" ? "list" : "prepare", parts[1], args, actor, context.RequestAborted);
                 else if (parts.Length == 2 && parts[0] == "mappings" && context.Request.Method == "GET") result = protocol.Workspace.Models.GetDefinition(parts[1], actor);

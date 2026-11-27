@@ -2380,3 +2380,99 @@ test("channel groups let an owner grant monitoring and show members only operati
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test("existing confirmed mapping can be found and inspected without AI generation or a new decision", async ({
+    page,
+}) => {
+    const modelKey = "a".repeat(64),
+        subject = "b".repeat(64),
+        sourceSchema = "c".repeat(64);
+    let query,
+        decisions = 0,
+        providerCalls = 0;
+    await page.route("**/chat/api/session", (route) =>
+        route.fulfill({ json: { authenticated: true, csrf: "synthetic-csrf", integrationReady: true } }),
+    );
+    await page.route("**/chat/api/messages**", (route) => {
+        providerCalls++;
+        return route.abort();
+    });
+    await page.route("**/chat/api/integration/**", async (route) => {
+        const url = new URL(route.request().url()),
+            target = url.searchParams.get("target");
+        let result = { items: [] };
+        if (url.pathname.endsWith("/mapping-reuse")) {
+            query = route.request().postDataJSON();
+            result = {
+                items: [{ subject, name: "Saved laboratory mapping", version: "1.0.0", eligibleForReuse: true }],
+                providerCalls: 0,
+                complete: true,
+            };
+        } else if (target === "/api/v1/integration/projects")
+            result = { items: [{ id: "lab", name: "Laboratory", fhirVersion: "4.0.1" }] };
+        else if (target?.endsWith("/models"))
+            result = {
+                items: [
+                    {
+                        key: modelKey,
+                        id: "supplied-profile",
+                        standard: "FHIR",
+                        version: "1.0.0",
+                        origin: "externally-provided",
+                        sha256: modelKey,
+                    },
+                ],
+            };
+        else if (target?.includes("/decisions")) decisions++;
+        else if (target === "/api/v1/integration/mappings/" + subject)
+            result = {
+                subject,
+                state: "CONFIRMED",
+                sequence: 1,
+                items: [],
+                executionMapping: '{"requirements":[{"originalText":"Copy the verified laboratory value."}]}',
+                clinicalApproval: false,
+                reuseContext: { sourceSemanticsVersion: "dictionary-1" },
+            };
+        else if (url.pathname.endsWith("/connections"))
+            result = { sources: [], destinations: [], clinicalDatabasePolicy: "READ_ONLY" };
+        await route.fulfill({ json: result });
+    });
+    await page.goto("/chat/integration/");
+    await expect(page.locator("#notice")).toContainText("Project loaded");
+    await page.locator("[data-model]").check();
+    await page.getByText("Reuse verified work and save AI calls", { exact: true }).click();
+    await page.locator("#reuse-source-system").fill("lab-source");
+    await page.locator("#reuse-semantics").fill("dictionary-1");
+    await page.locator("#reuse-purpose").fill("Laboratory observations");
+    await page.locator("#reuse-schema").fill(sourceSchema);
+    await page.locator("#reuse-narrative").fill("Copy the verified laboratory value.");
+    await page.getByRole("button", { name: "Find existing work without AI" }).click();
+    await expect(page.locator("#notice")).toContainText("0 provider calls");
+    await expect(page.locator("#reuse-results")).toContainText("currently confirmed");
+    expect(query).toEqual({
+        projectId: "lab",
+        query: {
+            context: {
+                sourceSystem: "lab-source",
+                sourceSemanticsVersion: "dictionary-1",
+                purpose: "Laboratory observations",
+                terminologyPins: [],
+            },
+            sourceSchemaSha256: sourceSchema,
+            requirements: [
+                { id: "USER-1", originalText: "Copy the verified laboratory value.", basis: "user-instruction" },
+            ],
+            modelKeys: [modelKey],
+            direction: "source-direct-to-fhir",
+        },
+    });
+    await page.getByRole("button", { name: "Inspect saved mapping" }).click();
+    await expect(page.locator("#review")).toContainText("dictionary-1");
+    await expect(page.locator("#review")).toContainText("Copy the verified laboratory value.");
+    await expect(page.locator("#reviewed")).not.toBeChecked();
+    expect(providerCalls).toBe(0);
+    expect(decisions).toBe(0);
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

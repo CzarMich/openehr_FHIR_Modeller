@@ -83,6 +83,7 @@ try {
     var changed = (JsonObject)request.DeepClone(); var changedPlan = (JsonObject)direct.DeepClone(); changedPlan["description"] = "Changed narrative"; changed["executionMapping"] = changedPlan.ToJsonString();
     Reject(() => store.Prepare("synthetic", changed, actor), "MAPPING_VERSION_IMMUTABLE");
     Check(!store.Decide(subject, 1, "REVOKED", "Withdraw synthetic selection", actor)["mappingConfirmed"]!.GetValue<bool>(), "Revocation stops mapping");
+    MappingReuseTests.Run(store,actor,model,direct,Check);
     var proof = new HumanProof(approvalKeys, "https://browser.example", ["https://identity.example"], store);
     var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     string Sign(JsonObject claims, string purpose = "openehr-integration+jwt") {

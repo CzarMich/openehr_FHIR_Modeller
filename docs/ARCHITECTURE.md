@@ -100,3 +100,10 @@ A production cleansing/enrichment rule must identify its exact inputs, normalisa
 Managed application images are built on hosted CI and promoted by immutable digest. Production application pods run on `hygeoniq-prod`; `amcdr-vps` supplies the public HTTPS edge. Promotion must preserve persistent volumes, secrets, human accounts and stable identity issuers, and update HTTP probes with the application image. See [production delivery](FHIR_PRODUCTION_DELIVERY.md).
 
 Acceptance includes domain/security checks, HTTP/stdio MCP contracts, OIDC/TLS and human-assertion tests, actual standards-engine fixtures, private processing/delivery tests and an isolated SQL Server permission fixture. Write-denial probes run only against a disposable synthetic SQL Server, never against clinical data. Passing synthetic tests does not establish real-installation clinical acceptance, universal interoperability, regulatory certification or absence of vulnerabilities.
+
+
+## Governed memory and deterministic reuse
+
+Mapping reuse is a `Modeller.Core` registry operation, exposed through the C# MCP and request-bound browser API. It compares a declared source identity/meaning version and purpose with exact source schema, original requirement text/basis, model keys, terminology snapshot pins and runtime fingerprint. It verifies model/definition identities and the protected current confirmation chain on every match. It does not call a model provider or cache an approval. Operational source checking, instance validation and destination authorisation still execute independently.
+
+The browser's encrypted immutable model cache and private task checkpoints are separate from that authoritative registry. They support retrieval/recovery and cannot grant execution or clinical approval. Human corrections become versioned proposals; only confirmed exact-context work is eligible for reuse. Patient records and credentials are excluded from reusable modelling memory and model-provider training. See [reuse and learning](REUSE_AND_LEARNING.md).

@@ -6,13 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Exact-context mapping reuse with browser controls and versioned human-confirmed project learning.
+
 - Add the C# modelling core and optional private integration workspace with confirmed mapping channels and authorised FHIR delivery.
 
 - Explicit read-only clinical database policy across agents, connectors and integration channels.
 
 - Exact cross-standard model selection with protected human confirmation and clearer product/workflow documentation.
-
-### Added
 - Added a read-only C# MCP migration slice with guide contract parity.
 - Updated transport, authentication and parser dependencies with a patched PHP runtime.
 - Source inspection and deterministic synthetic mapping previews with supplied model inputs and explicit confirmation blockers.
