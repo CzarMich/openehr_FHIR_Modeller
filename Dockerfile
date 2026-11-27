@@ -18,7 +18,6 @@ LABEL org.opencontainers.image.authors="Michael Anywar" \
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl git openssh-client \
     && rm -rf /var/lib/apt/lists/* \
-    && usermod -u 1000 app && groupmod -g 1000 app \
     && mkdir -p /data/models /data/governance /data/cdr \
     && chown -R 1000:1000 /data
 WORKDIR /app
