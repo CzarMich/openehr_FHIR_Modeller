@@ -4,7 +4,7 @@ The current design is documented in [Architecture](ARCHITECTURE.md). The [requir
 
 ## Browser client
 
-REQ-F15 adds a Node browser adapter alongside the C# modelling/integration service and PHP compatibility MCP endpoint. It uses verified OIDC identity, private per-user conversations, personal Claude, Codex or [Copilot Studio](COPILOT_BROWSER.md) connections and streamed responses and exact-change confirmation before model writes. See [browser architecture and deployment](BROWSER_CHAT.md), [system architecture](ARCHITECTURE.md) and the browser/security tests in `chat/test/`. It does not introduce a visual archetype editor. Native inbound MCP bearer verification is a separate [identity adapter](OIDC.md).
+REQ-F15 adds a Node browser adapter alongside the modelling MCP and C# integration services. It uses verified OIDC identity, private per-user conversations, personal Claude, Codex or [Copilot Studio](COPILOT_BROWSER.md) connections and streamed responses and exact-change confirmation before model writes. See [browser architecture and deployment](BROWSER_CHAT.md), [system architecture](ARCHITECTURE.md) and the browser/security tests in `chat/test/`. It does not introduce a visual archetype editor. Native inbound MCP bearer verification is a separate [identity adapter](OIDC.md).
 
 The browser-only `request_user_choice` tool pauses a turn for a bounded single/multiple-choice question. SSE carries the question; an owner-authenticated, CSRF-protected endpoint validates the answer against its pending ID and offered options. The answer is returned to the provider and saved in private history. Timeout, stop and disconnect cancel the question. Decision answers remain separate from exact-change write confirmation and governance approval.
 
@@ -70,7 +70,7 @@ validated publication lifecycle. `fhir_ig` stores engineering artefacts, while
 ## Source-driven modelling (REQ-F28)
 
 The FHIR computational engine owns bounded, stateless synthetic dataset inspection
-and deterministic mapping previews. The PHP application resolves exact model
+and deterministic mapping previews. The modelling application resolves exact model
 inputs from authorised repositories and protected review events before invoking
 preview. It never accepts caller approval flags as evidence. Retrieval connectors
 and patient processing remain separate from parsers and model storage.
@@ -79,11 +79,7 @@ See [ADR-0027](decisions/0027-source-driven-mapping.md) and the
 
 ## Incremental .NET migration (REQ-F29)
 
-An independent ASP.NET Core MCP service starts with read-only knowledge retrieval.
-It reads the existing bundled guides directly, without PHP proxies. Fixed published
-contracts and black-box tests provide the compatibility boundary. Existing PHP
-production, browser, private compiler engines, data stores and governance remain
-authoritative until each replacement passes its migration gates. See ADR-0028.
+C#/.NET services expose deterministic modelling and integration operations through MCP and authenticated browser adapters. Captured contracts, content checks and black-box security tests define the replacement gates. Runtime upgrades must preserve existing browser identity, repositories, audit history and private standards engines. The deployed revision must be verified separately from the architecture design. See [runtime qualification](DOTNET_MIGRATION.md).
 
 ## Cross-standard mapping selection and destination delivery
 
@@ -99,14 +95,14 @@ Operational extraction, validation and destination writes belong to the private
 **Every direct clinical/source database connection is read-only.** The MCP, agents,
 workers and channels must never insert, update, delete, alter schemas, run source
 migrations or invoke write-capable procedures. Use read-only credentials and
-server-enforced read-only transactions; fail closed if enforcement is unavailable.
+database-enforced read-only permissions and closed connector operations; fail closed when the required restrictions cannot be verified.
 FHIR delivery uses a separately authorised FHIR API, never its backing database.
 See [the clinical database policy](CLINICAL_DATA_READ_ONLY.md).
 
 
 ## C# modelling and integration boundary
 
-New model/rule state and private processing use `Modeller.Core`, `Modeller.Mcp` and `Modeller.Processing`, not PHP application services. The Node browser adapter verifies identity/CSRF, binds human decisions to exact requests, and schedules bounded C# workers. The Java openEHR and Node/Java FHIR engines remain specialised validators. The compatibility `/mcp` endpoint is not silently replaced. See [ADR-0030](decisions/0030-dotnet-modelling-and-integration-channels.md), [migration status](DOTNET_MIGRATION.md) and [integration operation](INTEGRATION_ENGINE.md).
+New model/rule state and private processing use `Modeller.Core`, `Modeller.Mcp` and `Modeller.Processing`. The Node browser adapter verifies identity/CSRF, binds human decisions to exact requests, and schedules bounded C# workers. The Java openEHR and Node/Java FHIR engines remain specialised validators. A full application cutover remains subject to contract, identity/storage and deployment acceptance. See [ADR-0030](decisions/0030-dotnet-modelling-and-integration-channels.md), [migration status](DOTNET_MIGRATION.md) and [integration operation](INTEGRATION_ENGINE.md).
 
 ```mermaid
 flowchart LR
@@ -120,7 +116,6 @@ flowchart LR
   Worker --> Engines[Java openEHR and FHIR validation engines]
   Worker --> Private[Private exports, quarantine and checkpoints]
   Worker -->|Separately authorised HTTPS conditional create| FHIR[FHIR destination API]
-  Legacy[PHP compatibility MCP] -. existing contracts .-> Old[Existing repositories and governance]
 ```
 
 Direct source-to-FHIR requires supplied/confirmed FHIR SDs; a route through openEHR or reverse mapping also requires the exact openEHR template. User narrative and interpretations are versioned with executable rules. Clinical approval remains distinct. No clinical database driver is enabled; all future direct clinical database access must be read-only.

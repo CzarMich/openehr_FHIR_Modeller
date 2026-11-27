@@ -7,7 +7,7 @@ separate: the former produces versioned templates, profiles and mapping rules;
 the latter must validate records, reconcile failures and export or deliver FHIR
 to an authorised configured destination.
 
-New modelling, mapping confirmation and private integration services run in C#/.NET 10. The Node browser adapter and specialised Java/Node standards engines are retained. The original PHP `/mcp` endpoint and repositories remain a compatibility surface while migration proceeds. See the exact [parity matrix](DOTNET_MIGRATION.md) and [integration guide](INTEGRATION_ENGINE.md); a full PHP removal has not occurred.
+New modelling, mapping confirmation and private integration services run in C#/.NET 10. The Node browser adapter and specialised Java/Node standards engines are retained. Runtime changes must preserve existing contracts, identity, repositories and protected audit history. See the [runtime qualification matrix](DOTNET_MIGRATION.md) and [integration guide](INTEGRATION_ENGINE.md); verify the deployed revision independently of this design.
 
 ## Product workflow and delivery boundary
 
@@ -94,9 +94,9 @@ flowchart TB
     Core -.-> CDR[Optional future CDR adapter]
 ```
 
-Solid edges are implemented; dotted edges are extension boundaries. `src/Domain` owns modelling, terminology, traceability and repository contracts. `src/Integrations` implements filesystem, Git, SharePoint and FHIR adapters. Snapshot stores share domain revision/history rules. SharePoint uses a unique project index and ETag-conditional pointer updates; outbound Graph credentials are independent of inbound identity. The generic Git adapter supports hosted GitHub/GitLab repositories without a hosting-provider SDK. Optional hosting adapters implement `HostedRepositoryProvider`; `src/Application/RepositoryService` supplies transport-independent operations and write authorization. Hosted metadata is scoped to the configured tenant repository; draft reviews cannot approve clinical models. The dotted Designer edge represents an account-specific integration that still needs a hosted Designer round-trip acceptance test. `src/Apis` implements CKM retrieval. `src/Tools` adapts domain calls to closed MCP schemas. `public/index.php` supplies authentication, transport, discovery, sessions and redacted logging.
+Solid edges are implemented; dotted edges are extension boundaries. `src/Domain` owns modelling, terminology, traceability and repository contracts. `src/Integrations` implements filesystem, Git, SharePoint and FHIR adapters. Snapshot stores share domain revision/history rules. SharePoint uses a unique project index and ETag-conditional pointer updates; outbound Graph credentials are independent of inbound identity. The generic Git adapter supports hosted GitHub/GitLab repositories without a hosting-provider SDK. Optional hosting adapters implement `HostedRepositoryProvider`; `src/Application/RepositoryService` supplies transport-independent operations and write authorization. Hosted metadata is scoped to the configured tenant repository; draft reviews cannot approve clinical models. The dotted Designer edge represents an account-specific integration that still needs a hosted Designer round-trip acceptance test. `src/Apis` implements CKM retrieval. `src/Tools` adapts domain calls to closed MCP schemas. The MCP transport entrypoint supplies authentication, transport, discovery, sessions and redacted logging.
 
-The HTTP path is enterprise TLS gateway → Caddy → private PHP-FPM → MCP handler. stdio uses the same discovery and domain services with local process permissions. CDR credentials and terminology-server configuration are unnecessary for startup, retrieval, draft generation, persistence or local structural validation. Models need no terminology binding. An explicitly requested external terminology check returns `NOT_EXECUTED` when no server is configured; local value sets remain usable.
+The HTTP path is enterprise TLS gateway → Caddy → private modelling transport → MCP handler. stdio uses the same discovery and domain services with local process permissions. CDR credentials and terminology-server configuration are unnecessary for startup, retrieval, draft generation, persistence or local structural validation. Models need no terminology binding. An explicitly requested external terminology check returns `NOT_EXECUTED` when no server is configured; local value sets remain usable.
 
 The project terminology catalogue uses the shared repository contract for conditional DRAFT saves, history, canonical/edition identity and malformed-record findings. Pure local operations require no external server. Explicit external references delegate to the domain terminology/mapping provider interfaces with their recorded edition.
 
@@ -135,14 +135,14 @@ The legacy engine pairs Archie-calculated original model paths with original ADL
 **Every direct clinical/source database connection is read-only.** The MCP, agents,
 workers and channels must never insert, update, delete, alter schemas, run source
 migrations or invoke write-capable procedures. Use read-only credentials and
-server-enforced read-only transactions; fail closed if enforcement is unavailable.
+database-enforced read-only permissions and closed connector operations; fail closed when the required restrictions cannot be verified.
 FHIR delivery uses a separately authorised FHIR API, never its backing database.
 See [the clinical database policy](CLINICAL_DATA_READ_ONLY.md).
 
 
 ## C# modelling and integration boundary
 
-New model/rule state and private processing use `Modeller.Core`, `Modeller.Mcp` and `Modeller.Processing`, not PHP application services. The Node browser adapter verifies identity/CSRF, binds human decisions to exact requests, and schedules bounded C# workers. The Java openEHR and Node/Java FHIR engines remain specialised validators. The compatibility `/mcp` endpoint is not silently replaced. See [ADR-0030](decisions/0030-dotnet-modelling-and-integration-channels.md), [migration status](DOTNET_MIGRATION.md) and [integration operation](INTEGRATION_ENGINE.md).
+New model/rule state and private processing use `Modeller.Core`, `Modeller.Mcp` and `Modeller.Processing`. The Node browser adapter verifies identity/CSRF, binds human decisions to exact requests, and schedules bounded C# workers. The Java openEHR and Node/Java FHIR engines remain specialised validators. A full application cutover remains subject to contract, identity/storage and deployment acceptance. See [ADR-0030](decisions/0030-dotnet-modelling-and-integration-channels.md), [migration status](DOTNET_MIGRATION.md) and [integration operation](INTEGRATION_ENGINE.md).
 
 ```mermaid
 flowchart LR
@@ -156,7 +156,6 @@ flowchart LR
   Worker --> Engines[Java openEHR and FHIR validation engines]
   Worker --> Private[Private exports, quarantine and checkpoints]
   Worker -->|Separately authorised HTTPS conditional create| FHIR[FHIR destination API]
-  Legacy[PHP compatibility MCP] -. existing contracts .-> Old[Existing repositories and governance]
 ```
 
 Direct source-to-FHIR requires supplied/confirmed FHIR SDs; a route through openEHR or reverse mapping also requires the exact openEHR template. User narrative and interpretations are versioned with executable rules. Clinical approval remains distinct. No clinical database driver is enabled; all future direct clinical database access must be read-only.
