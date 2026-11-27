@@ -20,7 +20,7 @@ def application_http(source):
     documents=list(yaml.safe_load_all(source))
     deployments={doc['metadata']['name']:doc for doc in documents if isinstance(doc,dict) and doc.get('kind')=='Deployment'}
     if set(deployments)!={'app','chat','ingress','fhir'}:raise ValueError('Unexpected workload cohort')
-    app=deployments['app'];containers=app['spec']['template']['spec']['containers']
+    app=deployments['app'];app['metadata'].setdefault('annotations',{})['argocd.argoproj.io/sync-options']='Replace=true';containers=app['spec']['template']['spec']['containers']
     targets=[container for container in containers if container.get('name')=='app']
     if len(targets)!=1:raise ValueError('Exactly one primary application container required')
     primary=targets[0]
