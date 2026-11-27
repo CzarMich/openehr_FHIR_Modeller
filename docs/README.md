@@ -2,8 +2,6 @@
 
 Independently maintained and developed by Michael Anywar.
 
-Copyright © 2026 Michael Anywar.
-
 Licensed under the [MIT License](../LICENSE). Separately licensed third-party
 material retains its respective terms; see the
 [third-party notices](../THIRD_PARTY_NOTICES.md).
