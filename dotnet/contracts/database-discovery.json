@@ -1,0 +1,219 @@
+[
+  {
+    "name": "source_database_discover",
+    "description": "Search real vendor table and column metadata using an operator-registered SQL Server read-only connection. No clinical rows or inferred clinical meanings are returned.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "sourceProfile": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,63}$"
+        },
+        "query": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "afterTableId": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        }
+      },
+      "required": [
+        "project",
+        "sourceProfile"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "source_database_table",
+    "description": "Inspect columns and declared foreign keys from a pinned discovered schema. Keys do not establish clinical meaning. No clinical rows are returned.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "sourceProfile": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,63}$"
+        },
+        "schemaFingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "tableId": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "afterColumnId": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "project",
+        "sourceProfile",
+        "schemaFingerprint",
+        "tableId"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "source_database_plan_check",
+    "description": "Check a bounded SELECT plan against the exact discovered schema. Does not extract data, activate a mapping or approve models. Patient-specific filter values belong only in the private workspace.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "sourceProfile": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,63}$"
+        },
+        "schemaFingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "plan": {
+          "type": "object",
+          "properties": {
+            "schemaFingerprint": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "root": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            },
+            "fields": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 128,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "table": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2147483647
+                  },
+                  "column": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2147483647
+                  },
+                  "field": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$"
+                  }
+                },
+                "required": [
+                  "table",
+                  "column",
+                  "field"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "joins": {
+              "type": "array",
+              "maxItems": 8,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2147483647
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "inner",
+                      "left"
+                    ]
+                  }
+                },
+                "required": [
+                  "key",
+                  "kind"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "filters": {
+              "type": "array",
+              "maxItems": 0,
+              "items": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            }
+          },
+          "required": [
+            "schemaFingerprint",
+            "root",
+            "fields",
+            "joins",
+            "filters",
+            "limit"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "project",
+        "sourceProfile",
+        "schemaFingerprint",
+        "plan"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  }
+]

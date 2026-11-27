@@ -12,6 +12,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Modeller.Core/Modeller.Core.csproj" />
+    <ProjectReference Include="../Modeller.Application/Modeller.Application.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.15" />
     <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.4.0" />
     <Content Include="../contracts/*.json" Link="contracts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

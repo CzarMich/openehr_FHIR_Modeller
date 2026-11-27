@@ -1,0 +1,72 @@
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
+using Modeller.Core;
+namespace Modeller.Application;
+
+public sealed class RemoteDefinitions:IDisposable
+{
+    private readonly HttpClient http=Network.Client(TimeSpan.FromSeconds(60));
+    public void Dispose()=>http.Dispose();
+    private static string S(JsonObject o,string k,string fallback="")=>KnowledgeCorpus.Text(o,k,fallback);
+    public static JsonObject EnvironmentObject(string name){var raw=Environment.GetEnvironmentVariable(name);if(string.IsNullOrEmpty(raw))return new JsonObject();if(raw.Length>65536)throw new ProcessingException("CONNECTION_CONFIGURATION_INVALID");return JsonNode.Parse(raw) as JsonObject??throw new ProcessingException("CONNECTION_CONFIGURATION_INVALID");}
+    public static JsonObject ConfigFile(string name){var path=Environment.GetEnvironmentVariable(name);if(string.IsNullOrEmpty(path))return new JsonObject();if(!Path.IsPathFullyQualified(path)||new FileInfo(path).Length>65536)throw new ProcessingException("CONNECTION_CONFIGURATION_INVALID");return Data.ParseStrict(File.ReadAllBytes(path)) as JsonObject??throw new ProcessingException("CONNECTION_CONFIGURATION_INVALID");}
+    private static Uri Target(string root,string path,string allowedHosts="",bool allowHttp=false){
+        if(!Uri.TryCreate(root.TrimEnd('/')+"/",UriKind.Absolute,out var uri)||uri.UserInfo!=""||uri.Query!=""||uri.Fragment!=""||uri.Scheme!="https"&&!(allowHttp&&uri.Scheme=="http")||allowedHosts!=""&&!allowedHosts.Split(',',StringSplitOptions.TrimEntries|StringSplitOptions.RemoveEmptyEntries).Contains(uri.Host,StringComparer.OrdinalIgnoreCase))throw new ProcessingException("CONNECTION_URL_DENIED");
+        if(path.Contains("..",StringComparison.Ordinal)||path.Contains('#')||path.StartsWith("//",StringComparison.Ordinal)||path.Contains('\\')||path.Any(char.IsControl))throw new ProcessingException("CONNECTION_PATH_INVALID");var target=new Uri(uri,path.TrimStart('/'));if(target.Authority!=uri.Authority||!target.AbsolutePath.StartsWith(uri.AbsolutePath,StringComparison.Ordinal))throw new ProcessingException("CONNECTION_PATH_INVALID");return target;
+    }
+    public async Task<(string Body,int? Total)> Send(string root,string path,HttpMethod method,JsonNode? body,Dictionary<string,string>? headers,CancellationToken cancellation,string allowedHosts="",bool allowHttp=false){
+        using var request=new HttpRequestMessage(method,Target(root,path,allowedHosts,allowHttp));request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        foreach(var (k,v) in headers??[]){if(k.Equals("Host",StringComparison.OrdinalIgnoreCase)||k.Equals("Cookie",StringComparison.OrdinalIgnoreCase)&&v.Any(c=>c<' '||c=='\u007f')||v.Any(c=>c is '\r' or '\n'))throw new ProcessingException("CONNECTION_HEADER_INVALID");request.Headers.TryAddWithoutValidation(k,v);}
+        if(body is not null)request.Content=new StringContent(body.ToJsonString(),Encoding.UTF8,"application/json");
+        using var response=await http.SendAsync(request,HttpCompletionOption.ResponseHeadersRead,cancellation);if(!response.IsSuccessStatusCode)throw new ProcessingException((int)response.StatusCode is 401 or 403?"CONNECTION_PERMISSION_DENIED":"CONNECTION_REQUEST_FAILED");
+        if(response.Content.Headers.ContentLength>8388608)throw new ProcessingException("UPSTREAM_RESPONSE_LIMIT");await using var stream=await response.Content.ReadAsStreamAsync(cancellation);using var output=new MemoryStream();var buffer=new byte[16384];int n;while((n=await stream.ReadAsync(buffer,cancellation))>0){if(output.Length+n>8388608)throw new ProcessingException("UPSTREAM_RESPONSE_LIMIT");output.Write(buffer,0,n);}int? total=null;if(response.Headers.TryGetValues("X-Total-Count",out var counts)&&int.TryParse(counts.SingleOrDefault(),out var count)&&count>=0)total=count;return(new UTF8Encoding(false,true).GetString(output.ToArray()),total);
+    }
+    private JsonObject CkmSources(){var o=EnvironmentObject("CKM_SOURCES");if(o.Count==0)o[Environment.GetEnvironmentVariable("CKM_DEFAULT_SOURCE")??"default"]=Environment.GetEnvironmentVariable("CKM_API_BASE_URL")??"https://ckm.openehr.org/ckm/rest/";return o;}
+    public async Task<JsonNode> Ckm(string tool,JsonObject args,CancellationToken cancellation){
+        var sources=CkmSources();if(tool=="ckm_sources")return new JsonObject{["sources"]=sources.DeepClone(),["default"]=Environment.GetEnvironmentVariable("CKM_DEFAULT_SOURCE")??"default"};
+        if(tool=="ckm_federated_search"){
+            var selected=args["sources"] as JsonArray??[];var ids=selected.Count==0?sources.Select(p=>p.Key).Take(8).ToArray():selected.Select(p=>p!.GetValue<string>()).ToArray();
+            var tasks=ids.Select(async id=>{var a=(JsonObject)args.DeepClone();a["ckm"]=id;try{return(id,Result:await Ckm("ckm_"+S(args,"kind")+"_search",a,cancellation),Error:(string?)null);}catch(ProcessingException e){return(id,Result:(JsonNode)new JsonObject(),Error:(string?)e.Code);}});var result=await Task.WhenAll(tasks);var items=new JsonArray();var reports=new JsonArray();foreach(var r in result){reports.Add(new JsonObject{["source"]=r.id,["status"]=r.Error is null?"COMPLETE":"FAILED",["error"]=r.Error});if(r.Result["items"] is JsonArray found)foreach(var item in found.OfType<JsonObject>()){var copy=(JsonObject)item.DeepClone();copy["source"]=r.id;items.Add(copy);}}return new JsonObject{["items"]=new JsonArray(items.Take(KnowledgeCorpus.Number(args,"maxResults",20)).Select(n=>n!.DeepClone()).ToArray()),["total"]=items.Count,["sources"]=reports,["complete"]=result.All(r=>r.Error is null)};
+        }
+        var source=S(args,"ckm",Environment.GetEnvironmentVariable("CKM_DEFAULT_SOURCE")??"default");var root=sources[source]?.GetValue<string>()??throw new ProcessingException("CKM_SOURCE_NOT_FOUND");var headers=new Dictionary<string,string>();
+        if(EnvironmentObject("CKM_AUTH")[source] is JsonObject auth){var secret=S(auth,"secret");if(auth["secret_file"] is not null)secret=Network.Key(S(auth,"secret_file"));if(secret.Any(c=>c<' '||c=='\u007f'))throw new ProcessingException("CKM_CREDENTIAL_INVALID");switch(S(auth,"method")){case "bearer":headers["Authorization"]="Bearer "+secret;break;case "basic":headers["Authorization"]="Basic "+Convert.ToBase64String(Encoding.UTF8.GetBytes(S(auth,"username")+":"+secret));break;case "api_key":var header=S(auth,"header");if(!Regex.IsMatch(header,"^[A-Za-z][A-Za-z0-9-]{0,99}$")||new[]{"host","cookie","authorization","origin","forwarded","content-length"}.Contains(header.ToLowerInvariant()))throw new ProcessingException("CKM_AUTH_HEADER_INVALID");headers[header]=secret;break;case "session":headers["Cookie"]=secret;break;default:throw new ProcessingException("CKM_AUTH_METHOD_INVALID");}}
+        var archetype=tool.Contains("archetype",StringComparison.Ordinal);var kind=archetype?"archetypes":"templates";
+        if(tool.EndsWith("_get",StringComparison.Ordinal)){
+            var identifier=S(args,"identifier");if(!Regex.IsMatch(identifier,"^[A-Za-z0-9_.-]{1,300}$"))throw new ProcessingException("CKM_IDENTIFIER_INVALID");
+            if(archetype&&identifier.StartsWith("openEHR-",StringComparison.Ordinal)){var resolved=await Send(root,"v1/archetypes/citeable-identifier/"+Uri.EscapeDataString(identifier),HttpMethod.Get,null,headers,cancellation);identifier=resolved.Body.Trim().Trim('"');}
+            if(!Regex.IsMatch(identifier,"^[0-9]+(?:\\.[0-9]+)+$"))throw new ProcessingException("CKM_CID_REQUIRED");var format=S(args,"format",archetype?"adl":"oet");var path="v1/"+kind+"/"+identifier+"/"+format;var response=await Send(root,path,HttpMethod.Get,null,headers,cancellation);return new JsonObject{["type"]="text",["text"]=response.Body.Trim()};
+        }
+        var query=S(args,"keyword");var maximum=KnowledgeCorpus.Number(args,"maxResults",20);var fetch=Math.Clamp(maximum*6,100,500);var all=args["requireAllSearchWords"]?.GetValue<bool>()??true;
+        var reply=await Send(root,"v1/"+kind+"?search-text="+Uri.EscapeDataString(query)+"&size="+fetch+"&offset=0&restrict-search-to-main-data=true&require-all-search-words="+(all?"true":"false")+"&sort-key=RELEVANCE",HttpMethod.Get,null,headers,cancellation);
+        var data=JsonNode.Parse(reply.Body) as JsonArray??throw new ProcessingException("CKM_RESPONSE_INVALID");var output=new List<JsonObject>();var tokens=Regex.Matches(query.ToLowerInvariant(),"[\\p{L}\\p{N}]+").Select(m=>m.Value).ToArray();
+        foreach(var row in data.OfType<JsonObject>()){
+            var rm=S(args,"rmClass");if(rm!=""&&!S(row,"resourceMainId").Contains("-"+rm+".",StringComparison.OrdinalIgnoreCase))continue;
+            var item=new JsonObject{["cid"]=S(row,"cid"),["archetypeId"]=S(row,"resourceMainId"),["name"]=S(row,"resourceMainDisplayName"),["projectName"]=S(row,"projectName"),["status"]=S(row,"status"),["revision"]=row["revision"]?.ToString()??"",["creationTime"]=row["creationTime"]?.ToString()??"",["modificationTime"]=row["modificationTime"]?.ToString()??row["creationTime"]?.ToString()??"",["score"]=tokens.Sum(t=>(S(row,"resourceMainDisplayName").Contains(t,StringComparison.OrdinalIgnoreCase)?10:0)+(S(row,"resourceMainId").Contains(t,StringComparison.OrdinalIgnoreCase)?6:0))};if(!archetype)item.Remove("archetypeId");output.Add(item);
+        }
+        return new JsonObject{["items"]=new JsonArray(output.OrderByDescending(x=>x["score"]!.GetValue<int>()).ThenBy(x=>S(x,"cid"),StringComparer.Ordinal).Take(maximum).Select(x=>(JsonNode)x).ToArray()),["total"]=S(args,"rmClass")!=""?output.Count:reply.Total??output.Count};
+    }
+    public JsonArray Connections(){var entries=ConfigFile("FHIR_CONNECTIONS_FILE");return new JsonArray(entries.Select(p=>{var e=p.Value as JsonObject??throw new ProcessingException("FHIR_CONNECTION_CONFIGURATION_INVALID");var summary=new JsonObject{["id"]=p.Key,["managedBy"]="deployment",["hasCredentials"]=e["credentialFile"] is not null||e["loginFile"] is not null};foreach(var key in new[]{"type","name","baseUrl","projectId","linkId","repository","branch","rootPath","environment"})if(e[key] is not null)summary[key]=e[key]!.DeepClone();return(JsonNode)summary;}).ToArray());}
+    public async Task<JsonObject> Connection(string id,string action,JsonObject args,CancellationToken cancellation){
+        var entries=ConfigFile("FHIR_CONNECTIONS_FILE");var entry=entries[id] as JsonObject??throw new ProcessingException("FHIR_CONNECTION_NOT_FOUND");var type=S(entry,"type");if(action=="get")return (JsonObject)Connections().OfType<JsonObject>().Single(e=>S(e,"id")==id).DeepClone();
+        var path="/metadata";var method=HttpMethod.Get;JsonNode? body=null;
+        if(action is "search" or "read"){
+            var resource=S(args,"resourceType");if(!new[]{"StructureDefinition","ValueSet","CodeSystem","ConceptMap","ImplementationGuide","SearchParameter","OperationDefinition","CapabilityStatement","StructureMap","NamingSystem"}.Contains(resource))throw new ProcessingException("FHIR_DEFINITION_TYPE_REQUIRED");path="/"+resource;
+            if(action=="read"){var resourceId=S(args,"resourceId");if(!Regex.IsMatch(resourceId,"^[A-Za-z0-9.-]{1,64}$"))throw new ProcessingException("FHIR_DEFINITION_ID_INVALID");path+="/"+resourceId;}
+            else{path+="?_count=50";foreach(var key in new[]{"url","version","name"})if(args[key] is not null){var value=S(args,key);if(value.Length>1000||value.Any(char.IsControl))throw new ProcessingException("FHIR_DEFINITION_QUERY_INVALID");path+="&"+key+"="+Uri.EscapeDataString(value);}}
+        }else if(action=="validate"){
+            if(args["synthetic"]?.GetValue<bool>()!=true)throw new ProcessingException("SYNTHETIC_INPUT_REQUIRED");var metadata=await Connection(id,"metadata",new JsonObject(),cancellation);if(!metadata.ToJsonString().Contains("\"validate\"",StringComparison.Ordinal))throw new ProcessingException("FHIR_RUNTIME_VALIDATE_NOT_ADVERTISED");path="/$validate";method=HttpMethod.Post;body=args["content"]??throw new ProcessingException("FHIR_RESOURCE_REQUIRED");
+        }else if(action is not ("test" or "metadata"))throw new ProcessingException("FHIR_CONNECTION_OPERATION_INVALID");
+        if(type is not ("runtime" or "terminology"))throw new ProcessingException("FHIR_DEFINITION_CONNECTION_REQUIRED");
+        var result=await RequestConnection(entry,path,method,body,cancellation);var o=JsonNode.Parse(result) as JsonObject??throw new ProcessingException("FHIR_REMOTE_RESPONSE_INVALID");
+        if(action is "test" or "metadata"){if(S(o,"resourceType")!="CapabilityStatement")throw new ProcessingException("FHIR_CAPABILITY_STATEMENT_REQUIRED");return action=="metadata"?o:new JsonObject{["id"]=id,["type"]=type,["connected"]=true,["capabilities"]=o,["timestamp"]=DateTimeOffset.UtcNow.ToString("O")};}
+        if(action=="read")return new JsonObject{["kind"]="resource",["resource"]=o,["content"]=result,["sha256"]=Data.Hash(result),["provenance"]=new JsonObject{["connectionId"]=id,["sha256"]=Data.Hash(result),["retrievedAt"]=DateTimeOffset.UtcNow.ToString("O"),["clinicalApproval"]=false}};
+        return o;
+    }
+    public async Task<string> RequestConnection(JsonObject entry,string path,HttpMethod method,JsonNode? body,CancellationToken cancellation){
+        var headers=new Dictionary<string,string>();if(entry["credentialFile"] is not null)headers["Authorization"]="Bearer "+Network.Key(S(entry,"credentialFile"));
+        if(entry["loginFile"] is not null){var file=S(entry,"loginFile");if(!Path.IsPathFullyQualified(file)||new FileInfo(file).Length>8192)throw new ProcessingException("FHIR_CREDENTIAL_UNAVAILABLE");var login=JsonNode.Parse(File.ReadAllText(file)) as JsonObject??throw new ProcessingException("FHIR_CREDENTIAL_INVALID");var reply=await Send(S(entry,"baseUrl"),"/api/v1/auth/login",HttpMethod.Post,login,null,cancellation,Environment.GetEnvironmentVariable("FHIR_ALLOWED_HOSTS")??"",Environment.GetEnvironmentVariable("FHIR_ALLOW_HTTP")=="true");var token=JsonNode.Parse(reply.Body)?["access_token"]?.GetValue<string>()??JsonNode.Parse(reply.Body)?["token"]?.GetValue<string>()??throw new ProcessingException("FHIR_LOGIN_FAILED");headers["Authorization"]="Bearer "+token;}
+        return(await Send(S(entry,"baseUrl"),path,method,body,headers,cancellation,Environment.GetEnvironmentVariable("FHIR_ALLOWED_HOSTS")??"",Environment.GetEnvironmentVariable("FHIR_ALLOW_HTTP")=="true")).Body;
+    }
+}

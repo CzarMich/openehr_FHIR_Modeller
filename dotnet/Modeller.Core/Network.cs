@@ -16,7 +16,7 @@ public static class Network
         await using var stream = await response.Content.ReadAsStreamAsync(cancellation);
         using var output = new MemoryStream(); var buffer = new byte[16384];
         int size; while ((size = await stream.ReadAsync(buffer, cancellation)) > 0) { if (output.Length + size > limit) throw new ProcessingException("UPSTREAM_RESPONSE_LIMIT"); output.Write(buffer, 0, size); }
-        try { return JsonNode.Parse(output.ToArray()) as JsonObject ?? throw new ProcessingException("UPSTREAM_OBJECT_REQUIRED"); }
+        try { return Data.ParseStrict(output.ToArray()) as JsonObject ?? throw new ProcessingException("UPSTREAM_OBJECT_REQUIRED"); }
         catch (System.Text.Json.JsonException) { throw new ProcessingException("UPSTREAM_JSON_REQUIRED"); }
     }
     // Private deterministic compute only. Destination delivery has its own conditional-create policy.

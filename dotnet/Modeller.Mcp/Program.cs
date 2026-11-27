@@ -6,6 +6,8 @@ using Modeller.Mcp;
 using Modeller.Core;
 using System.Text.Json;
 
+if (Environment.GetEnvironmentVariable("MODELLER_APPLICATION_ENABLED") == "true") { await ApplicationHost.Run(args); return; }
+
 WorkspaceProtocol? workspace = null;
 HumanProof? humanProof = null;
 if (Environment.GetEnvironmentVariable("MODELLER_WORKSPACE_ENABLED") == "true") {

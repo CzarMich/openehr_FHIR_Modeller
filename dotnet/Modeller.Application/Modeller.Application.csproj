@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net10.0</TargetFramework><RuntimeIdentifiers>linux-x64</RuntimeIdentifiers><RestorePackagesWithLockFile>true</RestorePackagesWithLockFile><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><TreatWarningsAsErrors>true</TreatWarningsAsErrors><NuGetAudit>true</NuGetAudit><NuGetAuditMode>all</NuGetAuditMode><NuGetAuditLevel>low</NuGetAuditLevel></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../Modeller.Core/Modeller.Core.csproj" /><ProjectReference Include="../Modeller.Database/Modeller.Database.csproj" /><PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.15" /><PackageReference Include="Npgsql" Version="10.0.1" /></ItemGroup>
+</Project>

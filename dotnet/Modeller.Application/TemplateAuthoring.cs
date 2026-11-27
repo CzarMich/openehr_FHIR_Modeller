@@ -1,0 +1,52 @@
+using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
+using Modeller.Core;
+namespace Modeller.Application;
+
+public sealed class TemplateAuthoring(StandardsGateway engine,RemoteDefinitions remote)
+{
+    private static string S(JsonObject o,string key,string fallback="")=>KnowledgeCorpus.Text(o,key,fallback);
+    private sealed record Archetype(string Id,string Rm,string Content,JsonObject Provenance);
+    public async Task<JsonObject> Build(JsonObject args,CancellationToken cancellation){
+        XNamespace ns="openEHR/v1/Template",xsi="http://www.w3.org/2001/XMLSchema-instance";
+        var supplied=(args["archetypes"] as JsonArray??[]).OfType<JsonObject>().ToDictionary(a=>Data.Required(a,"identifier"),a=>Data.Required(a,"content"),StringComparer.Ordinal);
+        var resolved=new Dictionary<string,Archetype>(StringComparer.Ordinal);
+        async Task<Archetype> Resolve(string identifier){
+            if(resolved.TryGetValue(identifier,out var existing))return existing;
+            var text=supplied.GetValueOrDefault(identifier);var kind="provided-exact-source";
+            if(text is null){var request=new JsonObject{["identifier"]=identifier,["format"]="adl"};if(args["ckm"] is not null)request["ckm"]=args["ckm"]!.DeepClone();text=S((JsonObject)await remote.Ckm("ckm_archetype_get",request,cancellation),"text");kind="configured-ckm";}
+            var match=Regex.Match(text,"openEHR-[A-Z_]+-([A-Z_]+)\\.[A-Za-z0-9_.-]+\\.v[0-9]+(?:\\.[0-9]+)*");if(!match.Success||!Regex.IsMatch(match.Value,"^openEHR-[A-Z_]+-[A-Z_]+\\.[A-Za-z0-9_.-]+\\.v[0-9]+(?:\\.[0-9]+)*$"))throw new ProcessingException("ARCHETYPE_SOURCE_INVALID");
+            var item=new Archetype(match.Value,match.Groups[1].Value,text,new JsonObject{["source"]=kind,["sha256"]=Data.Hash(text),["requested_identifier"]=identifier});if(resolved.TryGetValue(item.Id,out var duplicate)&&duplicate.Content!=text)throw new ProcessingException("ARCHETYPE_SOURCE_REVISION_CHANGED");resolved[item.Id]=item;if(identifier!=item.Id)resolved[identifier]=item;return item;
+        }
+        var entries=args["entries"] as JsonArray??[];var placements=args["placements"] as JsonArray??[];
+        if((entries.Count==0)==(placements.Count==0)||entries.Count>30||placements.Count>30||string.IsNullOrWhiteSpace(S(args,"name")))throw new ProcessingException("OET_PLACEMENTS_REQUIRED");
+        var root=await Resolve(Data.Required(args,"composition"));if(root.Rm!="COMPOSITION")throw new ProcessingException("OET_COMPOSITION_ROOT_REQUIRED");
+        var definition=new XElement(ns+"definition",new XAttribute(xsi+"type","COMPOSITION"),new XAttribute("archetype_id",root.Id));
+        var template=new XElement(ns+"template",new XAttribute(XNamespace.Xmlns+"xsi",xsi),new XElement(ns+"id",Guid.NewGuid().ToString()),new XElement(ns+"name",S(args,"name")),new XElement(ns+"description",new XElement(ns+"lifecycle_state","Initial"),new XElement(ns+"details",new XElement(ns+"purpose","Draft model: "+S(args,"name")))),definition);
+        var parents=new Dictionary<string,(XElement Node,string Rm)>(StringComparer.Ordinal){["root"]=(definition,root.Rm)};var used=new HashSet<string>(StringComparer.Ordinal);
+        if(entries.Count>0){foreach(var entry in entries){var child=await Resolve(entry!.GetValue<string>());if(!new[]{"OBSERVATION","EVALUATION","INSTRUCTION","ACTION","ADMIN_ENTRY"}.Contains(child.Rm)||!used.Add(child.Id))throw new ProcessingException("OET_DIRECT_ENTRY_INVALID");definition.Add(new XElement(ns+"Content",new XAttribute(xsi+"type",child.Rm),new XAttribute("archetype_id",child.Id),new XAttribute("path","/content")));}}
+        foreach(var p in placements.OfType<JsonObject>()){
+            var id=S(p,"id");var parentId=S(p,"parent");var path=S(p,"path");if(!Regex.IsMatch(id,"^[A-Za-z0-9_-]{1,64}$")||parents.ContainsKey(id)||!parents.TryGetValue(parentId,out var parent)||!Regex.IsMatch(path,"^/(?:[a-z][a-z0-9_]*)(?:\\[[A-Za-z0-9_.:-]+\\])?(?:/[a-z][a-z0-9_]*(?:\\[[A-Za-z0-9_.:-]+\\])?)*$")||!used.Add(parentId+"|"+path))throw new ProcessingException("OET_PLACEMENT_INVALID");
+            var child=await Resolve(Data.Required(p,"identifier"));var element=parent.Rm=="COMPOSITION"?"Content":parent.Rm=="SECTION"?"Item":"Items";var allowed=parent.Rm is "COMPOSITION" or "SECTION"?new[]{"SECTION","OBSERVATION","EVALUATION","INSTRUCTION","ACTION","ADMIN_ENTRY"}:parent.Rm is "OBSERVATION" or "EVALUATION" or "INSTRUCTION" or "ACTION" or "ADMIN_ENTRY" or "CLUSTER"?new[]{"CLUSTER","ELEMENT"}:Array.Empty<string>();if(!allowed.Contains(child.Rm))throw new ProcessingException("OET_CHILD_RM_INVALID");
+            var node=new XElement(ns+element,new XAttribute(xsi+"type",child.Rm),new XAttribute("archetype_id",child.Id),new XAttribute("path",path));foreach(var bound in new[]{"min","max"})if(p[bound] is not null){var value=S(p,bound);if(!Regex.IsMatch(value,bound=="min"?"^[0-9]+$":"^(?:[0-9]+|\\*)$"))throw new ProcessingException("OET_BOUND_INVALID");node.SetAttributeValue(bound,value);}if(p["name"] is not null)node.Add(new XElement(ns+"name",S(p,"name")));parent.Node.Add(node);parents[id]=(node,child.Rm);
+        }
+        // Specialisation dependencies must be explicit and exact, including ancestors.
+        for(var index=0;index<resolved.Count;index++){var item=resolved.Values.DistinctBy(a=>a.Id).ElementAtOrDefault(index);if(item is null)break;var ancestor=Regex.Match(item.Content,"\\bspeciali[sz]e\\s+(openEHR-[A-Za-z0-9_.-]+)");if(ancestor.Success){if(resolved.Count>=64)throw new ProcessingException("ENGINE_DEPENDENCY_LIMIT");await Resolve(ancestor.Groups[1].Value);}}
+        var content=new XDocument(new XDeclaration("1.0","UTF-8",null),template).ToString();var dependencies=new JsonArray(resolved.Values.DistinctBy(a=>a.Id).OrderBy(a=>a.Id,StringComparer.Ordinal).Select(a=>(JsonNode)new JsonObject{["identifier"]=a.Id,["content"]=a.Content,["sha256"]=Data.Hash(a.Content)}).ToArray());
+        JsonObject check;try{check=await engine.Native("compile/template",content,dependencies,cancellation);}catch(ProcessingException e)when(e.Code=="ENGINE_NOT_CONFIGURED"){check=new JsonObject{["status"]="NOT_EXECUTED",["reason"]=e.Code};}
+        var provenance=new JsonObject();foreach(var a in resolved.Values.DistinctBy(a=>a.Id))provenance[a.Id]=a.Provenance.DeepClone();
+        return new JsonObject{["format"]="oet",["status"]="DRAFT",["content"]=content,["dependencies"]=dependencies,["provenance"]=provenance,["validation"]=await ModelChecks.Validate(new JsonObject{["format"]="xml",["content"]=content},engine,cancellation),["placements"]=entries.Count>0?"direct_entries_only":"explicit_nested_paths",["native_compile_check"]=check,["clinical_approval"]=false,["warnings"]=new JsonArray("Explicit modelling draft; compilation does not establish clinical meaning.","Human modelling and clinical review are required before release.")};
+    }
+    public async Task<JsonObject> CompileProject(SnapshotRepository repository,JsonObject args,CancellationToken cancellation){
+        var project=Data.Required(args,"project");var path=Data.Required(args,"path");var revision=Data.Required(args,"revision");var source=repository.Artifact(project,path,revision);if(Data.Hash(S(source,"content"))!=S(source,"sha256"))throw new ProcessingException("ENGINE_BUILD_SOURCE_INVALID");
+        var dependencies=new JsonArray();var manifest=new JsonArray();foreach(var d in (args["dependencies"] as JsonArray??[]).OfType<JsonObject>()){var a=repository.Artifact(project,Data.Required(d,"path"),Data.Required(d,"revision"));if(Data.Hash(S(a,"content"))!=S(a,"sha256"))throw new ProcessingException("ENGINE_BUILD_SOURCE_INVALID");dependencies.Add(new JsonObject{["identifier"]=Data.Required(d,"identifier"),["content"]=S(a,"content")});var pin=Reference(a);pin["identifier"]=Data.Required(d,"identifier");manifest.Add(pin);}
+        var result=await engine.Native("compile/template",Data.Required(source,"content"),dependencies,cancellation);if(result["valid"]?.GetValue<bool>()!=true||result["output"] is not JsonObject output)return new JsonObject{["saved"]=false,["report"]=result,["clinical_approval"]=false};
+        var identity=new JsonObject{["schema"]=1,["project"]=project,["source"]=Reference(source),["dependencies"]=manifest,["engine"]=result["engine"]!.DeepClone(),["output_sha256"]=output["sha256"]!.DeepClone()};var buildId=Data.Hash(Data.Canonical(identity));var build=(JsonObject)identity.DeepClone();build["id"]=buildId;build["generated_at"]=DateTimeOffset.UtcNow.ToString("O");build["format"]=output["format"]!.DeepClone();build["clinical_approval"]=false;build["terminology_validation"]="NOT_EXECUTED";
+        var report=(JsonObject)result.DeepClone();report.Remove("inspection");report.Remove("output");report.Remove("web_template");build["report"]=report;build["evidence_trust"]="Repository build evidence; not a signed attestation or clinical approval.";
+        var relative=Regex.Replace(path,"^templates/(?:oet/|adl/)?","");var target="templates/opt/"+Regex.Replace(relative,"\\.(?:oet(?:\\.xml)?|adlt|xml)$","",RegexOptions.IgnoreCase)+".opt";JsonObject? current=null;try{current=repository.Artifact(project,target);}catch(ProcessingException e)when(e.Code=="ARTIFACT_NOT_FOUND"){}
+        if(current is not null){if(current["metadata"]?["build"]?["source"]?["path"]?.GetValue<string>()!=path||current["metadata"]?["build"]?["output_sha256"]?.GetValue<string>()!=S(current,"sha256"))throw new ProcessingException("ENGINE_BUILD_CONFLICT");if(current["metadata"]?["build"]?["id"]?.GetValue<string>()==buildId&&S(current,"content")==S(output,"content"))return new JsonObject{["saved"]=true,["changed"]=false,["build_id"]=buildId,["artifact"]=Reference(current),["build"]=current["metadata"]!["build"]!.DeepClone(),["clinical_approval"]=false};}
+        var saved=repository.Save(project,target,Data.Required(output,"content"),new JsonObject{["kind"]=S(output,"format")=="opt14_xml"?"compiled_opt14":"compiled_opt2",["build"]=build},current?["revision"]?.GetValue<string>());return new JsonObject{["saved"]=true,["changed"]=true,["build_id"]=buildId,["artifact"]=Reference(saved),["build"]=saved["metadata"]!["build"]!.DeepClone(),["clinical_approval"]=false};
+    }
+    public static JsonObject Reference(JsonObject artifact)=>new(){["path"]=artifact["path"]!.DeepClone(),["revision"]=artifact["revision"]!.DeepClone(),["sha256"]=artifact["sha256"]!.DeepClone(),["provider"]=artifact["provider"]?.DeepClone()??JsonValue.Create("filesystem")};
+}
