@@ -16,7 +16,6 @@ services:
     volumes:
       - ${ENGINE_TEST_KEY:?}:/run/secrets/engine-key:ro
       - ${ENGINE_TEST_REPO:?}/engine/src/test/resources:/fixtures:ro
-      - ${ENGINE_TEST_REPO:?}/scripts/engine-transport-smoke.php:/probe.php:ro
     tmpfs: ['/tmp:mode=1777,size=64m']
     read_only: true
     cap_drop: [ALL]

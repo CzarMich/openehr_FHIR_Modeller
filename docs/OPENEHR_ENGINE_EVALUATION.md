@@ -1,6 +1,6 @@
 # openEHR engine evaluation
 
-This evaluation precedes engine integration. It distinguishes native language processing from the existing PHP document profiles. Source presence and a successful parse alone do not qualify a clinical model or authorize release.
+This evaluation precedes engine integration. It distinguishes native language processing from the existing C# document profiles. Source presence and a successful parse alone do not qualify a clinical model or authorize release.
 
 ## Candidate responsibilities
 
@@ -11,7 +11,7 @@ This evaluation precedes engine integration. It distinguishes native language pr
 | openEHR SDK template/validation modules, Apache-2.0 | Existing OPT XML types, template inspection, reference-model/composition support | Evaluate for legacy OPT acceptance and subsequent composition support |
 | openEHR Java libraries OET parser/flattener | Existing OET schema/parser and constraints applied to ADL 1.4 archetypes | Evaluate as a legacy compatibility engine; its flattened archetype is not itself a complete OPT XML artefact |
 | CaboLabs openEHR SDK, Apache-2.0 | ADL-to-OPT conversion and OPT serialization/inspection | Reference candidate; verify embedded archetype boundaries and terminology preservation before use |
-| ADL Workbench | Mature native ADL tooling | Alternative/reference implementation; not a reason to rebuild ADL/AOM inside PHP |
+| ADL Workbench | Mature native ADL tooling | Alternative/reference implementation; not a reason to rebuild ADL/AOM inside C# |
 
 Archie's own documentation explicitly distinguishes ADL 2 operational templates from the ADL 1.4 OET/OPT workflow. An ADL 2 template compiled by Archie cannot be relabelled as a legacy OET compilation. ADL 1.4 conversion is documented as experimental; conversion findings and changed identifiers must remain explicit.
 
@@ -19,7 +19,7 @@ The Java libraries' published OET release uses older XML dependencies and mixed 
 
 ## Boundary and safety criteria
 
-The PHP domain calls an explicit validation/compilation port. A separate JVM service owns engine classes and version-specific adapters. Requests contain model documents and resolved dependencies, not executable code, filesystem paths or caller-selected network destinations. Source resolution, repository authorization, immutable evidence and human approval remain platform responsibilities.
+The C# domain calls an explicit validation/compilation port. A separate JVM service owns engine classes and version-specific adapters. Requests contain model documents and resolved dependencies, not executable code, filesystem paths or caller-selected network destinations. Source resolution, repository authorization, immutable evidence and human approval remain platform responsibilities.
 
 Acceptance must cover real positive/negative models, source hashes, dependency identity/version conflicts, parser errors, engine findings, output validation, terminology preservation, bounded work and reproducibility. XML handling must disable external entities and remote schemas. Missing dependencies, unsupported constructs and engine failures stay distinct from valid output. The service must impose finite input/output, concurrency, memory and execution-time limits.
 

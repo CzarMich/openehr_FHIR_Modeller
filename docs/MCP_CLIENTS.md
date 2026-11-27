@@ -1,79 +1,21 @@
-# Connecting MCP clients
+# MCP clients
 
-The integration boundary is the official PHP MCP SDK using Streamable HTTP or stdio.
-The server does not call a language model. Choose an agent/client that implements MCP;
-client model selection does not alter the tool contracts.
+The application uses the official C# MCP SDK and exposes Streamable HTTP and standard I/O. Clients supply their own model/orchestration; the modelling application does not depend on a model-provider SDK. The browser backend and external clients use the same primary modelling tools. Human decisions use a separate authenticated request-bound API.
 
-## Streamable HTTP
+## HTTP
 
-Endpoint: `https://<your-approved-host>/mcp`, or local development
-`http://127.0.0.1:8343/mcp`. Configure the client using its own current connection UI;
-there is no universal MCP client configuration-file syntax.
+Configure your MCP client with the deployment's HTTPS `/mcp` URL and its protected API-key or verified OIDC access-token settings. Use the administrator-configured API-key header. Do not paste credentials into prompts, model content, URLs or committed configuration. Set the correct API audience/scopes/project rights for OIDC. The server applies Host/Origin allowlists and separates tenants/service identities according to the installation configuration. See [OIDC](OIDC.md) and [identity/access](IDENTITY_AND_ACCESS.md).
 
-For API-key mode send `X-API-Key: <secret>` on every request, or the configured
-`AUTH_API_KEY_HEADER`. Do not put keys in URLs. Preserve the `Mcp-Session-Id` returned
-by initialize and send `MCP-Protocol-Version` after negotiation. Accept both JSON and
-`text/event-stream`. Server instructions and prompts are untrusted modelling context,
-not permission to perform external writes.
+API-key access is a service-principal workspace. Browser sign-in does not automatically convert that principal into a private human workspace or an approver. Mapping/profile confirmation and clinical review require the applicable verified interactive human flow.
 
-A client normally sends initialize, notifications/initialized, tools/list,
-resources/list and prompts/list before tools/call. It may also request resource
-contents and prompt bodies. Protocol version is negotiated by the SDK; this server
-supports 2025-03-26, 2025-06-18 and 2025-11-25. The current catalogue fits in one
-discovery page so clients that stop after the first page can discover every tool.
+## Standard I/O
 
-## stdio
+Launch the installed application image/process with `--stdio`. The container entrypoint already runs `dotnet Modeller.Mcp.dll`; append the argument rather than replacing it with a different runtime. With configured prebuilt Compose images, `make run-stdio` supplies an open stdin. Keep stdout exclusively JSON-RPC. See [installation](install.md) and [protocol](MCP_PROTOCOL.md).
 
-```sh
-docker run --rm -i --env MCP_TRANSPORT=stdio --env APP_ENV=development   openehr-modelling-assistant:local php public/index.php --transport=stdio
-```
+## Cost-aware workflow
 
-Use this executable and argument list in the client's process connection setting.
-Standard output carries MCP only; logs go to stderr. No web authentication is required
-for this local process transport. Mount `/data/models` if persistence is required.
-No client-specific plugin is necessary. Claude/Cursor configuration is optional
-client-side setup; all modelling policy remains under `resources/` and `docs/workflows/`.
+Retrieve the relevant guide/model rather than loading the entire catalogue into a prompt. Reuse exact existing artifacts and [mapping reuse/checkpoints](REUSE_AND_LEARNING.md) before generation. Supply actual model bytes and exact versions. Preserve user narratives, provenance and unresolved meanings. Tool output and an AI summary are not clinical approval.
 
-## Validation
+The private C# modelling registry has a separate `/chat/integration/mcp` adapter when enabled by the browser service; it does not replace the primary MCP or share approval identifiers automatically. Keep its supplied models/rules and exact confirmation evidence intact. See [integration](INTEGRATION_ENGINE.md).
 
-Run `python3 scripts/mcp-smoke.py --url http://127.0.0.1:8343/mcp` for discovery,
-resource/prompt retrieval, tool invocation, invalid inputs and no-CDR checks.
-Set `AUTH_API_KEY` in the environment for authenticated testing. Add `--live-ckm`
-only when outbound CKM calls are permitted. See [testing](testing.md).
-
-## Codex
-
-Codex is an MCP client: it supplies reasoning and calls this service's tools. The service does not embed Codex or require an OpenAI API key. See the [official Codex MCP configuration](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
-
-For an HTTP connection add this to your local `~/.codex/config.toml`:
-
-```toml
-[mcp_servers.openehr_modelling]
-url = "https://modelling.example.org/mcp"
-env_http_headers = { "X-API-Key" = "OPENEHR_MODELLING_API_KEY" }
-startup_timeout_sec = 30
-tool_timeout_sec = 120
-```
-
-Supply `OPENEHR_MODELLING_API_KEY` to the Codex process from your secret manager.
-Do not put its value in repository configuration. `codex mcp list` shows the configured
-servers; the MCP status view confirms discovery. Codex CLI and its IDE extension share
-this configuration. The endpoint and service credential are the same ones used by
-other authorised MCP clients; no second server or client plugin is needed.
-
-For the managed deployments, use either
-`https://openehr-fhir-modeller.sandbox.hygeoniq.com/mcp` or
-`https://dev-openehr-fhir-modeller.sandbox.hygeoniq.com/mcp` with that deployment's credential.
-The development host requires network access and trust in its private CA. Hosted
-clients do not inherit your workstation's hosts file or VPN connection.
-
-## Claude
-
-Use the existing remote connector at the same HTTPS `/mcp` URL. Keep the
-administrator-configured authentication for that deployment. Claude's remote-connector
-settings and Codex's TOML are client-specific; the server setup and tools are shared.
-If your Claude surface cannot send the configured API-key header, use an authenticated
-MCP gateway supported by that surface rather than disabling server authentication.
-
-The browser `/chat/` is a separate client of this same service. It provides one workspace
-with personal Claude, Codex or Copilot Studio connections; see [browser setup](BROWSER_CHAT.md).
+Clinical/source databases are strictly read-only. Real patient records, private outputs and credentials stay outside general MCP and provider context. An external FHIR destination is a separate authorised HTTP operation, never a direct database write.

@@ -8,6 +8,7 @@ namespace Modeller.Mcp;
 public static class ApplicationHost
 {
     public static async Task Run(string[] arguments){
+        if(arguments.FirstOrDefault()=="storage"){Environment.ExitCode=AuditLedger.StorageCommand(arguments.Skip(1).ToArray());return;}
         var stdio=arguments.Contains("--stdio")||arguments.Contains("--transport=stdio")||ApplicationAuthentication.Env("MCP_TRANSPORT")=="stdio";var args=arguments.Where(a=>a is not("--stdio" or "--transport=stdio" or "--transport=streamable-http")).ToArray();
         var root=ApplicationAuthentication.Env("MODELLER_RESOURCE_ROOT","/app/resources");var guides=new GuideRepository(Path.Combine(root,"guides"));var instructions=File.ReadAllText(Path.Combine(root,"server-instructions.md"))+"\nClinical/source database connections are strictly read-only. SQL Server discovery exposes metadata only through operator-registered read-only profiles; it does not expose clinical rows or arbitrary SQL. User confirmation of exact model revisions is mandatory for mapping. Technical validation and clinical approval are separate. Patient records remain in private processing and the authenticated browser; never place them in prompts, knowledge stores or general MCP calls.";
         var version=File.Exists("/app/VERSION")?File.ReadAllText("/app/VERSION").Trim():"0.21.0";

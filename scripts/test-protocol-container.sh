@@ -14,7 +14,7 @@ prefix=${1:-$PROTOCOL_TEST_REPO/docs/evidence/ci-protocol}
 python3 "$PROTOCOL_TEST_REPO/scripts/protocol-smoke.py" --url "http://$address/mcp" \
   --allowed-origin "$PROTOCOL_TEST_ORIGIN" --evidence "$prefix-http-smoke.json"
 python3 "$PROTOCOL_TEST_REPO/scripts/protocol-smoke.py" --evidence "$prefix-stdio-smoke.json" \
-  -- "${compose[@]}" exec -T app php public/index.php --transport=stdio
+  -- "${compose[@]}" exec -T app dotnet Modeller.Mcp.dll --stdio
 if [[ ${MCP_OFFICIAL_ACCEPTANCE:-true} == true ]]; then
   docker run --rm --network host -e MCP_TEST_URL="http://$address/mcp" \
     node:22.22.1-bookworm-slim sh -eu -c '

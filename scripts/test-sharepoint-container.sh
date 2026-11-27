@@ -21,4 +21,3 @@ chmod 644 "$SHAREPOINT_TEST_ROOT/tls.crt"
 address=$("${compose[@]}" port ingress 8343)
 python3 "$SHAREPOINT_TEST_REPO/scripts/mcp-smoke.py" --url "http://$address/mcp" --writes --governance --without-terminology \
   --evidence "${1:-$SHAREPOINT_TEST_REPO/docs/evidence/ci-sharepoint-smoke.json}"
-"${compose[@]}" exec -T app php scripts/sharepoint-smoke.php --allow-test-writes

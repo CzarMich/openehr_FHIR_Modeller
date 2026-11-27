@@ -1,97 +1,22 @@
-# Contributing to openEHR Modelling Assistant
+# Contributing
 
-Thank you for your interest in contributing! This document covers the contribution
-**process**. Setup, environment, and conventions live in the canonical docs linked
-below, so each has a single source of truth.
+Use a focused feature/fix branch and a pull request. Follow [agent/developer rules](AGENTS.md), [engineering conventions](docs/conventions.md) and the [authorised execution policy](docs/AUTONOMOUS_EXECUTION_POLICY.md). The product is maintained by Michael Anywar under MIT; retain upstream notices, contributor history and third-party model credits.
 
-## Table of contents
+Before generating new work, inspect current artifacts, requirements and available deterministic reuse. Clinical meaning needs actual models, dictionaries and user guidance. No patient records, credentials or source-database writes belong in contribution/test workflows. Human confirmation, clinical approval and publication remain distinct.
 
-- [Code of Conduct](#code-of-conduct)
-- [Getting help](#getting-help)
-- [Setting up and running](#setting-up-and-running)
-- [Testing and quality](#testing-and-quality)
-- [Conventions](#conventions)
-- [Commits and pull requests](#commits-and-pull-requests)
-- [Branching and versioning](#branching-and-versioning)
-- [Security](#security)
+## Change checklist
 
-## Rights in contributions
+- Explain the concrete problem and resulting behaviour.
+- Update current requirements, implementation/test paths, relevant architecture/ADRs and user documentation.
+- Run `make ci` and affected browser/adapter/standards checks. Verify actual behaviour and preserve the limits of synthetic evidence.
+- Run `python3 scripts/spec-check.py --render` after changing the source index. Keep requirement IDs stable.
+- Keep Unreleased changelog bullets short and high-level.
+- Use conventional commits such as `feat(mapping):`, `fix(terminology):` and `docs:`.
 
-Michael Anywar maintains and develops the current product, which is licensed
-under the [MIT License](LICENSE). Contributions should be compatible with that
-license; third-party components retain their own terms in
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Submitting a patch does not
-transfer copyright. Preserve authorship, source notices and existing grants.
-
-## Code of Conduct
-
-Please be respectful and constructive. By participating, you agree to uphold a
-professional and inclusive environment. Report unacceptable behaviour privately via
-the repository's security/contact channels (see [Security](#security)).
-
-## Getting help
-
-- **Usage questions**: open a GitHub Discussion (if enabled) or a Question issue with a minimal reproducible example.
-- **Bugs**: open an issue with expected and actual behaviour, steps to reproduce, environment, and logs.
-- **Feature requests**: explain the use case and the proposed API or UX.
-
-## Setting up and running
-
-The runtime is **Docker-only** (no host PHP/Composer). Quickstart:
-
-```bash
-cp .env.example .env
-make up-dev      # start dev containers
-make install     # install Composer deps in the container
-```
-
-- Local and hosted setup, plus MCP client configurations → **[docs/install.md](docs/install.md)**
-- Dev environment, Makefile shortcuts, configuration, MCP Inspector, troubleshooting → **[docs/development.md](docs/development.md)**
-
-## Testing and quality
-
-Run the full check (spec-check, PHPStan, and tests) before pushing:
-
-```bash
-make ci
-```
-
-Test, coverage, and conformance commands and conventions → **[docs/testing.md](docs/testing.md)**.
-
-- Tests live under `tests/` (namespace `OpenEHR\Assistant\Tests`), named `*Test.php`, mirroring `src/`.
-- **Mock external HTTP to CKM**; never hit live APIs in tests.
-
-## Conventions
-
-Before adding or changing a capability, read:
-
-- **[docs/conventions.md](docs/conventions.md)**: coding standard (PSR-12), namespaces, and MCP authoring conventions (tools, prompts, resources, completion providers).
-- **[docs/architecture.md](docs/architecture.md)**: components, layers, and the design decisions behind them.
-
-## Commits and pull requests
-
-- Use [Conventional Commits](https://www.conventionalcommits.org/) with a scope: `feat(tools):`, `fix(resources):`, `docs:`, `refactor:`, `test:`, `chore:`.
-- Descriptive title; body explains what, why, how, and risks.
-- One logical change per PR; split large changes.
-- Link related issues with keywords (for example `Fixes #123`).
-
-**PR checklist**
-
-- [ ] Tests added/updated
-- [ ] Docs updated if needed (incl. `CHANGELOG.md`)
-- [ ] No debug code or leftover comments
-- [ ] `make ci` passes locally and CI is green
+C# compilation/tests use the pinned SDK container. Application images are built only on hosted CI. Shared Dev and production receive immutable verified images; never build applications there. Dedicated security scans/attack testing are currently deferred by the user. Functional authorisation, confirmation, integrity and read-only checks still apply.
 
 ## Branching and versioning
 
-- Default branch: `main`. Create feature branches: `feat/short-description` or `fix/short-description`.
-- SemVer; `APP_VERSION` lives in `src/constants.php` (bump on breaking MCP interface changes).
-- Keep `CHANGELOG.md` in [Keep a Changelog](https://keepachangelog.com/) format, with `## [Unreleased]` entries short and high-level.
-- At a release, update the version badge in `README.md` to the new `APP_VERSION`.
+Use feature branches off current `main`, submit a PR, and resolve exact-head CI failures before merging. `VERSION` is the release version source. The changelog records release behaviour; documentation should not duplicate a drifting current version. Release tags are bare SemVer (`X.Y.Z`), with a GitHub release titled by the tag. Do not create a tag merely to trigger an unverified production build.
 
-## Security
-
-Do **not** open public issues for security vulnerabilities. Report privately through
-GitHub security advisories, or email the maintainers.
-
-Thank you for contributing!
+Dev delivery requires successful exact-main validation and hosted-built image digests. Production promotes the verified cohort through the infrastructure GitOps repository to `hygeoniq-prod`; `amcdr-vps` supplies the public edge. Preserve PVCs, users, identity issuer strings, secrets, approval evidence and rollback images. The user has authorised the current product upgrade; routine delivery/recovery does not require repeated permission questions. See [delivery and rollback](docs/FHIR_PRODUCTION_DELIVERY.md).

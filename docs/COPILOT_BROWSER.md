@@ -7,7 +7,7 @@ The platform supports two Microsoft integration routes:
 | Copilot Studio uses modelling tools | Your published Microsoft-channel agent | Remote MCP; see [Microsoft agent integration](MICROSOFT_AGENT_INTEGRATION.md) |
 | Copilot Studio supplies browser replies | This workspace's Chat and AQL editor | Microsoft user sign-in, published-agent API and a workspace client tool |
 
-The second route keeps uploads, project organisation, personal repositories, exact-change confirmations, version history and model-based AQL drafting in this UI. It connects a **published Copilot Studio agent**, not GitHub Copilot or a generic Microsoft Copilot account. An organisation must provide agent access, the required Copilot Studio capacity/licensing and an approved Entra application. No Microsoft model dependency is added to the PHP MCP core.
+The second route keeps uploads, project organisation, personal repositories, exact-change confirmations, version history and model-based AQL drafting in this UI. It connects a **published Copilot Studio agent**, not GitHub Copilot or a generic Microsoft Copilot account. An organisation must provide agent access, the required Copilot Studio capacity/licensing and an approved Entra application. No Microsoft model dependency is added to the C# MCP core.
 
 ## Setup in the UI
 

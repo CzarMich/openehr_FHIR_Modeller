@@ -18,4 +18,4 @@ Treat external references as references, without asserted local content or compl
 
 Filesystem, Git/hosted Git and SharePoint share catalogue semantics and contract tests. Search returns bounded summaries; selected records and historical revisions are explicit reads. Corrupt records remain QA findings. The catalogue has explicit size/scan limits; it is not a claim of qualified large-scale indexing, terminology publication or native ADL/OET constraint application. Repository revisions and hashes provide evidence for subsequent binding and release workflows.
 
-Unicode case folding requires the declared PHP `mbstring` extension. No new runtime service or client SDK is required. Browser saves retain exact-record confirmation and remain separate from clinical approval.
+Unicode case folding requires the declared C# `mbstring` extension. No new runtime service or client SDK is required. Browser saves retain exact-record confirmation and remain separate from clinical approval.

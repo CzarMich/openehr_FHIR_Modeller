@@ -11,7 +11,7 @@ requirements and existing FHIR StructureDefinitions. Some integrations need a
 direct source-to-FHIR path rather than an openEHR stage. The clinical/source
 database read-only rule is mandatory across all modes.
 
-New modelling/runtime features are implemented in C#/.NET. The deployed PHP
+New modelling/runtime features are implemented in C#/.NET. The deployed C#
 application remains a compatibility component during migration; do not extend it
 with the new channel engine, rule registry, direct mapping or delivery features.
 The existing Java/Node native compilers and validators remain specialised engines.
@@ -29,7 +29,7 @@ The existing Java/Node native compilers and validators remain specialised engine
   checkpoint and quarantine. No LLM interprets individual records.
 - The existing browser backend handles verified sessions, CSRF, personal access
   and channel controls. It brokers exact human decisions to C# with purpose-bound,
-  short-lived assertions. New application/domain logic does not depend on PHP.
+  short-lived assertions. New application/domain logic does not depend on C#.
 
 ## Model/rule confirmation and versioning
 

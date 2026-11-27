@@ -242,7 +242,7 @@ and acceptance testing still apply. For Copilot Studio replies in this browser, 
 
 The default `reviews` image supports model browsing and human review without the
 Codex executable. The `chat` image adds the pinned Codex runtime. Claude uses the
-pinned Anthropic SDK. The PHP MCP service remains independent of both.
+pinned Anthropic SDK. The C# MCP service remains independent of both.
 
 The development override `deploy/compose.chat-dev.yml` adds the private CA and
 identity routing. It needs `MODELLING_CHAT_ENV_FILE` and `MODELLING_CA_FILE`.

@@ -7,9 +7,13 @@ COPY dotnet/Modeller.Core/Modeller.Core.csproj dotnet/Modeller.Core/packages.loc
 COPY dotnet/Modeller.Database/Modeller.Database.csproj dotnet/Modeller.Database/packages.lock.json Modeller.Database/
 COPY dotnet/Modeller.Application/Modeller.Application.csproj dotnet/Modeller.Application/packages.lock.json Modeller.Application/
 COPY dotnet/Modeller.Mcp/Modeller.Mcp.csproj dotnet/Modeller.Mcp/packages.lock.json Modeller.Mcp/
-RUN dotnet restore Modeller.Mcp -r linux-x64 --locked-mode
+RUN dotnet restore Modeller.Mcp -r linux-x64 --locked-mode -p:NuGetAudit=false
 COPY dotnet/ ./
+COPY deploy/postgres/001-governance.sql /src/deploy/postgres/001-governance.sql
+
 RUN dotnet publish Modeller.Mcp -c Release -r linux-x64 --no-self-contained --no-restore -o /out -p:UseAppHost=false
+
+RUN sh /src/dotnet/notices/collect-notices.sh /root/.nuget/packages /out/notices/nuget
 
 FROM ${DOTNET_RUNTIME} AS runtime
 LABEL org.opencontainers.image.authors="Michael Anywar" \

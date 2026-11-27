@@ -1,22 +1,13 @@
 # Private FHIR modelling engine
 
 The FHIR provider is an independent Node/Java service in `fhir/`. It supplies
-package discovery, modelling, compilation, comparison and validation to the PHP
+package discovery, modelling, compilation, comparison and validation to the C#
 application. Existing openEHR processing remains separate. The service is **not an
 IG server, public profile catalogue, publication endpoint or runtime FHIR server**.
 The existing HYQ FHIR Governance Platform remains the publication and distribution
 authority. Git preserves authored FSH and engineering history.
 
-```mermaid
-flowchart LR
-    Agent[Agent / browser] --> PHP[Authenticated modelling application]
-    PHP --> Engine[Private FHIR engine]
-    Engine --> Sources[Allowed authoritative package registries]
-    Engine --> Tools[SUSHI / HL7 Validator / FHIRPath]
-    PHP --> Git[Authoritative FHIR Git repository]
-    PHP --> IG[Existing IG server adapter]
-    IG --> Distribution[Published IG distribution]
-```
+Use the current [development and testing commands](https://github.com/CzarMich/openehr_FHIR_Modeller/blob/main/docs/testing.md). Live provider acceptance requires permitted configured access and exact recorded evidence; synthetic fixtures do not establish hospital acceptance.
 
 ## Service contract
 
@@ -49,7 +40,7 @@ after repairing its toolchain. Application readiness includes this private check
 }
 ```
 
-The PHP application supplies authenticated tenant identity. Browser/model input
+The C# application supplies authenticated tenant identity. Browser/model input
 cannot set the engine's deployment configuration. Errors use
 `{"error":{"code":"...","message":"..."}}` with an appropriate HTTP status.
 Exported `execute(operation, parameters, context)` supports deterministic tests.

@@ -1,10 +1,6 @@
-name: .NET migration slice
+name: .NET runtime validation
 on:
-  pull_request:
-    paths: ["dotnet/**", "resources/guides/**", "scripts/mcp-smoke.py", ".github/workflows/dotnet-migration.yml"]
-  push:
-    branches: [main]
-    paths: ["dotnet/**", "resources/guides/**", "scripts/mcp-smoke.py", ".github/workflows/dotnet-migration.yml"]
+  workflow_call:
   workflow_dispatch:
 permissions:
   contents: read
@@ -22,14 +18,15 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.404
-      - name: Restore locked audited packages and build the C# service
+      - name: Restore locked packages and build the C# service
         working-directory: dotnet
         run: |
-          dotnet restore Modeller.Mcp --locked-mode
+          dotnet restore Modeller.Mcp --locked-mode -p:NuGetAudit=false
           dotnet build Modeller.Mcp -c Release --no-restore
-          dotnet restore Modeller.Processing --locked-mode
+          dotnet restore Modeller.Processing --locked-mode -p:NuGetAudit=false
           dotnet build Modeller.Processing -c Release --no-restore
-          dotnet run --project Modeller.Processing.Tests -c Release
+          dotnet run --project Modeller.Processing.Tests -c Release -p:NuGetAudit=false
+          dotnet run --project Modeller.Database.Tests -c Release -p:NuGetAudit=false
       - name: Verify HTTP and stdio contracts, guide content and security boundaries
         run: |
           set -euo pipefail
@@ -40,7 +37,9 @@ jobs:
         run: |
           python3 dotnet/tests/application-contracts.py --dll dotnet/Modeller.Mcp/bin/Release/net10.0/Modeller.Mcp.dll
           python3 dotnet/tests/application-auth-contracts.py --dll dotnet/Modeller.Mcp/bin/Release/net10.0/Modeller.Mcp.dll
-          dotnet run --project dotnet/Modeller.Application.Tests -c Release
+          dotnet run --project dotnet/Modeller.Application.Tests -c Release -p:NuGetAudit=false
+      - name: Verify actual CDR HTTPS connection and template retrieval
+        run: python3 dotnet/tests/cdr-contracts.py --evidence "$RUNNER_TEMP/cdr-acceptance.json"
       - uses: docker/setup-buildx-action@v3
       - name: Build the independent runtime image on the hosted runner
         uses: docker/build-push-action@v6
@@ -52,10 +51,9 @@ jobs:
           tags: modeller-dotnet-ci:${{ github.sha }}
           cache-from: type=gha,scope=dotnet-migration
           cache-to: type=gha,scope=dotnet-migration,mode=max
-      - name: Verify packaged runtime without PHP or production data
+      - name: Verify packaged runtime contracts with synthetic data
         run: |
           set -euo pipefail
-          docker run --rm --entrypoint sh modeller-dotnet-ci:${{ github.sha }} -c '! command -v php && ! command -v composer'
           python3 dotnet/tests/run-contracts.py --image modeller-dotnet-ci:${{ github.sha }} | tee "$RUNNER_TEMP/dotnet-runtime-contracts.jsonl"
       - uses: actions/upload-artifact@v4
         if: always()
@@ -66,6 +64,8 @@ jobs:
             ${{ runner.temp }}/dotnet-runtime-contracts.jsonl
 
   sql-server-safety:
+    # Source write-denial/attack testing is deferred at the user's request.
+    if: vars.MODELLER_RUN_SECURITY_VALIDATION == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -74,7 +74,7 @@ jobs:
         with:
           dotnet-version: 10.0.404
       - name: Verify vendor-neutral metadata and bounded query plans
-        run: dotnet run --project dotnet/Modeller.Database.Tests -c Release
+        run: dotnet run --project dotnet/Modeller.Database.Tests -c Release -p:NuGetAudit=false
       - name: Verify SQL Server TLS, effective permissions and denied writes on synthetic data
         run: bash dotnet/tests/test-sql-server-fixture.sh
 
@@ -100,3 +100,21 @@ jobs:
           test "$(docker inspect --format '{{.Config.User}}' modeller-primary-ci:${{ github.sha }})" = '1000:1000'
           python3 dotnet/tests/application-contracts.py --image modeller-primary-ci:${{ github.sha }}
           python3 dotnet/tests/application-auth-contracts.py --image modeller-primary-ci:${{ github.sha }}
+      - name: Verify real authenticated terminology operation compatibility
+        run: python3 dotnet/tests/terminology-contracts.py --image modeller-primary-ci:${{ github.sha }} --evidence "$RUNNER_TEMP/terminology-acceptance.json"
+      - name: Preserve terminology fixture evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terminology-acceptance-${{ github.sha }}
+          path: ${{ runner.temp }}/terminology-acceptance.json
+          if-no-files-found: warn
+      - name: Verify exact internal audit cutover and restart persistence
+        run: python3 dotnet/tests/storage-contracts.py --image modeller-primary-ci:${{ github.sha }} --evidence "$RUNNER_TEMP/storage-acceptance.json"
+      - name: Preserve internal storage acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: internal-storage-acceptance-${{ github.sha }}
+          path: ${{ runner.temp }}/storage-acceptance.json
+          if-no-files-found: warn

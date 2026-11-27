@@ -40,7 +40,6 @@ services:
       MCP_ALLOWED_HOSTS: localhost,127.0.0.1,app,ingress
     volumes:
       - ${SHAREPOINT_TEST_ROOT:?}/tls.crt:/run/fixture-ca.crt:ro
-      - ${SHAREPOINT_TEST_REPO:?}/scripts/sharepoint-smoke.php:/app/scripts/sharepoint-smoke.php:ro
     tmpfs: ['/tmp:mode=1777,size=64m']
     read_only: true
     cap_drop: [ALL]

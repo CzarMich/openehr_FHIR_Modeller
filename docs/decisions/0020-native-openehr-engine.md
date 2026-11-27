@@ -2,7 +2,7 @@
 
 Status: accepted for the ADL 2/OPT 2 and AQL syntax profile.
 
-The PHP modelling domain must use mature language processors without becoming coupled to JVM types or an AI provider. The prior [engine evaluation](../OPENEHR_ENGINE_EVALUATION.md) distinguishes ADL 2 compilation from legacy OET/OPT XML.
+The C# modelling domain must use mature language processors without becoming coupled to JVM types or an AI provider. The prior [engine evaluation](../OPENEHR_ENGINE_EVALUATION.md) distinguishes ADL 2 compilation from legacy OET/OPT XML.
 
 Use a language-neutral `OpenEhrEngine` port and an explicit authenticated JSON API. Archie 3.20.0 supplies ADL 2/AOM/BMM/RM validation and OPT 2 creation; openEHR SDK AQL 2.35.0 supplies the AQL grammar/AST. The Java sidecar binds to application-loopback and runs each bounded request in a disposable JVM, with fixed operations, finite memory, time and concurrency. It receives content and pinned dependency hashes, never executable code or retrieval URLs.
 

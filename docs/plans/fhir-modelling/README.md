@@ -22,7 +22,7 @@ including upstream bounded task context and token budgets. All GitHub checks pas
 the inherited production deployment was skipped for this fork. Isolated Dev is at
 `http://localhost:18350`.
 
-[Executed Dev evidence](../../evidence/fhir-dev-20261007.json) records the PHP/chat/
+[Executed Dev evidence](https://github.com/CzarMich/openehr_FHIR_Modeller/blob/59c99e3/docs/evidence/fhir-dev-20261007.json) records the C#/chat/
 browser/engine checks, twelve real browser acceptance steps, actual valid/invalid
 HL7 validation, and the authenticated Git-to-IG handoff. Artefact commit
 `117aabbe578e615a8fafa54afb463ba0ceed1490` imported a StructureDefinition as a draft;

@@ -7,5 +7,5 @@ requirements:
     canonical: docs/requirements.md
     status: draft
     implementation: landed
-    packages: [does/not/exist.php]
+    packages: [does/not/exist.cs]
     tests: [docs/traceability.md]

@@ -1,21 +1,12 @@
-# ADR-0028: Incremental C#/.NET migration
+# ADR-0028 — C# application and contract preservation
 
-Status: Accepted
+- **Status:** Accepted for the current runtime; earlier mechanics are superseded.
+- **Historical record:** [original decision](https://github.com/CzarMich/openehr_FHIR_Modeller/blob/59c99e3/docs/decisions/0028-incremental-dotnet-migration.md)
 
-Use .NET 10 LTS and the official C# MCP SDK for the replacement application layer.
-Keep the existing Java/openEHR compiler and Node/Java FHIR tooling behind their
-computational interfaces. Changing application language does not remove the need
-for patching, dependency audits, authorization, resource limits and clinical review.
+## Decision
 
-Start with read-only guide retrieval/resources. Reuse bundled Markdown bytes and
-captured published MCP contracts; verify behavior independently over HTTP and
-stdio. No PHP proxy is part of this slice. Keep the existing production service
-and storage until all required replacements pass parity/security gates.
+The primary application is C#/.NET 10, with a separate protected modelling registry/private worker and retained Java/Node standards engines. Preserve public contracts, imported bytes, model revisions, audit hash chains, stable human identity issuers, protected decisions and storage. Build/test packaged images on hosted CI, verify Dev, then promote exact digests. Source code availability is not proof of a completed production upgrade.
 
-Subsequent slices cover model repository/read interfaces, source modelling,
-versioned mappings, writes and protected human/IG confirmation, then browser
-backend integration. Preserve exact revisions, tenant boundaries and audit hashes.
-Publication/distribution remains in the existing IG platform. Operational records
-stay outside model repositories and AI context. Avoid simultaneous new feature
-work in PHP and its replacement; keep bounded tasks and a persistent parity matrix
-so later sessions reuse evidence instead of repeating the repository audit.
+## Consequences
+
+Keep runtime details and current evidence in [architecture](../ARCHITECTURE.md), [testing](../testing.md) and [runtime boundaries](../DOTNET_MIGRATION.md). Preserve contributor history, third-party rights and stable requirement identifiers. Do not qualify an unexecuted stage or present deferred security scans as passed.

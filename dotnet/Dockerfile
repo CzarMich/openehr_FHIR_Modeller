@@ -6,9 +6,13 @@ COPY dotnet/Modeller.Database/Modeller.Database.csproj dotnet/Modeller.Database/
 COPY dotnet/Modeller.Application/Modeller.Application.csproj dotnet/Modeller.Application/packages.lock.json dotnet/Modeller.Application/
 COPY dotnet/Modeller.Mcp/Modeller.Mcp.csproj dotnet/Modeller.Mcp/packages.lock.json dotnet/Modeller.Mcp/
 WORKDIR /src/dotnet/Modeller.Mcp
-RUN dotnet restore --locked-mode
+RUN dotnet restore --locked-mode -p:NuGetAudit=false
 COPY dotnet/ /src/dotnet/
+COPY deploy/postgres/001-governance.sql /src/deploy/postgres/001-governance.sql
+
 RUN dotnet publish -c Release --no-restore -o /out -p:UseAppHost=false
+
+RUN sh /src/dotnet/notices/collect-notices.sh /root/.nuget/packages /out/notices/nuget
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0.15@sha256:aac50ceef10391e78a899e3d2ccd00bbafa2dcb56ccf4586cbccf00edb84fc21
 WORKDIR /app

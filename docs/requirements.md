@@ -28,7 +28,7 @@ repository and stores no patient data.
 | **REQ-F6** | Provide guided MCP prompts for explaining, designing/reviewing, and exploring openEHR artefacts (archetypes, templates, AQL, simplified formats, terminology, type specs), plus ADL syntax fixing and translation. | `src/Prompts/*` (14 prompts) |
 | **REQ-F7** | Expose retrievable resources for guides, examples, type specifications, and terminology via stable `openehr://` URIs. | `src/Resources/*` |
 | **REQ-F8** | Offer argument auto-completion for guide names, example names, and specification components. | `src/CompletionProviders/*` |
-| **REQ-F9** | Serve over two transports: `streamable-http` (default) and `stdio` (CLI/desktop clients). | `public/index.php`, `Helpers/CliOptions` |
+| **REQ-F9** | Serve over two transports: `streamable-http` (default) and `stdio` (CLI/desktop clients). | `dotnet/Modeller.Mcp/ApplicationHost.cs`, `Helpers/CliOptions` |
 | **REQ-F10** | Publish always-on server instructions encoding global tool-usage policy (Guide-First, Spec-Lookup-First, Digest-First, Examples-First). | `resources/server-instructions.md` |
 
 ## Non-functional requirements
@@ -37,9 +37,9 @@ repository and stores no patient data.
 |----|-------------|-----------|
 | **REQ-N1** | All openEHR-standard content must be grounded in authoritative sources (`specifications.openehr.org`, CKM, BMM); never invented from model memory. | Correctness of clinical/standards content is the product's core value. → [ADR-0005](decisions/0005-spec-aligned-content-retrieval.md) |
 | **REQ-N2** | Every application class has a mirrored `*Test`; external HTTP (CKM) is mocked, never called live in tests. | Deterministic, offline-capable test suite. → [ADR-0002](decisions/0002-single-ckmclient-http-boundary.md) |
-| **REQ-N3** | Code follows PSR-12 and passes PHPStan static analysis before merge. | Maintainability and reviewability. |
+| **REQ-N3** | Code follows PSR-12 and passes compiler checks static analysis before merge. | Maintainability and reviewability. |
 | **REQ-N4** | MCP capability discovery is cached at startup to keep server boot fast. | Responsiveness under repeated client connections. → [ADR-0001](decisions/0001-attribute-driven-discovery.md) |
-| **REQ-N5** | The runtime is Docker-only and reproducible; no host PHP/Composer is assumed. | Consistent environment across maintainers (WSL2 on Windows). → [ADR-0004](decisions/0004-docker-only-runtime.md) |
+| **REQ-N5** | The runtime is Docker-only and reproducible; no host C# toolchain is assumed. | Consistent environment across maintainers (WSL2 on Windows). → [ADR-0004](decisions/0004-docker-only-runtime.md) |
 | **REQ-N6** | Run the official MCP conformance suite against its explicit expected-failure baseline and separately verify the actual product tools over HTTP. | Interoperability with arbitrary MCP clients. |
 | **REQ-N7** | Guide and prompt content is concise and scannable, optimised for AI context economy. | Content is consumed by agents under token budgets. → [ADR-0003](decisions/0003-prompt-policy-split.md) |
 | **REQ-N8** | The requirement↔code↔test↔decision traceability map is machine-validated in CI; a missing artefact, dangling path, or index/map disagreement fails the build. | Keeps the SDD chain from silently rotting. → [ADR-0006](decisions/0006-machine-checked-traceability.md) |
@@ -111,3 +111,10 @@ a shared workspace, not per-browser-user isolation.
 - **REQ-F32** — Integration-engine mode binds an authorised source, a confirmed immutable mapping version, validation policy and destination to a channel. Persist assignments, checkpoints and audit; support start/pause/cancel, bounded consumption, retries, reconciliation and quarantine without per-record LLM interpretation. Do not silently upgrade a channel mapping.
 - **REQ-F33** — Support explicit direct source-to-FHIR mapping against supplied exact StructureDefinitions, release and dependencies, separately from the openEHR-mediated forward and independently defined reverse workflows. Validate actual outputs and require protected human confirmation of executable rules/models.
 - **REQ-F34** — Preserve user narrative, declared facts and inferred proposals in versioned requirements/rules, with interpretation, paths, assumptions, preconditions, synthetic examples and unresolved questions. Changed guidance yields a reviewed new mapping version; unresolved or contradictory executable rules must not run.
+
+## Discovery, collaboration and governed reuse
+
+- **REQ-F35** — Explicit read-only source discovery jobs and connector qualification. SQL Server metadata is implemented; other selectable source types remain qualification-gated. No clinical-row extraction or database polling is implied.
+- **REQ-F36** — Human-managed channel groups, teams and separate view/monitor grants. View/monitor sharing only; no shared edit, operate, clinical approval or patient-result access.
+- **REQ-F37** — Deterministic mapping reuse and human-confirmed project learning. Exact-context lookup makes no provider call; current authorisation and confirmation are rechecked. Corrections require a new version and human confirmation.
+- **REQ-F38** — Routine post-install configuration through protected browser controls. Existing personal/account/group controls are delivered; general source, terminology and destination profile forms remain pending.

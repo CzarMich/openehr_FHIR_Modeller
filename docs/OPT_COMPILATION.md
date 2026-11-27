@@ -74,13 +74,13 @@ export MODELLING_ENGINE_KEY_FILE="$PWD/.secrets/engine-key"
 docker compose -f docker-compose.yml -f deploy/compose.engine.yml up -d --build --wait
 ```
 
-Keep the parent secret directory private. `.secrets` is ignored by Git. The overlay mounts the same read-only service credential into PHP and the engine and sets `OPENEHR_ENGINE_URL=http://127.0.0.1:8090`. The engine shares the app's network namespace; it publishes no host port. Pin the selected image/digest under your release policy. The standard server deployment includes this overlay when its protected `config/engine-key` exists.
+Keep the parent secret directory private. `.secrets` is ignored by Git. The overlay mounts the same read-only service credential into C# and the engine and sets `OPENEHR_ENGINE_URL=http://127.0.0.1:8090`. The engine shares the app's network namespace; it publishes no host port. Pin the selected image/digest under your release policy. The standard server deployment includes this overlay when its protected `config/engine-key` exists.
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `OPENEHR_ENGINE_URL` | empty | Disabled, exact local origin above, or a trusted HTTPS origin without path/userinfo |
 | `OPENEHR_ENGINE_KEY_FILE` | empty | Absolute readable file containing 64–128 lowercase hex characters; optional final newline |
-| `OPENEHR_ENGINE_TIMEOUT` | `50` | PHP request timeout, 1–60 seconds |
+| `OPENEHR_ENGINE_TIMEOUT` | `50` | C# request timeout, 1–60 seconds |
 | `MODELLING_ENGINE_KEY_FILE` | required by overlay | Host path mounted into both containers |
 | `MODELLING_ENGINE_IMAGE` | `openehr-modelling-engine:local` | Compose image name; built from the repository by default |
 | `ENGINE_KEY_FILE` | `/run/secrets/engine-key` | Engine process credential path; restart the engine when rotating it |
@@ -97,7 +97,7 @@ The engine accepts at most 2 MiB per model, 64 dependencies, 8 MiB combined requ
 
 ## Repeatable verification
 
-Run `make engine-check` (Docker). It builds the real Java/PHP containers and exercises MCP discovery, source/dependency validation, compilation, output revalidation, deterministic rebuilds, saved evidence, native inspection and AQL syntax without external services. Transport probes cover service authentication, Host/Origin rejection, unknown operations, ambiguous/trailing JSON, oversized requests and credential non-disclosure. Java tests include nested EVALUATION/CLUSTER compilation, missing terminology and invalid embedded RM constraints. PHP contracts cover source revisions, failed-build non-persistence, disabled writes, tampering and idempotency across filesystem and Git.
+Run `make engine-check` (Docker). It builds the real Java/C# containers and exercises MCP discovery, source/dependency validation, compilation, output revalidation, deterministic rebuilds, saved evidence, native inspection and AQL syntax without external services. Transport probes cover service authentication, Host/Origin rejection, unknown operations, ambiguous/trailing JSON, oversized requests and credential non-disclosure. Java tests include nested EVALUATION/CLUSTER compilation, missing terminology and invalid embedded RM constraints. C# contracts cover source revisions, failed-build non-persistence, disabled writes, tampering and idempotency across filesystem and Git.
 
 Execution evidence lives in `docs/evidence/ci-engine-smoke.json`. The [evaluation](OPENEHR_ENGINE_EVALUATION.md) records engine selection; [ADR-0020](decisions/0020-native-openehr-engine.md) records the boundary and validation adaptation.
 

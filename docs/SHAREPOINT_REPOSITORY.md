@@ -14,7 +14,7 @@ The initial snapshot implementation bounds a project, including all retained art
 
 ## Deployment configuration
 
-The adapter runs in the same PHP container on local Docker, development and server deployments. It makes outbound HTTPS calls; it needs no public inbound callback. Configure a dedicated site/list/library folder for model snapshots, then inject identifiers and credentials privately:
+The adapter runs in the same C# container on local Docker, development and server deployments. It makes outbound HTTPS calls; it needs no public inbound callback. Configure a dedicated site/list/library folder for model snapshots, then inject identifiers and credentials privately:
 
 ```dotenv
 MODEL_REPOSITORY_PROVIDER=sharepoint
@@ -56,11 +56,9 @@ Create a dedicated generic SharePoint list with these API-facing columns:
 
 Create a separate folder in the configured document library. The repository checks the column contract before access and refuses an index without uniqueness enforcement. Use portable project identifiers such as `neonatal-admission`.
 
-With `SHAREPOINT_SITE_ID`, `SHAREPOINT_DRIVE_ID` and provisioning credentials configured, run inside the PHP tooling container:
+With `SHAREPOINT_SITE_ID`, `SHAREPOINT_DRIVE_ID` and provisioning credentials configured, run inside the C# tooling container:
 
-```sh
-php scripts/sharepoint-provision.php --create --name=modelling-test
-```
+Use the current [development and testing commands](https://github.com/CzarMich/openehr_FHIR_Modeller/blob/main/docs/testing.md). Live provider acceptance requires permitted configured access and exact recorded evidence; synthetic fixtures do not establish hospital acceptance.
 
 This creates a new index list and snapshot folder and prints their configuration identifiers. It never deletes or modifies an existing resource by name. If creation fails partway through, the report lists only resources it created; inspect them before retrying. The scripts are repository tooling and are not copied into the production runtime image. Mount the selected script read-only under `/app/scripts/` when using that image, or use the development container. Keep provisioning credentials outside the model repository and replace them with runtime credentials afterward.
 
@@ -91,14 +89,11 @@ Run the production-container integration test without a Microsoft account:
 scripts/test-sharepoint-container.sh
 ```
 
-It generates an ephemeral TLS CA, starts isolated Graph/OAuth fixtures and the production PHP image, exercises the real MCP protocol and repository writes, then removes only its disposable containers/data. Its download endpoint rejects any forwarded Authorization header. [Container evidence](evidence/sharepoint-container-smoke.json) is fixture acceptance, not a live Microsoft tenant result. CI repeats this test.
+It generates an ephemeral TLS CA, starts isolated Graph/OAuth fixtures and the production C# image, exercises the real MCP protocol and repository writes, then removes only its disposable containers/data. Its download endpoint rejects any forwarded Authorization header. [Container evidence](evidence/sharepoint-container-smoke.json) is fixture acceptance, not a live Microsoft tenant result. CI repeats this test.
 
-For a configured SharePoint tenant, run inside the PHP container:
+For a configured SharePoint tenant, run inside the C# container:
 
-```sh
-php scripts/sharepoint-smoke.php
-php scripts/sharepoint-smoke.php --allow-test-writes
-```
+Use the current [development and testing commands](https://github.com/CzarMich/openehr_FHIR_Modeller/blob/main/docs/testing.md). Live provider acceptance requires permitted configured access and exact recorded evidence; synthetic fixtures do not establish hospital acceptance.
 
 The first is read-only and verifies schema/list access. The second additionally requires `MODEL_REPOSITORY_WRITE_ENABLED=true`; it creates a uniquely named synthetic project, verifies content/history/conflicts/tombstones, and archives it. It does not operate on existing clinical projects. Live SharePoint acceptance remains externally blocked until tenant credentials and storage identifiers are available; the implementation, configuration, mocks, contracts and integration harness are present independently.
 

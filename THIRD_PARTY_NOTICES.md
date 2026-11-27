@@ -1,6 +1,6 @@
 # Third-party notices
 
-These notices apply **only to the identified third-party portions**, not to ownership or maintenance of openEHR Modelling Assistant as a whole. The current product is independently maintained and developed by Michael Anywar and is licensed under the [MIT License](LICENSE). Separately licensed material retains the terms below.
+These notices apply **only to the identified third-party portions**, not to ownership or maintenance of openEHR Modeller as a whole. The current product is independently maintained and developed by Michael Anywar and is licensed under the [MIT License](LICENSE). Separately licensed material retains the terms below.
 
 ## Incorporated upstream application portions — MIT
 
@@ -49,16 +49,15 @@ No SNOMED CT, LOINC or other restricted external terminology database is bundled
 
 ## Installed software dependencies
 
-The inventory is recorded in `composer.lock`, `chat/package-lock.json`, `engine/pom.xml` and the engine's generated `sbom.json`. These are independent packages, not product owners. Keep their complete license and NOTICE files with any distributed copy; the descriptions here do not replace those files.
+The inventory is recorded in the `dotnet/*/packages.lock.json` files, `chat/package-lock.json`, `engine/pom.xml` and the engine's generated `sbom.json`. These are independent packages, not product owners. Keep their complete license and NOTICE files with any distributed copy; the descriptions here do not replace those files.
 
-- **PHP:** Composer packages, including the PHP MCP SDK, Symfony, Guzzle, Monolog, Firebase JWT, Nyholm and PSR components, retain their notices in `vendor/`. PHPUnit and its `sebastian/*` dependencies are development tools; their author metadata belongs to those packages. Inspect installed terms with `composer licenses` inside the development container.
 - **Browser:** the Anthropic SDK, Microsoft Agents Copilot Studio client, MSAL, openid-client/oauth4webapi, ipaddr.js and node-qrcode are MIT; PDF.js, SheetJS Community Edition and sharp are Apache-2.0; Mammoth is BSD-2-Clause. Their transitive packages and native image-processing libraries retain their own terms in `node_modules` (including libvips and its LGPL-2.1-or-later notice). Provider names identify supported integrations only.
 - **Browser tooling/runtime:** Node.js includes its own MIT and bundled notices. The pinned OpenAI Codex distribution is Apache-2.0 with bundled notices. Playwright and the development-only jsQR scanner are Apache-2.0; Prettier is MIT; axe-core is MPL-2.0. These notices remain in the installed distributions. The browser images copy this file and the product LICENSE to `/app/`.
 - **Native engine:** Archie and the openEHR SDK are Apache-2.0; their transitive dependencies carry their own licenses. The engine distributes separate dependency JARs, preserving embedded `META-INF` license/NOTICE files, and a generated SBOM. Product notices are included in the engine JAR and image; they do not replace dependency notices. Dependencies with reciprocal licenses, such as the Jakarta JSON implementations, remain under their own terms.
-- **Container services:** PHP, Caddy, PostgreSQL, Valkey, Java, operating-system packages and development tools retain the licenses and notices of their pinned distributions. Nothing here relicenses these runtimes or services.
+- **Container services:** .NET, Caddy, PostgreSQL, Java, operating-system packages and development tools retain the licenses and notices of their pinned distributions. Nothing here relicenses these runtimes or services.
 
 Historical inspiration and general acknowledgements have not been promoted to ownership claims or treated as evidence of incorporated code. Git history preserves the actual contributors and commit metadata. Product compatibility and trademarks do not imply endorsement.
 
-## C# MCP migration
+## C# MCP runtime
 
-The optional .NET service uses the official [C# MCP SDK](https://github.com/modelcontextprotocol/csharp-sdk) with its exact upstream license/transition notice and third-party notices retained in `dotnet/notices/`. Microsoft .NET and its runtime image retain their own license and third-party notices. Exact NuGet dependencies/checksums are recorded in `dotnet/Modeller.Mcp/packages.lock.json`; no SDK source is vendored. Existing guide content and upstream credits are preserved unchanged.
+The .NET application uses the official [C# MCP SDK](https://github.com/modelcontextprotocol/csharp-sdk) with its exact upstream license/transition notice and third-party notices retained in `dotnet/notices/`. Microsoft .NET and its runtime image retain their own license and third-party notices. Exact NuGet dependencies/checksums are recorded in `dotnet/Modeller.Mcp/packages.lock.json`; no SDK source is vendored. Published application images also retain installed NuGet licence/NOTICE files and package metadata under `notices/nuget/`; these do not replace upstream rights. Existing guide content and upstream credits are preserved unchanged.

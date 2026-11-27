@@ -18,4 +18,4 @@ Persist server-generated plans through the existing repository contract with con
 
 ## Consequences
 
-Models can prepare auditable terminology decisions offline across filesystem, Git and SharePoint. Bounds prevent uncontrolled catalogue/constraint scans. Native application, inherited semantics and compilation remain explicit qualified-engine work. No second ADL parser is introduced into PHP. Existing clients with ambiguous relative binding targets must now provide the recorded `target_location` or resolve the ambiguity.
+Models can prepare auditable terminology decisions offline across filesystem, Git and SharePoint. Bounds prevent uncontrolled catalogue/constraint scans. Native application, inherited semantics and compilation remain explicit qualified-engine work. No second ADL parser is introduced into C#. Existing clients with ambiguous relative binding targets must now provide the recorded `target_location` or resolve the ambiguity.

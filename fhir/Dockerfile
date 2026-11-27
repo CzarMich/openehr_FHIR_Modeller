@@ -1,7 +1,7 @@
 FROM node:22.22.1-bookworm-slim AS dependencies
 WORKDIR /opt/fhir
 COPY fhir/package.json fhir/package-lock.json ./
-RUN npm ci --ignore-scripts --omit=dev --no-audit --no-fund
+RUN npm ci --ignore-scripts --no-audit --omit=dev --no-audit --no-fund
 
 FROM eclipse-temurin:21-jre-jammy AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && rm -rf /var/lib/apt/lists/*

@@ -32,6 +32,11 @@ https
                 send(res, 200, [{ template_id: "Synthetic", concept: "Fixture" }]);
                 return;
             }
+            if (req.url === "/openehr/v1/definition/template/adl1.4/Synthetic") {
+                res.writeHead(200, { "Content-Type": "application/xml" });
+                res.end('<template xmlns="http://schemas.openehr.org/v1"><template_id><value>Synthetic</value></template_id></template>');
+                return;
+            }
             if (req.url !== "/openehr/v1/query/aql" || req.method !== "POST") {
                 send(res, 404, {});
                 return;

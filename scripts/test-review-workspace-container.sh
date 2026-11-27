@@ -57,6 +57,6 @@ assert.equal(tools.status,200);
 for(const name of ['modelling_project','modelling_model','modelling_mapping','source_inspect','modelling_engine'])assert.ok(tools.result.result.tools.some(tool=>tool.name===name),name);
 const help=await rpc({jsonrpc:'2.0',id:3,method:'tools/call',params:{name:'modelling_mapping',arguments:{action:'help'}}},initialized.session);
 assert.equal(help.status,200);assert.equal(help.result.result.structuredContent.result.example.schemaVersion,2);
-console.log('PASS: packaged C# server/worker and authenticated public MCP proxy work without PHP or provider accounts.');
+console.log('PASS: packaged C# server/worker and authenticated public MCP proxy work independently of provider accounts.');
 console.log('PASS: provider-independent review workspace starts without model runtime or account and rejects unauthenticated review access.');
 JS

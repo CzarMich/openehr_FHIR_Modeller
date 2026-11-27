@@ -1,88 +1,17 @@
-# Coding and MCP authoring conventions
+# Engineering conventions
 
-This page holds the canonical conventions for code in this repository, for human
-contributors and AI agents alike: the coding standard, namespaces, and how to author
-MCP tools, prompts, resources, and completion providers. Architecture (components, layers) is in
-[architecture.md](architecture.md), the test and validation workflow in
-[testing.md](testing.md), and the dev environment in [development.md](development.md).
+Application and modelling domain code lives under `dotnet/` in C#/.NET 10. Keep source-driver adapters outside the deterministic core and private file worker. The Node browser backend adapts verified human sessions and orchestrates private workflows; standards engines retain their specialised runtimes. Use explicit types, bounded inputs, cancellation, meaningful error codes and compiler warnings as errors. Browser code uses the pinned formatter and test tools from `chat/package.json`.
 
-## Coding standard
+MCP is a provider-neutral application adapter. Primary tool/resource/prompt contracts are captured under `dotnet/contracts`; changing them is a deliberate compatibility change. Keep output scope honest. A tool's structured result, evidence and limitations must agree. Do not label missing model-aware validation as success or infer clinical approval from a compiler/validator.
 
-- **PSR-12.** Use PHP CS Fixer or IDE formatting.
-- Keep methods small; prefer typed signatures; add PHPDoc only when types aren't self-evident.
-- Run **`make ci`** (spec-check, PHPStan, and tests) before pushing.
-- Use Markdown for guides and other documentation; PHPDoc for public methods/classes.
+Use exact immutable model revisions, hashes, FHIR releases/packages and dependency manifests. Preserve original imported bytes, provenance, user narratives, interpretations, assumptions and synthetic examples. Model selection, mapping confirmation, clinical approval and publication have separate permissions and evidence. Ordinary MCP service credentials cannot make human decisions.
 
-## Namespaces
+Clinical/source databases are read-only without an override. Source discovery uses actual vendor metadata and dictionaries. Never hardcode clinical meanings from table names or let a caller submit arbitrary SQL/driver executables. Keep patient records, private outputs and credentials outside generic MCP, model/provider context, Git engineering artifacts and reusable modelling memory. FHIR destination writes use separately authorised HTTP operations.
 
-- Production code: `OpenEHR\Assistant\` → `src/`.
-- Tests: `OpenEHR\Assistant\Tests\` → `tests/`, files `*Test.php`, mirroring `src/`.
-  Mock external HTTP to CKM; never hit live APIs. See [testing.md](testing.md).
+Prefer deterministic [reuse and checkpoints](REUSE_AND_LEARNING.md) before AI generation. Recheck access and current protected decisions; a cache never grants approval. Human corrections create a versioned proposal for confirmation. Avoid per-record LLM interpretation in channels.
 
-## MCP capabilities (authoring)
+Use protected internal stores, explicit current revisions and atomic updates. New browser controls must call real server operations and show meaningful unavailable/qualification states. Do not ship decorative settings or silently widen access. Follow [shared workspace controls](WORKSPACE_ACCESS_AND_SETTINGS.md) and retain separate view, monitor, edit, operate and patient-result rights.
 
-Capabilities are declared with PHP attributes and discovered automatically; results
-are cached for fast startup ([ADR-0001](decisions/0001-attribute-driven-discovery.md)).
-**After adding or renaming a capability class, clear the discovery cache** or it won't
-register; see [development.md](development.md#gotcha-mcp-discovery-cache).
+Update [requirements](requirements.md), [traceability](traceability.yaml), [architecture](ARCHITECTURE.md) and relevant ADRs with behaviour changes. Preserve public requirement identifiers. Keep release/changelog descriptions concise. Document actual acceptance evidence and remaining limits; preserve upstream notices and stable installation identities.
 
-- **Tools**: `src/Tools/`; annotate public methods with `#[McpTool(name: '...')]`.
-  - **Schemas are a contract, and the SDK enforces the input half.**
-    `CallToolHandler` validates arguments against the generated `inputSchema`
-    *before* your method runs, so a published constraint rejects bad calls rather
-    than clamping them. [REQ-N9](requirements.md) states normatively *what* must
-    hold and is the single canonical home for it; the four steps below are only
-    *how* to satisfy it in this codebase, guarded by
-    `tests/Tools/InputSchemaGuardTest.php`:
-    1. Add method-level `#[Schema(additionalProperties: false)]` so unknown
-       arguments are rejected instead of silently ignored.
-    2. Constrain closed sets with `#[Schema(enum: [...])]`. For an **optional**
-       enum use `?string $x = null` and include `null` **in** the enum list;
-       never `string $x = ''` with `''` as a "no filter" sentinel.
-    3. Bound numeric parameters with `#[Schema(minimum:, maximum:)]`, and say
-       "rejected, not clamped" in the description; an in-method `max(min(...))`
-       is now only a defence against non-validating callers.
-    4. Search tools return the `{items, total}` envelope, with top-level
-       `required` + `additionalProperties: false` and the same on each item.
-  - **Output schemas are enforced at runtime by SDK 0.9.** Invalid structured
-    output becomes a tool error. Keep `tests/Tools/OutputSchemaConformanceTest.php`
-    as independent regression coverage and add a case for each new structured
-    tool. Preserve JSON object versus array distinctions, including empty values.
-- **Prompts**: `src/Prompts/`; annotate classes with `#[McpPrompt(name: '...')]` and
-  extend `AbstractPrompt`, which loads the **Markdown** body from `resources/prompts/`
-  and renders it via
-  `loadPromptMessages('<name>', $values, $requiredKeys, $vocabularies, $requiredWhen)`.
-  The three-part contract, pinned by `tests/Prompts/PromptArgumentSubstitutionTest.php`:
-  - one `{{lower_snake_case}}` token in the markdown per `__invoke()` parameter, and
-    vice versa (a token outside that charset is rejected as malformed, not shipped);
-  - `$requiredKeys` lists exactly the parameters **without** a default, which is what
-    the SDK advertises as `required` in `prompts/list`;
-  - parameters are typed **`mixed`, never `string`**; see the docblock on
-    `AbstractPrompt::normaliseArguments()` for the two SDK behaviours that forces.
-  Where the body *branches* on a value ("for review, do not rewrite the artefact"),
-  declare it in `$vocabularies` and pair it with the artefact it needs via
-  `$requiredWhen`; an unvalidated token means the branch never fires.
-  - **Prompt policy split:** global, always-applicable policy (tool discipline, no
-    guessing, workflow) lives in `resources/server-instructions.md`; keep
-    `resources/prompts/*.md` focused on task-specific constraints and output structure.
-    **Resilience exception:** `resources/prompts/shared/policy.md` is a thin user-role
-    block prepended to every prompt that deliberately restates a small subset of the
-    global policy, for clients that under-inject the MCP `instructions` field;
-    `server-instructions.md` remains the sole canonical source for full global policy
-    ([ADR-0003](decisions/0003-prompt-policy-split.md)).
-- **Resources**: `src/Resources/`; `#[McpResource]` / `#[McpResourceTemplate]`. URIs:
-  `openehr://guides/{category}/{name}`, `openehr://examples/{kind}/{name}`,
-  `openehr://spec/type/{component}/{name}`, `openehr://terminology`.
-- **Completion providers**: `src/CompletionProviders/`; `#[CompletionProvider]`,
-  implementing `Mcp\Capability\Completion\ProviderInterface`, to suggest argument values.
-
-Attribute `name:` values are part of the public MCP contract: renaming one is a
-breaking change. The app version is `APP_VERSION` in `src/constants.php`.
-
-## Content & spec alignment
-
-When authoring guides, prompts, BMM JSON, or terminology, keep wording aligned with
-the authoritative openEHR specifications; retrieve them rather than relying on
-memory ([ADR-0005](decisions/0005-spec-aligned-content-retrieval.md); the
-`spec-lookup` how-to under `resources/guides/howto/`). Authoring scaffolding and the
-guide/spec-digest style live under `src/templates/`.
+For guides, start with [authoring templates](templates/README.md) and retrieve the authoritative openEHR development specification using [the lookup policy](../resources/guides/howto/spec-lookup.md). Do not guess formal standards content. Keep prompts short, place detailed knowledge in retrievable guides and preserve source-model attribution.

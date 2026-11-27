@@ -46,9 +46,9 @@ Local snapshots use their explicit `code_system_version` for code-system checks,
 
 ## Repeatable verification
 
-Run PHP unit/negative/security contracts with `composer test` inside the development container. `scripts/test-terminology-container.sh` builds the production image and exercises actual MCP calls against an isolated, authenticated HTTPS FHIR fixture. The fixture checks independent editions, repeated multilingual designations, negative membership, expansion paging, resource resolution and review-only translation. CI retains the resulting protocol evidence. This is adapter contract verification, not a claim of full FHIR server conformance.
+Run the current application-domain checks and `dotnet/tests/terminology-contracts.py` against the disposable authenticated HTTPS fixture. It verifies actual MCP response/version semantics; it is not full server conformance or hospital acceptance.
 
-For read-only live acceptance, run `php scripts/terminology-smoke.php` inside the development container with the normal terminology configuration and `SMOKE_TERMINOLOGY_SYSTEM`/`SMOKE_TERMINOLOGY_CODE`. Optional `SMOKE_TERMINOLOGY_VERSION` pins the system edition. Set `SMOKE_VALUE_SET` and optional `SMOKE_VALUE_SET_VERSION` to test expansion and validate an actual returned member; the lookup code need not be a member of that set. Set `SMOKE_CONCEPT_MAP` and optional `SMOKE_CONCEPT_MAP_VERSION` to exercise an available map. No terminology content is written. The report contains outcomes, counts and version confirmation, without credentials or redistributed expansion content. Core checks are mandatory; unavailable discovery is reported separately. Run within a container with a trusted CA and privately supplied environment, never pass credentials as tool arguments.
+For permitted live read-only acceptance, call the configured terminology MCP operations with actual canonical identifiers and exact versions, retain scoped provenance and avoid patient records or redistributed restricted terminology content. Credentials remain in protected connection configuration. The old command interface is not a current test entry point.
 
 ## Migration
 
