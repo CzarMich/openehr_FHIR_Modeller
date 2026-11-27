@@ -5,7 +5,7 @@ using Modeller.Core;
 using Modeller.Operational;
 
 try {
-    if (args.Length != 3 || args[0] is not ("inspect" or "run")) throw new ProcessingException("USAGE_REQUIRED");
+    if (args.Length != 3 || args[0] is not ("inspect" or "run" or "original")) throw new ProcessingException("USAGE_REQUIRED");
     var config = Data.Read<Configuration>(args[1]);
     var directory = Path.GetFullPath(args[2]);
     if (!Directory.Exists(directory) || new DirectoryInfo(directory).LinkTarget is not null) throw new ProcessingException("PRIVATE_JOB_DIRECTORY_REQUIRED");
@@ -15,6 +15,22 @@ try {
     if (!Regex.IsMatch(request.Owner ?? "", "^[a-f0-9]{64}$") || !Regex.IsMatch(request.ProjectId ?? "", "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")
         || !Regex.IsMatch(request.SourceSha256 ?? "", "^[a-f0-9]{64}$")) throw new ProcessingException("JOB_IDENTITY_INVALID");
     var source = config.Sources.SingleOrDefault(s => s.Id == request.SourceId && s.Projects.Contains(request.ProjectId, StringComparer.Ordinal) && s.Owners.Contains(request.Owner, StringComparer.Ordinal)) ?? throw new ProcessingException("SOURCE_ACCESS_REJECTED");
+    if (args[0] == "original") {
+        var keys = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string,string>>(Environment.GetEnvironmentVariable("MODELLER_APPROVAL_KEYS") ?? "{}")!;
+        var models = new ModelStore(config.ModelRoot, keys, Environment.GetEnvironmentVariable("MODELLER_APPROVAL_KEY_ID") ?? "active", config.RuntimeFiles);
+        var definition = models.GetDefinition(request.Subject, ModelActor.Service);
+        if (definition["project"]?.GetValue<string>() != request.ProjectId) throw new ProcessingException("MODEL_PROJECT_MISMATCH");
+        var policy = new Mapping(Data.Required(definition, "executionMapping")).ClinicalPolicy ?? throw new ProcessingException("CLINICAL_POLICY_REQUIRED");
+        if (policy.IdentityDomain != source.IdentityDomain) throw new ProcessingException("SOURCE_IDENTITY_DOMAIN_MISMATCH");
+        using var registry = ClinicalPipeline.Open(config);
+        var original = new DependencyQueue(registry).ReadOriginal(new(request.Owner!, request.ProjectId!, policy.IdentityDomain, policy.DestinationId), request.SourceSha256!);
+        var destination = Path.Combine(directory, "received-source.bin"); var temporary = destination + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        var options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write, Share = FileShare.None, Options = FileOptions.WriteThrough };
+        if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        using (var output = new FileStream(temporary, options)) { output.Write(original); output.Flush(true); }
+        File.Move(temporary, destination, true);
+        Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new { sourceSha256 = request.SourceSha256, length = original.Length, status = "READY" }, Data.Json)); return;
+    }
     await using var pinnedModels = args[0] == "run" ? await ModelContext.Connect(config, request, CancellationToken.None) : null;
     byte[]? retained = null;
     if (pinnedModels is not null && new Mapping(pinnedModels.MappingJson).ClinicalPolicy is { } heldPolicy) {
@@ -132,6 +148,17 @@ try {
                 var controlId = envelope.MessageId ?? request.SourceSha256 + ":" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 var pendingItem = clinical.Admit(source, request.IntakeId ?? request.Subject!, request.Subject!, state.MappingSha256!, envelope, controlId, bytes, DateTimeOffset.UtcNow);
                 row.PendingId = pendingItem.Id;
+                var priorPlan = dependencyQueue.DeliveryPlan(scope, pendingItem.Id);
+                if (priorPlan is not null) {
+                    row.Transformed = true;
+                    if (delivery is null || priorPlan.DestinationSha256 != delivery.DestinationHash || priorPlan.SourceSha256 != request.SourceSha256 || priorPlan.MappingSha256 != state.MappingSha256) throw new ProcessingException("DELIVERY_PLAN_CHANGED_REVIEW_REQUIRED");
+                    for (var planned = 0; planned < priorPlan.Outputs.Length; planned++) {
+                        if (priorPlan.Receipts[planned] is not { } verifiedReceipt) continue;
+                        var outputFile = Path.Combine(directory, "outputs", $"{index:D6}-{planned:D3}.json");
+                        Data.Write(outputFile, priorPlan.Outputs[planned]); Data.Write(outputFile + ".receipt", verifiedReceipt);
+                        if (row.Receipts.Count <= planned) { while (row.Receipts.Count < planned) row.Receipts.Add(new("", "NOT_SENT", null)); row.Receipts.Add(verifiedReceipt); } else row.Receipts[planned] = verifiedReceipt;
+                    }
+                }
                 if (pendingItem.State == "DELIVERED") { row.Complete = true; row.Held = false; Data.Write(rowFile, row); Progress(); continue; }
                 if (destinationEvidence is not null) await destinationEvidence.Refresh(pendingItem, cancellation.Token);
                 var lease = clinical.Acquire(pendingItem.Id, request.Subject!, state.MappingSha256!, DateTimeOffset.UtcNow);
@@ -161,8 +188,9 @@ try {
                             await validation.Composition(composition, prefix + "-openehr.json", recordCancellation);
                         }
                         if (mapping.ProducesFhir) await validation.Fhir(mapped[output].Output, prefix + "-fhir", recordCancellation);
-                        Data.Write(prefix + "-provenance.json", new { sourceId = request.SourceId, sourceSha256 = request.SourceSha256, group = index, mapped[output].Provenance, mapped[output].Unmapped, mappingSha256 = state.MappingSha256 });
+                        Data.Write(prefix + "-provenance.json", new { sourceId = request.SourceId, sourceSha256 = request.SourceSha256, group = index, mapped[output].Provenance, mapped[output].Unmapped, mappingSha256 = state.MappingSha256, sourceProfileKey = mapping.SourceProfileKey, sourceContractSha256 = sourceContract.Sha256, privacyPolicyRevision = lease.Input.PrivacyPolicyRevision, identityResolutionEvidenceSha256 = lease.Input.IdentityResolutionEvidenceSha256 });
                     }
+                    if (delivery is not null) dependencyQueue.PlanDelivery(scope, lease, delivery.DestinationHash, mapped.Select(item => item.Output).ToArray(), DateTimeOffset.UtcNow);
                     if (mapping.Reversibility == "retained-context") Data.Write(Path.Combine(directory, "evidence", $"{index:D6}-retained-source.json"), groups[index].Record);
                     row.Transformed = true;
                     for (var output = 0; output < mapped.Count; output++) {
@@ -170,6 +198,7 @@ try {
                         var resource = mapped[output].Output;
                         var outputFile = Path.Combine(directory, "outputs", $"{index:D6}-{output:D3}.json");
                         Data.Write(outputFile, resource);
+                        Data.Write(Path.Combine(directory, "evidence", $"{index:D6}-{output:D3}-patient-index.json"), new { output = Path.GetFileName(outputFile), outputSha256 = Data.Hash(Data.Canonical(resource)), patient = lease.OutboundPatientIdentity, destinationId = clinicalPolicy.DestinationId, privacyPolicyRevision = lease.Input.PrivacyPolicyRevision, mappingSha256 = state.MappingSha256 });
                         if (delivery is null) row.ExportCount = output + 1;
                         else {
                             var receiptFile = outputFile + ".receipt";
@@ -179,6 +208,7 @@ try {
                                 writeStarted = true;
                                 receipt = await delivery.Send(resource, recordCancellation); Data.Write(receiptFile, receipt);
                             }
+                            if (receipt.State is "CREATED" or "ALREADY_PRESENT") dependencyQueue.RecordDeliveryReceipt(scope, lease, output, receipt, DateTimeOffset.UtcNow);
                             if (row.Receipts.Count <= output) row.Receipts.Add(receipt); else row.Receipts[output] = receipt;
                             Data.Write(rowFile, row); Progress();
                             if (receipt.State is "CREATED" or "ALREADY_PRESENT" && clinical.PublicationIdentity(lease, Data.Required(resource, "resourceType")) is { } publicationIdentity)
@@ -203,6 +233,9 @@ try {
             var exportFile = Path.Combine(directory, "export.ndjson"); var temporary = exportFile + ".tmp";
             using (var writer = new StreamWriter(temporary, false, new System.Text.UTF8Encoding(false))) foreach (var output in Directory.EnumerateFiles(Path.Combine(directory, "outputs"), "*.json").Order(StringComparer.Ordinal)) writer.WriteLine(File.ReadAllText(output));
             File.Move(temporary, exportFile, true);
+            var patientIndex = Path.Combine(directory, "patient-index.ndjson");
+            using (var writer = new StreamWriter(patientIndex + ".tmp", false, new System.Text.UTF8Encoding(false))) foreach (var entry in Directory.EnumerateFiles(Path.Combine(directory, "evidence"), "*-patient-index.json").Order(StringComparer.Ordinal)) writer.WriteLine(File.ReadAllText(entry));
+            File.Move(patientIndex + ".tmp", patientIndex, true);
             var quarantineFile = Path.Combine(directory, "quarantine.ndjson");
             using (var writer = new StreamWriter(quarantineFile + ".tmp", false, new System.Text.UTF8Encoding(false))) foreach (var rejected in Directory.EnumerateFiles(Path.Combine(directory, "quarantine"), "*.json").Order(StringComparer.Ordinal)) writer.WriteLine(File.ReadAllText(rejected));
             File.Move(quarantineFile + ".tmp", quarantineFile, true);

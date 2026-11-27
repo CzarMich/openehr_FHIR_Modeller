@@ -2832,3 +2832,59 @@ test("destination pseudonymisation is reviewed and its exact revision is bound t
     const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
     expect(accessibility.violations).toEqual([]);
 });
+
+test("held-patient review opens its confirmation tab and requires an explicit decision", async ({ page }) => {
+    const jobId = "a".repeat(64);
+    let previews = 0,
+        commits = 0;
+    await page.route("**/chat/api/session", (route) =>
+        route.fulfill({ json: { authenticated: true, csrf: "synthetic", integrationReady: true } }),
+    );
+    await page.route("**/chat/api/integration/**", async (route) => {
+        const url = new URL(route.request().url()),
+            target = url.searchParams.get("target");
+        let result = { items: [] };
+        if (target === "/api/v1/integration/projects")
+            result = { items: [{ id: "lab", name: "Synthetic laboratory", fhirVersion: "4.0.1" }] };
+        else if (url.pathname.endsWith("/connections"))
+            result = { sources: [], destinations: [], clinicalDatabasePolicy: "READ ONLY" };
+        else if (url.pathname.endsWith("/jobs")) result = { items: [{ id: jobId, status: "WAITING_DEPENDENCIES" }] };
+        else if (url.pathname.endsWith("/patient-resolution/preview")) {
+            previews++;
+            expect(route.request().postDataJSON().patientValue).toBe("000001");
+            result = {
+                confirmation: "synthetic-review-ticket",
+                summary: {
+                    sourceSha256: "b".repeat(64),
+                    patientValue: "000001",
+                    comment: "Inspected original registration evidence",
+                },
+            };
+        } else if (url.pathname.endsWith("/patient-resolution/commit")) {
+            commits++;
+            expect(route.request().postDataJSON().confirmation).toBe("synthetic-review-ticket");
+            result = { state: "READY" };
+        }
+        await route.fulfill({ json: result });
+    });
+    await page.goto("/chat/integration/#jobs-step");
+    await page.getByRole("tab", { name: "Jobs & monitoring", exact: true }).click();
+    await page.locator("#recovery-panel > summary").click();
+    await page.getByText("Resolve a missing patient identifier", { exact: true }).click();
+    await page.locator("#resolve-patient-system").fill("urn:synthetic:patient");
+    await page.locator("#resolve-patient-value").fill("000001");
+    await page.locator("#resolve-patient-comment").fill("Inspected original registration evidence");
+    await page.locator("#resolve-patient-preview").click();
+    await expect(page.locator("#confirmation")).toBeVisible();
+    expect(previews).toBe(1);
+    expect(commits).toBe(0);
+    await page.locator("#dismiss").click();
+    expect(commits).toBe(0);
+    await page.getByRole("tab", { name: "Jobs & monitoring", exact: true }).click();
+    await page.locator("#resolve-patient-preview").click();
+    await page.locator("#commit").click();
+    await expect(page.locator("#notice")).toContainText("Operation confirmed");
+    expect(commits).toBe(1);
+    await page.getByRole("tab", { name: "Jobs & monitoring", exact: true }).click();
+    await expect(page.locator("#resolve-patient-value")).toHaveValue("");
+});

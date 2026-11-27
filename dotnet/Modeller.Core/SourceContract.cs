@@ -37,7 +37,7 @@ public sealed class SourceContract
         Binding(definition.Patient.System, definition.Patient.SystemField, names);
         var relationNames = new HashSet<string>(StringComparer.Ordinal);
         foreach (var relation in definition.Relations) {
-            if (relation is null || relation.Role is null || !Regex.IsMatch(relation.Role, "^[A-Za-z][A-Za-z0-9_]{0,63}$") || !relationNames.Add(relation.Role) || !names.Contains(relation.IdentifierField)) throw new ProcessingException("SOURCE_RELATION_INVALID");
+            if (relation is null || relation.Role is null || !Regex.IsMatch(relation.Role, "^[A-Za-z][A-Za-z0-9_]{0,63}$") || relation.Role == "patient" || !relationNames.Add(relation.Role) || !names.Contains(relation.IdentifierField)) throw new ProcessingException("SOURCE_RELATION_INVALID");
             Binding(relation.System, relation.SystemField, names);
         }
         if (definition.Versions.Any(value => string.IsNullOrWhiteSpace(value) || value.Length > 100 || value.Any(char.IsControl)) || definition.MessageTypes.Any(value => string.IsNullOrWhiteSpace(value) || value.Length > 100 || value.Any(char.IsControl))) throw new ProcessingException("SOURCE_MESSAGE_SCOPE_REQUIRED");

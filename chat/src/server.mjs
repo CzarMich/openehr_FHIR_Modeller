@@ -762,7 +762,10 @@ export function createApplication(
                                 {
                                     projectId: req.headers["x-model-project"],
                                     format: req.headers["x-source-format"],
-                                    name: req.headers["x-source-name"],
+                                    name:
+                                        req.headers["x-source-name-encoding"] === "uri"
+                                            ? decodeURIComponent(req.headers["x-source-name"] || "")
+                                            : req.headers["x-source-name"],
                                     identityDomain: decodeURIComponent(req.headers["x-source-domain"] || ""),
                                 },
                                 Buffer.concat(pieces),
@@ -793,6 +796,34 @@ export function createApplication(
                             : await processing.commitSourceTrust(session, input.confirmation),
                     );
                 }
+                if (
+                    req.method === "POST" &&
+                    [
+                        "patient-resolution/preview",
+                        "patient-resolution/commit",
+                        "relationship-resolution/preview",
+                        "relationship-resolution/commit",
+                        "recovery/preview",
+                        "recovery/commit",
+                    ].includes(suffix)
+                ) {
+                    if (!config.allowWrites)
+                        throw Object.assign(new Error("Recovery changes are disabled."), { status: 403 });
+                    const input = await body(req, null, "Invalid clinical recovery review.", 16384);
+                    const result =
+                        suffix === "patient-resolution/preview"
+                            ? await processing.previewPatientResolution(session, input)
+                            : suffix === "patient-resolution/commit"
+                              ? await processing.commitPatientResolution(session, input.confirmation)
+                              : suffix === "relationship-resolution/preview"
+                                ? await processing.previewRelationshipResolution(session, input)
+                                : suffix === "relationship-resolution/commit"
+                                  ? await processing.commitRelationshipResolution(session, input.confirmation)
+                                  : suffix === "recovery/preview"
+                                    ? await processing.previewRecovery(session, input)
+                                    : await processing.commitRecovery(session, input.confirmation);
+                    return json(res, 200, result);
+                }
                 if (suffix === "jobs" && req.method === "GET") return json(res, 200, processing.jobs(session));
                 if (suffix === "channels" && req.method === "GET")
                     return json(res, 200, processing.listChannels(session));
@@ -812,14 +843,41 @@ export function createApplication(
                     return json(res, 200, result);
                 }
                 const match = suffix.match(
-                    /^(jobs|channels)\/([a-f0-9]{64})(?:\/(cancel|resume|start|pause|download|report|quarantine))?$/,
+                    /^(jobs|channels)\/([a-f0-9]{64})(?:\/(cancel|resume|start|pause|download|report|quarantine|original|patient-index))?$/,
                 );
                 if (match) {
-                    if (match[1] === "jobs" && req.method === "GET" && ["download", "quarantine"].includes(match[3])) {
+                    if (match[1] === "jobs" && req.method === "GET" && match[3] === "original") {
+                        const file = await processing.original(session, match[2]);
+                        const fs = await import("node:fs");
+                        const remove = () => fs.unlink(file, () => processing.releaseOriginal(session, match[2]));
+                        if (res.destroyed) {
+                            remove();
+                            return;
+                        }
+                        res.writeHead(200, {
+                            "Content-Type": "application/octet-stream",
+                            "Content-Disposition": "attachment; filename=received-source.bin",
+                            "Cache-Control": "no-store",
+                        });
+                        const stream = fs.createReadStream(file);
+                        stream.once("close", remove);
+                        stream.once("error", () => res.destroy());
+                        res.once("close", () => stream.destroy());
+                        return stream.pipe(res);
+                    }
+                    if (
+                        match[1] === "jobs" &&
+                        req.method === "GET" &&
+                        ["download", "quarantine", "patient-index"].includes(match[3])
+                    ) {
                         const file = processing.download(
                             session,
                             match[2],
-                            match[3] === "quarantine" ? "quarantine" : "export",
+                            match[3] === "quarantine"
+                                ? "quarantine"
+                                : match[3] === "patient-index"
+                                  ? "patient-index"
+                                  : "export",
                         );
                         res.writeHead(200, {
                             "Content-Type": "application/x-ndjson",

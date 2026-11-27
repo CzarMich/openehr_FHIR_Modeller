@@ -242,6 +242,7 @@ try {
         Check(ready is not null && pipeline.MappingInput(ready)["value"]!.GetValue<string>() == "5.2", "Trusted source registration releases its own waiting clinical record without AI");
         var output = pipeline.ApplyReferences(ready!, new System.Text.Json.Nodes.JsonObject { ["resourceType"] = "Observation" });
         Check(output["subject"]!["identifier"]!["value"]!.GetValue<string>() == identity.Value && output["subject"]!["reference"] is null, "Reviewed logical references render independently of destination lookup");
+        Reject(() => pipeline.ApplyReferences(ready!, new System.Text.Json.Nodes.JsonObject { ["resourceType"] = "Observation", ["performer"] = new System.Text.Json.Nodes.JsonArray(new System.Text.Json.Nodes.JsonObject { ["reference"] = "Patient/wrong-patient" }) }), "OUTBOUND_PATIENT_REFERENCE_UNVERIFIED");
         Reject(() => pipeline.Acquire(held.Id, new string('c', 64), new string('b', 64), now), "HELD_MAPPING_CHANGED");
         new DependencyQueue(registry).Fail(pipelineScope, ready!, Data.Hash("SYNTHETIC_VALIDATION_FAILURE"), false, now);
         Check(pipeline.Inspect(held.Id, now).State == "PROCESSING_REVIEW_REQUIRED", "A failed record cannot be silently leased again without a review decision");
@@ -266,5 +267,76 @@ try {
     Check(xmlAdt.Type == parsedAdt.Type && xmlAdt.ControlId == parsedAdt.ControlId, "ER7 and v2 XML agree on declared message scope and control identity");
     var metadata = ClinicalMessages.Describe(System.Text.Encoding.ASCII.GetBytes(adt), "hl7-v2").ToJsonString();
     Check(!metadata.Contains("000001", StringComparison.Ordinal) && !metadata.Contains("Example", StringComparison.Ordinal) && metadata.Contains("NOT_INCLUDED", StringComparison.Ordinal), "HL7 inspection excludes patient values");
+    var deferredScope = scope with { ProjectId = "deferred-patient-id" };
+    using (var registry = new IdentityRegistry(root, key)) {
+        var contractDefinition = new SourceContractDefinition(1, "json", [], [],
+            [new("patientId", "json-pointer", "/patientId", Classification: "patient-identifier"), new("anchor", "json-pointer", "/temporaryPatientKey", Classification: "record-identifier")],
+            new("patientId", "anchor", identity.System, AuthoritativeRegistration: true), []);
+        var contract = new SourceContract(System.Text.Json.JsonSerializer.Serialize(contractDefinition, Data.Json));
+        var policy = new ClinicalPolicy(1, deferredScope.SourceSystem, deferredScope.DestinationId, 0, false, null, [new("patient", "Patient", "/subject", "logical", false)], []);
+        var pipeline = new ClinicalPipeline(registry, deferredScope, policy, contract);
+        var source = new SourceConnection("synthetic-deferred", root, "json", [deferredScope.ProjectId], [deferredScope.Owner], deferredScope.SourceSystem, true);
+        var firstBytes = System.Text.Encoding.UTF8.GetBytes("[{\"temporaryPatientKey\":\"temp-patient-key-1\"}]");
+        var firstRecord = new SourceProjection(contract).Read(firstBytes)[0];
+        var held = pipeline.Admit(source, "synthetic-deferred-channel", new string('a',64), new string('b',64), firstRecord, "before-id", firstBytes, now);
+        Check(held.State == "WAITING_PATIENT_IDENTITY", "A stable source anchor does not invent a missing patient identifier");
+        var registrationBytes = System.Text.Encoding.UTF8.GetBytes("[{\"temporaryPatientKey\":\"temp-patient-key-1\",\"patientId\":\"000001\"}]");
+        var registration = new SourceProjection(contract).Read(registrationBytes)[0];
+        pipeline.Admit(source, "synthetic-deferred-channel", new string('a',64), new string('b',64), registration, "verified-registration", registrationBytes, now);
+        var released = pipeline.Inspect(held.Id, now);
+        Check(released.State == "READY" && released.Input.PatientIdentity == identity, "A later trusted registration releases an exact stable-anchor match without AI or demographic guessing");
+        Check(released.Input.Source["record"]!["patientId"] is null && new DependencyQueue(registry).ReadOriginal(deferredScope, firstRecord.SourceSha256).SequenceEqual(firstBytes), "Automatic ID resolution preserves the original normalised record and original bytes");
+        var lease = pipeline.Acquire(held.Id, new string('a',64), new string('b',64), now)!;
+        Check(pipeline.MappingInput(lease)["patientId"]!.GetValue<string>() == identity.Value && lease.Input.IdentityResolutionEvidenceSha256 is not null, "The resolved identifier is overlaid only in processing input with registration evidence");
+        var changedBytes = System.Text.Encoding.UTF8.GetBytes("[{\"temporaryPatientKey\":\"temp-patient-key-1\",\"patientId\":\"CHANGED-ID\"}]");
+        var changed = new SourceProjection(contract).Read(changedBytes)[0];
+        var conflict = pipeline.Admit(source, "synthetic-deferred-channel", new string('a',64), new string('b',64), changed, "changed-identifier", changedBytes, now);
+        Check(conflict.State == "IDENTITY_CONFLICT" && registry.FindPatient(deferredScope, new(identity.System,"CHANGED-ID")) is null, "Changing the identifier on a known patient anchor requires review instead of a second pseudonym");
+        Check(new DependencyQueue(registry).ReadOriginal(deferredScope, changed.SourceSha256).SequenceEqual(changedBytes), "Conflicting registration input is durable before the conflict is reported");
+        var boundedScope = deferredScope with { ProjectId = "bounded-active-queue" };
+        var bounded = new DependencyQueue(registry, 1);
+        PendingInput Small(string id, string intake) => new("synthetic-source", intake, id, Data.Hash(id), new string('a',64), new string('b',64), 0, null, [], new System.Text.Json.Nodes.JsonObject { ["synthetic"] = id }, now.AddDays(1));
+        var one = bounded.Enqueue(boundedScope, Small("one", "child-flow"), now);
+        Reject(() => bounded.Enqueue(boundedScope, Small("two", "child-flow"), now), "DEPENDENCY_QUEUE_CAPACITY");
+        Check(bounded.Enqueue(boundedScope, Small("parent", "parent-flow"), now).State == "WAITING_PATIENT_IDENTITY", "A full child intake does not consume another intake's dependency admission capacity");
+        bounded.Cancel(boundedScope, one.Id, one.Revision);
+        Check(bounded.Enqueue(boundedScope, Small("two", "child-flow"), now).State == "WAITING_PATIENT_IDENTITY", "Final records do not permanently exhaust active queue capacity");
+    }
+    using (var registry = new IdentityRegistry(root, key)) {
+        var relationScope = scope with { ProjectId = "reviewed-relationship" };
+        var queue = new DependencyQueue(registry);
+        var patient = registry.RegisterVerifiedPatient(relationScope, identity, "relation-patient", Data.Hash("registration"));
+        var otherIdentity = new ClinicalIdentity(identity.System, "000002");
+        var other = registry.RegisterVerifiedPatient(relationScope, otherIdentity, "other-relation-patient", Data.Hash("other-registration"));
+        var correct = new EntityKey("Encounter", "urn:synthetic:encounter", "correct");
+        var wrong = new EntityKey("Encounter", "urn:synthetic:encounter", "wrong");
+        queue.PublishVerifiedEntity(relationScope, new(correct, "Encounter/correct", Data.Hash("correct-proof"), "VERIFIED", patient.RegistryId));
+        queue.PublishVerifiedEntity(relationScope, new(wrong, "Encounter/wrong", Data.Hash("wrong-proof"), "VERIFIED", other.RegistryId));
+        var bytes = System.Text.Encoding.UTF8.GetBytes("synthetic-missing-encounter-original");
+        var sha = Convert.ToHexStringLower(SHA256.HashData(bytes));
+        var source = new System.Text.Json.Nodes.JsonObject {
+            ["record"] = new System.Text.Json.Nodes.JsonObject { ["patientId"] = identity.Value },
+            ["relations"] = new System.Text.Json.Nodes.JsonObject { ["encounter"] = null },
+            ["missingRelationships"] = new System.Text.Json.Nodes.JsonArray("encounter")
+        };
+        var input = new PendingInput("source", "intake", "message", sha, Data.Hash("mapping-subject"), Data.Hash("mapping-rules"), 0, identity, [], source, now.AddDays(1));
+        var held = queue.Accept(relationScope, input, bytes, now);
+        Check(held.State == "WAITING_RELATIONSHIP_IDENTIFIER", "Missing Encounter identifiers remain held even with a verified Patient");
+        Reject(() => queue.AttachVerifiedRelationship(relationScope, held.Id, held.Revision, sha, "encounter", wrong, "reviewer", "Synthetic relationship review", now), "ENTITY_PATIENT_BINDING_REQUIRED");
+        Reject(() => queue.AttachVerifiedRelationship(relationScope, held.Id, held.Revision + 1, sha, "encounter", correct, "reviewer", "Synthetic relationship review", now), "RELATIONSHIP_RESOLUTION_CONFLICT");
+        var resolved = queue.AttachVerifiedRelationship(relationScope, held.Id, held.Revision, sha, "encounter", correct, "reviewer", "Verified same-patient encounter", now);
+        Check(resolved.State == "READY" && resolved.Input.ResolvedRelations!["encounter"].Value == correct.Value, "An exact human-reviewed same-patient Encounter releases the held input");
+        Check(resolved.Input.Source["relations"]!["encounter"] is null && queue.ReadOriginal(relationScope, sha).SequenceEqual(bytes), "Relationship resolution preserves the received source and records a separate processing overlay");
+        Reject(() => queue.AttachVerifiedRelationship(relationScope, held.Id, resolved.Revision, sha, "encounter", correct, "reviewer", "Do not resolve twice", now), "RELATIONSHIP_REASSIGNMENT_REQUIRES_REVIEW");
+    }
+    var ehrContract = new SourceContract(System.Text.Json.JsonSerializer.Serialize(new SourceContractDefinition(1, "openehr-json", [], [],
+        [new("patientId", "json-pointer", "/patient/id", Classification: "patient-identifier"), new("anchor", "json-pointer", "/patient/key", Classification: "record-identifier"), new("label", "json-pointer", "/composition/name/value")],
+        new("patientId", "anchor", identity.System), []), Data.Json));
+    var ehrEnvelope = System.Text.Encoding.UTF8.GetBytes("[{\"patient\":{\"id\":\"000001\",\"key\":\"ehr-patient-key\"},\"composition\":{\"_type\":\"COMPOSITION\",\"name\":{\"value\":\"Synthetic composition\"}}}]");
+    var ehrRecord = new SourceProjection(ehrContract).Read(ehrEnvelope)[0];
+    Check(ehrRecord.PatientIdentity == identity && ehrRecord.Record["label"]!.GetValue<string>() == "Synthetic composition", "An openEHR source can supply explicit Patient context beside the composition");
+    Check(ehrRecord.InputResources![0]!["_type"]!.GetValue<string>() == "COMPOSITION" && ehrRecord.InputResources[0]!["patient"] is null, "Native validation receives only the composition, never an invented RM patient property");
+    Check(ClinicalPipeline.SourceFingerprint(new("source-é+\"", "/synthetic/医院+\"", "json", ["lab"], ["owner"], "hospital-é", false)) == "d206ae7fab0a75d3235ea629932f621d4128c634ccb712e303ef3da2f3714a41", "Source trust fingerprints use identical UTF-8 framing across runtime languages");
+    checks += await RecoveryTests.Run(root, key);
     Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new { operationalChecks = checks, status = "PASS", clinicalData = "SYNTHETIC_ONLY", qualification = "DOMAIN_ONLY_NOT_RUNTIME_ENABLED" }));
 } finally { CryptographicOperations.ZeroMemory(key); if (Directory.Exists(root)) Directory.Delete(root, true); }

@@ -93,7 +93,7 @@ public sealed class FhirDelivery : IDisposable
         return reference;
     }
     public async Task<JsonObject?> FindExact(string type, string system, string value, CancellationToken cancellation) {
-        if (!Regex.IsMatch(type, "^[A-Z][A-Za-z0-9]{1,63}$") || !destination.ResourceTypes.Contains(type, StringComparer.Ordinal)) throw new ProcessingException("DESTINATION_RESOURCE_SCOPE_REJECTED");
+        if (!Regex.IsMatch(type, "^[A-Z][A-Za-z0-9]{1,63}$") || !(destination.ReadResourceTypes ?? destination.ResourceTypes).Contains(type, StringComparer.Ordinal)) throw new ProcessingException("DESTINATION_RESOURCE_SCOPE_REJECTED");
         using var request = Request(HttpMethod.Get, new Uri(root, type + "?identifier=" + IdentifierQuery(system, value) + "&_count=2"));
         using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
         if (response.StatusCode != HttpStatusCode.OK) throw new ProcessingException("DESTINATION_LOOKUP_UNAVAILABLE");
@@ -109,7 +109,7 @@ public sealed class FhirDelivery : IDisposable
         return resource;
     }
     public async Task<JsonObject?> ReadExact(string reference, CancellationToken cancellation) {
-        if (!Regex.IsMatch(reference, "^[A-Z][A-Za-z0-9]{1,63}/[A-Za-z0-9.-]{1,64}$") || !destination.ResourceTypes.Contains(reference.Split('/')[0], StringComparer.Ordinal)) throw new ProcessingException("DESTINATION_RESOURCE_SCOPE_REJECTED");
+        if (!Regex.IsMatch(reference, "^[A-Z][A-Za-z0-9]{1,63}/[A-Za-z0-9.-]{1,64}$") || !(destination.ReadResourceTypes ?? destination.ResourceTypes).Contains(reference.Split('/')[0], StringComparer.Ordinal)) throw new ProcessingException("DESTINATION_RESOURCE_SCOPE_REJECTED");
         using var request = Request(HttpMethod.Get, new Uri(root, reference));
         using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
         if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Gone) return null;
@@ -118,7 +118,7 @@ public sealed class FhirDelivery : IDisposable
         if (ReferenceOf(actual) != reference) throw new ProcessingException("DESTINATION_REFERENCE_IDENTITY_MISMATCH");
         return actual;
     }
-    private static bool Equivalent(JsonObject expected, JsonObject? actual) {
+    public static bool Equivalent(JsonObject expected, JsonObject? actual) {
         if (actual is null) return false;
         bool Contains(JsonNode? left, JsonNode? right) {
             if (left is JsonObject obj && right is JsonObject other) return obj.All(p => other.ContainsKey(p.Key) && Contains(p.Value, other[p.Key]));
@@ -143,6 +143,7 @@ public sealed class FhirDelivery : IDisposable
                 continue;
             }
             if (!Regex.IsMatch(reference, "^[A-Z][A-Za-z0-9]{1,63}/[A-Za-z0-9.-]{1,64}$")) throw new ProcessingException("RECORD_LOCAL_DESTINATION_REFERENCE_REQUIRED");
+            if (!(destination.ReadResourceTypes ?? destination.ResourceTypes).Contains(reference.Split('/')[0], StringComparer.Ordinal)) throw new ProcessingException("DESTINATION_RESOURCE_SCOPE_REJECTED");
             using var request = Request(HttpMethod.Get, new Uri(root, reference)); using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
             if (response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.Gone) throw new ProcessingException("RECORD_REFERENCE_UNRESOLVED");
             if (response.StatusCode != HttpStatusCode.OK) throw new ProcessingException("DESTINATION_REFERENCE_CHECK_UNAVAILABLE");

@@ -68,8 +68,8 @@ with tempfile.TemporaryDirectory(prefix='modeller-workspace-contracts-') as temp
             profile={'resourceType':'StructureDefinition','id':'SyntheticPatient','url':'https://example.org/StructureDefinition/SyntheticPatient','version':'1.0.0','name':'SyntheticPatient','status':'draft','fhirVersion':'4.0.1','kind':'resource','abstract':False,'type':'Patient','baseDefinition':'http://hl7.org/fhir/StructureDefinition/Patient','derivation':'constraint','differential':{'element':[{'id':'Patient.identifier','path':'Patient.identifier','min':1}]}}
             model=request('/api/v1/integration/projects/synthetic/models',{'id':'synthetic-patient','standard':'FHIR','version':'1.0.0','origin':'externally-provided','content':compact(profile),'provenance':{'source':'Independent synthetic acceptance fixture'}})
             authority='urn:uuid:991c7a7a-c903-4da4-944c-23329b16797a'
-            def source_model(identifier,format,id_path,name_path):
-                definition={'schemaVersion':1,'format':format,'versions':[],'messageTypes':[],'fields':[{'name':'id','kind':'json-pointer','path':id_path,'classification':'patient-identifier'},{'name':'name','kind':'json-pointer','path':name_path,'classification':'direct-identifier'}],'patient':{'identifierField':'id','anchorField':'id','system':authority,'authoritativeRegistration':True},'relations':[]}
+            def source_model(identifier,format,id_path,name_path,versions=None,message_types=None):
+                definition={'schemaVersion':1,'format':format,'versions':versions or [],'messageTypes':message_types or [],'fields':[{'name':'id','kind':'json-pointer','path':id_path,'classification':'patient-identifier'},{'name':'name','kind':'json-pointer','path':name_path,'classification':'direct-identifier'}],'patient':{'identifierField':'id','anchorField':'id','system':authority,'authoritativeRegistration':True},'relations':[]}
                 return request('/api/v1/integration/projects/synthetic/models',{'id':identifier,'standard':'source-contract','version':'1.0.0','origin':'externally-provided','content':compact(definition),'provenance':{'source':'Explicit synthetic interface definition'}})
             source_contract=source_model('synthetic-source','json','/id','/name')
             policy={'schemaVersion':1,'identityDomain':'synthetic-hospital','destinationId':'synthetic-export','privacyPolicyRevision':0,'pseudonymisePatientIdentifiers':False,'pseudonymSystem':None,'references':[],'publications':[]}
@@ -110,10 +110,23 @@ with tempfile.TemporaryDirectory(prefix='modeller-workspace-contracts-') as temp
                 job=fixture/'job';job.mkdir();(job/'request.json').write_text(compact({'owner':owner,'projectId':'synthetic','subject':subject,'sourceId':'synthetic','file':'records.json','sourceSha256':hashlib.sha256((source/'records.json').read_bytes()).hexdigest(),'mode':'export','destinationId':None}))
                 subprocess.run(base+[args.sdk_image,'dotnet',str(ROOT/'dotnet/Modeller.Processing/bin/Release/net10.0/Modeller.Processing.dll'),'run',str(fixture/'config.json'),str(job)],check=True,capture_output=True,text=True,timeout=660)
                 held=json.loads((job/'state.json').read_text());assert (held['status'],held['held'],held['exported'])==('WAITING_DEPENDENCIES',3,0),held
-                source_fingerprint=digest(canonical(config['sources'][0]))
+                def source_connection_fingerprint(connection):
+                    part=lambda value:str(len(value.encode('utf-8')))+':'+value
+                    array=lambda values:str(len(values))+':'+''.join(map(part,values))
+                    values=[connection['id'],connection['root'],connection['format'],connection.get('identityDomain') or '',str(connection.get('trustPatientRegistration',False)).lower(),array(connection['projects']),array(connection['owners'])]
+                    return digest('modeller-source-connection/v1\n'+''.join(map(part,values)))
+                source_fingerprint=source_connection_fingerprint(config['sources'][0])
                 request('/api/v1/integration/projects/synthetic/source-trust',{'sourceSystem':'synthetic-hospital','destinationId':'synthetic-export','connectionSha256':source_fingerprint,'comment':'Synthetic fixture: reviewed exact source registration contract and configuration'})
+                inspection=fixture/'projected-inspection';inspection.mkdir();inspection_request=json.loads((job/'request.json').read_text());inspection_request['sourceContractKey']=source_contract['key'];(inspection/'request.json').write_text(compact(inspection_request))
+                inspected=subprocess.run(base+[args.sdk_image,'dotnet',str(ROOT/'dotnet/Modeller.Processing/bin/Release/net10.0/Modeller.Processing.dll'),'inspect',str(fixture/'config.json'),str(inspection)],capture_output=True,text=True,check=True,timeout=60)
+                assert 'syn-1' not in inspected.stdout and 'Synthetic One' not in inspected.stdout and 'sourceSchema' in json.loads(inspected.stdout), inspected.stdout
+                checks+=1
                 (source/'records.json').unlink()
                 subprocess.run(base+[args.sdk_image,'dotnet',str(ROOT/'dotnet/Modeller.Processing/bin/Release/net10.0/Modeller.Processing.dll'),'run',str(fixture/'config.json'),str(job)],check=True,capture_output=True,text=True,timeout=660)
+                retrieved=subprocess.run(base+[args.sdk_image,'dotnet',str(ROOT/'dotnet/Modeller.Processing/bin/Release/net10.0/Modeller.Processing.dll'),'original',str(fixture/'config.json'),str(job)],capture_output=True,text=True,check=True,timeout=60)
+                assert hashlib.sha256((job/'received-source.bin').read_bytes()).hexdigest()==json.loads((job/'request.json').read_text())['sourceSha256']
+                assert 'syn-1' not in retrieved.stdout and not (source/'records.json').exists()
+                (job/'received-source.bin').unlink();checks+=1
                 checks+=2
                 state=json.loads((job/'state.json').read_text());assert (state['status'],state['read'],state['exported'],state['rejected'],state['emitted'])==('COMPLETED_WITH_FAILURES',3,2,1,0),{'state':state,'evidence':[json.loads(p.read_text()) for p in (job/'evidence').glob('*-fhir-*.json')]}
                 assert len((job/'export.ndjson').read_text().splitlines())==2
@@ -189,6 +202,19 @@ with tempfile.TemporaryDirectory(prefix='modeller-workspace-contracts-') as temp
                     assert (reverse_state['exported'],reverse_state['rejected'],reverse_state['emitted'])==(2,0,0),reverse_state
                     backward=[json.loads(line) for line in (reverse_job/'export.ndjson').read_text().splitlines()]
                     assert [(r['identifier'][0]['value'],r['name'][0]['text']) for r in forward]==[(r['composer']['name'],r['name']['value']) for r in backward]
+                    # The actual private worker maps raw ER7 independently to each target standard.
+                    adt='MSH|^~\\&|SYNTHETIC|TEST|MODELLER|TEST|20260101120000||ADT^A01|synthetic-adt-1|P|2.5\rPID|1||syn-hl7-1^^^SYNTHETIC^MR||Example^Synthetic\r'
+                    (source/'incoming.hl7').write_bytes(adt.encode('ascii'))
+                    hl7_contract=source_model('synthetic-v2-source','hl7-v2','/model/PID/0/3/0/components/0/value','/model/PID/0/5/0/components/0/components/0/value',['2.5'],['ADT^A01'])
+                    config['sources'].append({'id':'incoming-v2','root':str(source),'format':'hl7-v2','projects':['synthetic'],'owners':[owner],'identityDomain':'synthetic-hospital','trustPatientRegistration':True});(fixture/'config.json').write_text(compact(config))
+                    for direction,base_mapping,target_model in [('source-direct-to-fhir',mapping,model),('source-to-openehr',to_ehr,template_model)]:
+                        expected=compact(output if direction=='source-direct-to-fhir' else expected_composition).replace('syn-1','syn-hl7-1').replace('Synthetic One','Example')
+                        plan=dict(base_mapping,name='raw-v2-'+direction,sourceProfileKey=hl7_contract['key'],examples=[{'synthetic':True,'input':{'id':'syn-hl7-1','name':'Example'},'expected':[json.loads(expected)]}])
+                        selection=confirmed(plan,[hl7_contract['key'],target_model['key']])
+                        directory,actual=run_job('raw-v2-'+direction,dict(native_request,subject=selection['subject'],sourceId='incoming-v2',file='incoming.hl7',sourceSha256=hashlib.sha256(adt.encode('ascii')).hexdigest()))
+                        assert (actual['exported'],actual['rejected'],actual['emitted'])==(1,0,0),actual
+                        assert len((directory/'patient-index.ndjson').read_text().splitlines())==1
+                        checks+=2
                     from concurrent.futures import ThreadPoolExecutor
                     with ThreadPoolExecutor(max_workers=2) as pool:
                         concurrent=list(pool.map(lambda name:run_job(name,native_request),['native-concurrent-one','native-concurrent-two']))

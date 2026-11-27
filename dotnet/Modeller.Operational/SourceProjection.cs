@@ -130,6 +130,6 @@ public sealed class SourceProjection
         }
         if (definition.Fields[0].Kind == "xpath") return XmlRecords(original, sourceSha, null);
         var sourceRecords = Sources.Parse(original, definition.Format);
-        return sourceRecords.Select(record => Envelope(JsonRecord(record), sourceSha, null, null) with { InputResources = definition.Format is "fhir-json" or "openehr-json" ? new JsonArray(record.DeepClone()) : null }).ToList();
+        return sourceRecords.Select(record => Envelope(JsonRecord(record), sourceSha, null, null) with { InputResources = definition.Format is "fhir-json" or "openehr-json" ? new JsonArray((definition.Format == "openehr-json" && record["composition"] is JsonObject composition ? composition : record).DeepClone()) : null }).ToList();
     }
 }

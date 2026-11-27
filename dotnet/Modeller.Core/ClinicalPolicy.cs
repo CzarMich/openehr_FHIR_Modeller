@@ -20,7 +20,7 @@ public sealed record ClinicalPolicy(int SchemaVersion, string IdentityDomain, st
         var paths = new HashSet<string>(StringComparer.Ordinal);
         foreach (var reference in result.References) {
             if (reference is null || !Regex.IsMatch(reference.Role ?? "", "^[A-Za-z][A-Za-z0-9_]{0,63}$") || !Regex.IsMatch(reference.TargetType ?? "", "^[A-Z][A-Za-z0-9]{1,63}$")
-                || reference.Mode is not ("logical" or "literal" or "resolve-literal") || string.IsNullOrWhiteSpace(reference.Path) || !reference.Path.StartsWith('/') || reference.Path.Length > 2048
+                || reference.Role == "patient" && reference.TargetType != "Patient" || reference.Mode is not ("logical" or "literal" or "resolve-literal") || string.IsNullOrWhiteSpace(reference.Path) || !reference.Path.StartsWith('/') || reference.Path.Length > 2048
                 || reference.Path.Any(char.IsControl) || !paths.Add(reference.Path) || reference.Mode != "logical" && !reference.RequireDestination) throw new ProcessingException("CLINICAL_REFERENCE_POLICY_INVALID");
         }
         if (paths.Any(path => paths.Any(other => other != path && other.StartsWith(path + '/', StringComparison.Ordinal)))) throw new ProcessingException("CLINICAL_REFERENCE_PATH_OVERLAP");

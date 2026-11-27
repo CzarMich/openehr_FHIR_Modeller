@@ -16,6 +16,24 @@ import { join, resolve, basename } from "node:path";
 import { problem } from "./personal-http.mjs";
 
 const hash = (value) => createHash("sha256").update(value).digest("hex");
+function sourceFingerprint(source) {
+    const part = (value) => Buffer.byteLength(value, "utf8") + ":" + value;
+    const array = (values) => values.length + ":" + values.map(part).join("");
+    return hash(
+        "modeller-source-connection/v1\n" +
+            [
+                source.id,
+                source.root,
+                source.format,
+                source.identityDomain || "",
+                source.trustPatientRegistration ? "true" : "false",
+                array(source.projects),
+                array(source.owners),
+            ]
+                .map(part)
+                .join(""),
+    );
+}
 const LIMIT = 16 * 1024 * 1024;
 const ids = /^[a-f0-9]{64}$/;
 const projectId = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$/;
@@ -46,6 +64,7 @@ export class ProcessingWorkspace {
         this.launcher = launcher;
         this.clock = clock;
         this.inspectors = new Map();
+        this.originalDownloads = new Set();
         this.inspectionRequests = 0;
         this.root = join(config.dataDir, "processing");
         this.active = new Map();
@@ -209,6 +228,7 @@ export class ProcessingWorkspace {
                 id: d.id,
                 displayName: d.displayName || d.id,
                 resourceTypes: d.resourceTypes,
+                readResourceTypes: d.readResourceTypes || null,
                 projects: d.projects,
             })),
             databaseDrivers: [],
@@ -357,6 +377,7 @@ export class ProcessingWorkspace {
                         env: {
                             PATH: process.env.PATH,
                             LANG: "C.UTF-8",
+                            HTTP_CA_BUNDLE: process.env.HTTP_CA_BUNDLE,
                             DOTNET_EnableDiagnostics: "0",
                             DOTNET_GCHeapHardLimit: "0x20000000",
                             MODELLER_APPROVAL_KEYS: JSON.stringify(this.core.keys),
@@ -422,23 +443,12 @@ export class ProcessingWorkspace {
         const source = configuration.sources.find((source) => source.id === input.sourceId);
         if (!source || !policy || source.identityDomain !== policy.identityDomain)
             throw problem("Select the exact source and a confirmed mapping with its identity domain.");
-        const canonical = (value) =>
-            Array.isArray(value)
-                ? "[" + value.map(canonical).join(",") + "]"
-                : value !== null && typeof value === "object"
-                  ? "{" +
-                    Object.keys(value)
-                        .sort()
-                        .map((key) => JSON.stringify(key) + ":" + canonical(value[key]))
-                        .join(",") +
-                    "}"
-                  : JSON.stringify(value);
         return this.ticket(owner, "source-trust", {
             projectId: input.projectId,
             sourceId: input.sourceId,
             sourceSystem: policy.identityDomain,
             destinationId: policy.destinationId,
-            connectionSha256: hash(canonical(source)),
+            connectionSha256: sourceFingerprint(source),
             comment: input.comment,
         });
     }
@@ -448,24 +458,165 @@ export class ProcessingWorkspace {
             (source) => source.id === value.sourceId,
         );
         if (!source) throw problem("Source access changed. Review again.", 403);
-        const canonical = (item) =>
-            Array.isArray(item)
-                ? "[" + item.map(canonical).join(",") + "]"
-                : item !== null && typeof item === "object"
-                  ? "{" +
-                    Object.keys(item)
-                        .sort()
-                        .map((key) => JSON.stringify(key) + ":" + canonical(item[key]))
-                        .join(",") +
-                    "}"
-                  : JSON.stringify(item);
-        if (hash(canonical(source)) !== value.connectionSha256)
+        if (sourceFingerprint(source) !== value.connectionSha256)
             throw problem("Source configuration changed. Review again.", 409);
         return this.core.request(session, "POST", "/api/v1/integration/projects/" + value.projectId + "/source-trust", {
             sourceSystem: value.sourceSystem,
             destinationId: value.destinationId,
             connectionSha256: value.connectionSha256,
             comment: value.comment,
+        });
+    }
+    async recoveryContext(session, jobId, record) {
+        if (!Number.isInteger(record) || record < 1 || record > 10000)
+            throw problem("Choose a record number from the private job report.");
+        const owner = this.owner(session),
+            directory = this.jobDirectory(owner, jobId),
+            request = json(join(directory, "request.json"));
+        this.source(owner, request.projectId, request.sourceId);
+        const mapping = await this.selection(session, request.projectId, request.subject);
+        const policy = JSON.parse(mapping.executionMapping).clinicalPolicy;
+        if (!policy) throw problem("This historical job requires a newly reviewed clinical mapping.", 409);
+        const rowFile = join(directory, "row-" + String(record - 1).padStart(6, "0") + ".json");
+        if (!existsSync(rowFile)) throw problem("The private record checkpoint is unavailable.", 404);
+        const row = json(rowFile);
+        if (!ids.test(row.pendingId || "")) throw problem("This record has no durable queue admission.", 409);
+        const scope = {
+            sourceSystem: policy.identityDomain,
+            destinationId: policy.destinationId,
+            pendingId: row.pendingId,
+        };
+        const target = "/api/v1/integration/projects/" + request.projectId + "/pending/";
+        const pending = await this.core.request(session, "POST", target + "inspect", scope);
+        if (pending.sourceSha256 !== request.sourceSha256 || pending.mappingSubject !== request.subject)
+            throw problem("The original source or mapping changed.", 409);
+        return { request, pending, scope, target };
+    }
+    async previewPatientResolution(session, input) {
+        fields(input, ["jobId", "record", "patientSystem", "patientValue", "comment"]);
+        if (
+            ![input.patientSystem, input.patientValue, input.comment].every(
+                (value) => typeof value === "string" && value.trim(),
+            ) ||
+            input.patientSystem.length > 2000 ||
+            input.patientValue.length > 512 ||
+            input.comment.length > 4000
+        )
+            throw problem("Provide the verified assigning authority, patient identifier and review reason.");
+        const context = await this.recoveryContext(session, input.jobId, input.record);
+        if (context.pending.patientIdentityPresent)
+            throw problem(
+                "This record already has a patient identity; reassignment requires a separate clinical correction.",
+                409,
+            );
+        return this.ticket(this.owner(session), "patient-resolution", {
+            ...input,
+            expectedRevision: context.pending.revision,
+            sourceSha256: context.pending.sourceSha256,
+            pendingId: context.pending.id,
+            projectId: context.request.projectId,
+            scope: context.scope,
+        });
+    }
+    async commitPatientResolution(session, token) {
+        const value = this.take(session, token, "patient-resolution"),
+            context = await this.recoveryContext(session, value.jobId, value.record);
+        if (
+            context.pending.id !== value.pendingId ||
+            context.pending.revision !== value.expectedRevision ||
+            context.pending.sourceSha256 !== value.sourceSha256
+        )
+            throw problem("The held record changed. Review the identity decision again.", 409);
+        return this.core.request(session, "POST", context.target + "resolve-patient", {
+            ...context.scope,
+            expectedRevision: value.expectedRevision,
+            sourceSha256: value.sourceSha256,
+            patientSystem: value.patientSystem,
+            patientValue: value.patientValue,
+            comment: value.comment,
+        });
+    }
+    async previewRelationshipResolution(session, input) {
+        fields(input, ["jobId", "record", "role", "identifierSystem", "identifierValue", "comment"]);
+        if (
+            ![input.role, input.identifierSystem, input.identifierValue, input.comment].every(
+                (value) => typeof value === "string" && value.trim(),
+            ) ||
+            input.role.length > 64 ||
+            input.identifierSystem.length > 2000 ||
+            input.identifierValue.length > 512 ||
+            input.comment.length > 4000
+        )
+            throw problem("Provide the missing source role, verified identifier and review reason.");
+        const context = await this.recoveryContext(session, input.jobId, input.record);
+        return this.ticket(this.owner(session), "relationship-resolution", {
+            ...input,
+            expectedRevision: context.pending.revision,
+            sourceSha256: context.pending.sourceSha256,
+            pendingId: context.pending.id,
+        });
+    }
+    async commitRelationshipResolution(session, token) {
+        const value = this.take(session, token, "relationship-resolution"),
+            context = await this.recoveryContext(session, value.jobId, value.record);
+        if (
+            context.pending.id !== value.pendingId ||
+            context.pending.revision !== value.expectedRevision ||
+            context.pending.sourceSha256 !== value.sourceSha256
+        )
+            throw problem("The held relationship changed. Review it again.", 409);
+        return this.core.request(session, "POST", context.target + "resolve-relationship", {
+            ...context.scope,
+            expectedRevision: value.expectedRevision,
+            sourceSha256: value.sourceSha256,
+            role: value.role,
+            identifierSystem: value.identifierSystem,
+            identifierValue: value.identifierValue,
+            comment: value.comment,
+        });
+    }
+    async previewRecovery(session, input) {
+        fields(input, ["jobId", "record", "action", "comment"]);
+        if (
+            !["confirm", "retry-missing"].includes(input.action) ||
+            typeof input.comment !== "string" ||
+            !input.comment.trim() ||
+            input.comment.length > 4000
+        )
+            throw problem("Choose a recovery action and record your reason.");
+        const context = await this.recoveryContext(session, input.jobId, input.record);
+        const result = await this.core.request(session, "POST", context.target + "recover", {
+            ...context.scope,
+            expectedRevision: context.pending.revision,
+            sourceSha256: context.pending.sourceSha256,
+            comment: input.comment,
+            action: "check",
+        });
+        return this.ticket(this.owner(session), "recovery", {
+            ...input,
+            expectedRevision: result.revision,
+            sourceSha256: context.pending.sourceSha256,
+            pendingId: context.pending.id,
+            projectId: context.request.projectId,
+            scope: context.scope,
+            destinationEvidence: result,
+        });
+    }
+    async commitRecovery(session, token) {
+        const value = this.take(session, token, "recovery"),
+            context = await this.recoveryContext(session, value.jobId, value.record);
+        if (
+            context.pending.id !== value.pendingId ||
+            context.pending.revision !== value.expectedRevision ||
+            context.pending.sourceSha256 !== value.sourceSha256
+        )
+            throw problem("Recovery evidence changed. Check the destination again.", 409);
+        return this.core.request(session, "POST", context.target + "recover", {
+            ...context.scope,
+            expectedRevision: value.expectedRevision,
+            sourceSha256: value.sourceSha256,
+            comment: value.comment,
+            action: value.action,
         });
     }
     async previewJob(session, input) {
@@ -509,6 +660,7 @@ export class ProcessingWorkspace {
                 projects: d.projects,
                 owners: d.owners,
                 resourceTypes: d.resourceTypes,
+                readResourceTypes: d.readResourceTypes || null,
             })),
         };
     }
@@ -601,6 +753,7 @@ export class ProcessingWorkspace {
         const env = {
             PATH: process.env.PATH,
             LANG: "C.UTF-8",
+            HTTP_CA_BUNDLE: process.env.HTTP_CA_BUNDLE,
             DOTNET_ENVIRONMENT: "Production",
             DOTNET_EnableDiagnostics: "0",
             DOTNET_GCHeapHardLimit: "0x20000000",
@@ -687,6 +840,85 @@ export class ProcessingWorkspace {
         this.active.get(owner + ":" + id)?.child.kill("SIGTERM");
         return this.status(owner, id);
     }
+    async original(session, id) {
+        this.checkQuota(session);
+        if (this.active.size + this.inspectionRequests >= 2) throw problem("Private workers are busy.", 429);
+        const owner = this.owner(session),
+            directory = this.jobDirectory(owner, id),
+            request = json(join(directory, "request.json"));
+        if (this.active.has(owner + ":" + id))
+            throw problem("Wait for this job to stop before downloading its received source.", 409);
+        const downloadKey = owner + ":" + id;
+        if (this.originalDownloads.has(downloadKey)) throw problem("This received source is already downloading.", 409);
+        this.inspectionRequests++;
+        this.originalDownloads.add(downloadKey);
+        let complete = false;
+        try {
+            this.source(owner, request.projectId, request.sourceId);
+            await this.core.request(session, "GET", "/api/v1/integration/projects/" + request.projectId);
+            const configuration = join(directory, "configuration.original.json");
+            save(configuration, this.configuration(owner, request.projectId));
+            await new Promise((resolve, reject) => {
+                const child = this.launcher(this.config.integrationWorker, ["original", configuration, directory], {
+                    env: {
+                        PATH: process.env.PATH,
+                        LANG: "C.UTF-8",
+                        HTTP_CA_BUNDLE: process.env.HTTP_CA_BUNDLE,
+                        DOTNET_EnableDiagnostics: "0",
+                        DOTNET_GCHeapHardLimit: "0x20000000",
+                        MODELLER_APPROVAL_KEYS: JSON.stringify(this.core.keys),
+                        MODELLER_APPROVAL_KEY_ID: this.config.reviewKeyId,
+                    },
+                    stdio: ["ignore", "pipe", "pipe"],
+                    shell: false,
+                });
+                this.inspectors.set("original:" + owner + ":" + id, child);
+                const timer = setTimeout(() => child.kill("SIGTERM"), 30000);
+                timer.unref();
+                let error = "",
+                    ended = false;
+                child.stdout.resume();
+                child.stderr.on("data", (chunk) => {
+                    if (error.length < 256) error += chunk.toString();
+                });
+                const end = (code) => {
+                    if (ended) return;
+                    ended = true;
+                    clearTimeout(timer);
+                    this.inspectors.delete("original:" + owner + ":" + id);
+                    if (code === 0) resolve();
+                    else
+                        reject(
+                            problem(
+                                "Private source retrieval failed (" +
+                                    (/^[A-Z0-9_]+\s*$/.test(error) ? error.trim() : "HELD_SOURCE_UNAVAILABLE") +
+                                    ").",
+                                422,
+                            ),
+                        );
+                };
+                child.once("exit", end);
+                child.once("error", () => end(1));
+            });
+            const file = join(directory, "received-source.bin"),
+                stat = lstatSync(file);
+            if (
+                !stat.isFile() ||
+                stat.isSymbolicLink() ||
+                stat.size > LIMIT ||
+                hash(readFileSync(file)) !== request.sourceSha256
+            )
+                throw problem("The received source failed its integrity check.", 503);
+            complete = true;
+            return file;
+        } finally {
+            this.inspectionRequests--;
+            if (!complete) this.originalDownloads.delete(downloadKey);
+        }
+    }
+    releaseOriginal(session, id) {
+        this.originalDownloads.delete(this.owner(session) + ":" + id);
+    }
     report(session, id) {
         const directory = this.jobDirectory(this.owner(session), id);
         return {
@@ -699,8 +931,15 @@ export class ProcessingWorkspace {
     }
     download(session, id, kind = "export") {
         const directory = this.jobDirectory(this.owner(session), id);
-        if (!["export", "quarantine"].includes(kind)) throw problem("Unsupported download.");
-        const file = join(directory, kind === "export" ? "export.ndjson" : "quarantine.ndjson");
+        if (!["export", "quarantine", "patient-index"].includes(kind)) throw problem("Unsupported download.");
+        const file = join(
+            directory,
+            kind === "export"
+                ? "export.ndjson"
+                : kind === "patient-index"
+                  ? "patient-index.ndjson"
+                  : "quarantine.ndjson",
+        );
         if (!existsSync(file)) throw problem("No completed export is available.", 409);
         return file;
     }

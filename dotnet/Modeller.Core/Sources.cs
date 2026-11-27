@@ -58,7 +58,7 @@ public static class Sources
     }
     private static List<JsonObject> OpenEhrRecords(JsonNode? value) {
         var records = value is JsonObject composition ? new List<JsonObject> { composition } : JsonRecords(value);
-        if (records.Any(record => record["_type"]?.GetValue<string>() != "COMPOSITION")) throw new ProcessingException("OPENEHR_COMPOSITION_REQUIRED");
+        if (records.Any(record => record["_type"]?.GetValue<string>() != "COMPOSITION" && record["composition"]?["_type"]?.GetValue<string>() != "COMPOSITION")) throw new ProcessingException("OPENEHR_COMPOSITION_REQUIRED");
         return records; // Declared RM shape only; the exact-template validator must still run.
     }
     private static List<JsonObject> FhirRecords(JsonNode? value) {

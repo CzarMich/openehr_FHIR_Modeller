@@ -39,8 +39,13 @@ public sealed class IdentityRegistry : IDisposable
         connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = file, Mode = SqliteOpenMode.ReadWriteCreate, Pooling = false }.ToString());
         connection.Open();
         using var command = connection.CreateCommand();
-        command.CommandText = "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS operational_records(scope TEXT NOT NULL, kind TEXT NOT NULL, id TEXT NOT NULL, revision INTEGER NOT NULL, payload BLOB NOT NULL, PRIMARY KEY(scope,kind,id)); CREATE TABLE IF NOT EXISTS operational_processing_state(policy_scope TEXT NOT NULL,record_scope TEXT NOT NULL,id TEXT NOT NULL,state TEXT NOT NULL,PRIMARY KEY(record_scope,id));";
+        command.CommandText = "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS operational_records(scope TEXT NOT NULL, kind TEXT NOT NULL, id TEXT NOT NULL, revision INTEGER NOT NULL, payload BLOB NOT NULL, PRIMARY KEY(scope,kind,id)); CREATE TABLE IF NOT EXISTS operational_processing_state(policy_scope TEXT NOT NULL,record_scope TEXT NOT NULL,id TEXT NOT NULL,state TEXT NOT NULL,intake_scope TEXT NOT NULL DEFAULT '',PRIMARY KEY(record_scope,id));";
         command.ExecuteNonQuery();
+        using (var schema = connection.CreateCommand()) {
+            schema.CommandText = "SELECT name FROM pragma_table_info('operational_processing_state')";
+            var columns = new List<string>(); using (var rows = schema.ExecuteReader()) while (rows.Read()) columns.Add(rows.GetString(0));
+            if (!columns.Contains("intake_scope", StringComparer.Ordinal)) { schema.CommandText = "ALTER TABLE operational_processing_state ADD COLUMN intake_scope TEXT NOT NULL DEFAULT ''"; schema.ExecuteNonQuery(); }
+        }
         try {
             using var transaction = Transaction();
             var marker = Read<StoreMarker>("store", "metadata", "key-proof", transaction);
@@ -54,6 +59,7 @@ public sealed class IdentityRegistry : IDisposable
         } catch { Dispose(); throw; }
         if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(file, UnixFileMode.UserRead | UnixFileMode.UserWrite);
     }
+    private sealed record PatientAnchor(string RegistryId);
     private sealed record SharedPseudonym(string Value);
     private sealed record PseudonymOwner(string SourceScope, string RegistryId);
     private sealed record StoreMarker(int Version, string Purpose);
@@ -74,10 +80,10 @@ public sealed class IdentityRegistry : IDisposable
         _ = Scope(scope);
         return Index("destination-privacy/v1\n" + JsonSerializer.Serialize(new { scope.ProjectId, scope.DestinationId }, Data.Json));
     }
-    internal void BindProcessingState(OperationalScope scope, string recordScope, string id, string state, SqliteTransaction transaction) {
+    internal void BindProcessingState(OperationalScope scope, string recordScope, string id, string state, string intakeScope, SqliteTransaction transaction) {
         using var command = connection.CreateCommand(); command.Transaction = transaction;
-        command.CommandText = "INSERT INTO operational_processing_state(policy_scope,record_scope,id,state) VALUES($policy,$scope,$id,$state) ON CONFLICT(record_scope,id) DO UPDATE SET policy_scope=excluded.policy_scope,state=excluded.state";
-        command.Parameters.AddWithValue("$policy", PolicyScope(scope)); command.Parameters.AddWithValue("$scope", recordScope); command.Parameters.AddWithValue("$id", id); command.Parameters.AddWithValue("$state", state); command.ExecuteNonQuery();
+        command.CommandText = "INSERT INTO operational_processing_state(policy_scope,record_scope,id,state,intake_scope) VALUES($policy,$scope,$id,$state,$intake) ON CONFLICT(record_scope,id) DO UPDATE SET policy_scope=excluded.policy_scope,state=excluded.state,intake_scope=excluded.intake_scope";
+        command.Parameters.AddWithValue("$policy", PolicyScope(scope)); command.Parameters.AddWithValue("$scope", recordScope); command.Parameters.AddWithValue("$id", id); command.Parameters.AddWithValue("$state", state); command.Parameters.AddWithValue("$intake", intakeScope); command.ExecuteNonQuery();
     }
     internal string Index(string value) => Convert.ToHexStringLower(HMACSHA256.HashData(indexKey, Encoding.UTF8.GetBytes(value)));
     internal string PatientKey(ClinicalIdentity identity) { Identity(identity); return Index(JsonSerializer.Serialize(identity, Data.Json)); }
@@ -115,6 +121,13 @@ public sealed class IdentityRegistry : IDisposable
         command.CommandText = "INSERT INTO operational_records(scope,kind,id,revision,payload) VALUES($scope,$kind,$id,$revision,$payload) ON CONFLICT(scope,kind,id) DO UPDATE SET revision=excluded.revision,payload=excluded.payload";
         command.Parameters.AddWithValue("$scope", scope); command.Parameters.AddWithValue("$kind", kind); command.Parameters.AddWithValue("$id", id); command.Parameters.AddWithValue("$revision", revision); command.Parameters.AddWithValue("$payload", bytes); command.ExecuteNonQuery();
     }
+    internal long ActivePendingCount(string token, string intakeScope, SqliteTransaction transaction) {
+        using var command = connection.CreateCommand(); command.Transaction = transaction;
+        command.CommandText = "SELECT COUNT(*) FROM operational_processing_state WHERE record_scope=$scope AND intake_scope=$intake AND state NOT IN ($delivered,$cancelled,$expired)";
+        command.Parameters.AddWithValue("$scope", token); command.Parameters.AddWithValue("$intake", intakeScope);
+        command.Parameters.AddWithValue("$delivered", "DELIVERED"); command.Parameters.AddWithValue("$cancelled", "CANCELLED"); command.Parameters.AddWithValue("$expired", "EXPIRED");
+        return Convert.ToInt64(command.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture);
+    }
     internal string[] RecordIds(string scope, string kind, SqliteTransaction transaction) {
         using var command = connection.CreateCommand(); command.Transaction = transaction;
         command.CommandText = "SELECT id FROM operational_records WHERE scope=$scope AND kind=$kind ORDER BY id LIMIT 5001";
@@ -131,7 +144,7 @@ public sealed class IdentityRegistry : IDisposable
         if (before.Revision != expectedRevision) throw new ProcessingException("PRIVACY_POLICY_REVISION_CONFLICT");
         if (before.PseudonymisePatientIdentifiers == pseudonymise && before.PseudonymSystem == (pseudonymise ? pseudonymSystem : null)) { transaction.Commit(); return before; }
         using (var active = connection.CreateCommand()) {
-            active.Transaction = transaction; active.CommandText = "SELECT COUNT(*) FROM operational_processing_state WHERE policy_scope=$policy AND state IN ('LEASED','RECONCILIATION_REQUIRED')";
+            active.Transaction = transaction; active.CommandText = "SELECT COUNT(*) FROM operational_processing_state WHERE policy_scope=$policy AND state IN ('LEASED','RECONCILING','RECONCILIATION_REQUIRED')";
             active.Parameters.AddWithValue("$policy", token);
             if (Convert.ToInt64(active.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture) != 0) throw new ProcessingException("PRIVACY_POLICY_ACTIVE_PROCESSING");
         }
@@ -161,11 +174,19 @@ public sealed class IdentityRegistry : IDisposable
     }
     private sealed record SourceTrust(string ConnectionSha256, string ActorId, string Comment, DateTimeOffset ConfirmedAt);
     public bool PatientSourceAuthorised(OperationalScope scope, string connectionSha256) => Read<SourceTrust>(Scope(scope), "source-trust", connectionSha256)?.ConnectionSha256 == connectionSha256;
+    internal RegisteredPatient? FindByAnchor(OperationalScope scope, string anchor, SqliteTransaction transaction) {
+        Text(anchor, 512); var token = Scope(scope);
+        var binding = Read<PatientAnchor>(token, "patient-anchor", Index(anchor), transaction);
+        return binding is null ? null : PatientById(token, binding.RegistryId, transaction);
+    }
     public RegisteredPatient? FindPatient(OperationalScope scope, ClinicalIdentity identity) => Read<RegisteredPatient>(Scope(scope), "patient", PatientKey(identity));
     public RegisteredPatient RegisterVerifiedPatient(OperationalScope scope, ClinicalIdentity identity, string sourcePatientAnchor, string evidenceSha256) {
         var token = Scope(scope); var id = PatientKey(identity); Text(sourcePatientAnchor, 512);
         if (!System.Text.RegularExpressions.Regex.IsMatch(evidenceSha256, "^[a-f0-9]{64}$")) throw new ProcessingException("VERIFIED_PATIENT_EVIDENCE_REQUIRED");
         using var transaction = Transaction(); var before = Read<RegisteredPatient>(token, "patient", id, transaction);
+        var anchorOwner = FindByAnchor(scope, sourcePatientAnchor, transaction);
+        if (anchorOwner is not null && anchorOwner.SourceIdentity != identity) throw new ProcessingException("PATIENT_IDENTIFIER_CHANGE_REVIEW_REQUIRED");
+
         if (before is not null) {
             if (before.SourcePatientAnchor != sourcePatientAnchor || before.State != "VERIFIED") throw new ProcessingException("PATIENT_IDENTITY_CONFLICT");
             transaction.Commit(); return before;
@@ -192,6 +213,7 @@ public sealed class IdentityRegistry : IDisposable
         var patient = new RegisteredPatient(registryId, identity, sourcePatientAnchor, pseudonym, "VERIFIED", evidenceSha256, DateTimeOffset.UtcNow);
         Write(token, "patient", id, 1, patient, transaction);
         Write(token, "patient-by-registry-id", Index(patient.RegistryId), 1, patient, transaction);
+        Write(token, "patient-anchor", Index(sourcePatientAnchor), 1, new PatientAnchor(patient.RegistryId), transaction);
         transaction.Commit(); return patient;
     }
     public ClinicalIdentity OutboundPatientIdentity(OperationalScope scope, ClinicalIdentity sourceIdentity, int confirmedPolicyRevision) {

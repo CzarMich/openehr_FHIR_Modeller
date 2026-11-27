@@ -419,6 +419,98 @@
                     <div id="channels"></div>
                     <h3>Selected job report</h3>
                     <pre id="report"></pre>
+                    <details id="recovery-panel">
+                        <summary>Review held identities and uncertain delivery</summary>
+                        <p>
+                            Identity resolution and delivery recovery require a fresh approver or administrator review.
+                            These controls change private processing state; they do not create clinical approval.
+                        </p>
+                        <label
+                            >Private job
+                            <select id="recovery-job"></select
+                        ></label>
+                        <button id="recovery-report-load">Load private checkpoints</button>
+                        <pre id="recovery-report"></pre>
+                        <label
+                            >Record number <input id="recovery-record" type="number" min="1" max="10000" value="1"
+                        /></label>
+                        <details>
+                            <summary>Resolve a missing patient identifier</summary>
+                            <p>
+                                Choose an existing verified patient. This action preserves the original input and does
+                                not create a patient or reassign a record that already has an identity.
+                            </p>
+                            <label
+                                >Patient assigning authority
+                                <input
+                                    id="resolve-patient-system"
+                                    maxlength="2000"
+                                    autocomplete="off"
+                                    spellcheck="false"
+                            /></label>
+                            <label
+                                >Verified patient identifier
+                                <input id="resolve-patient-value" maxlength="512" autocomplete="off" spellcheck="false"
+                            /></label>
+                            <label
+                                >Identity review reason
+                                <textarea id="resolve-patient-comment" maxlength="4000" rows="3"></textarea>
+                            </label>
+                            <button id="resolve-patient-preview">Review patient identity decision</button>
+                        </details>
+                        <details>
+                            <summary>Resolve a missing relationship identifier</summary>
+                            <p>
+                                The destination must contain an exact matching resource belonging to the verified
+                                patient. Existing relationships are preserved.
+                            </p>
+                            <label
+                                >Source relation role
+                                <input id="resolve-relation-role" maxlength="64" placeholder="encounter"
+                            /></label>
+                            <label
+                                >Identifier assigning authority
+                                <input
+                                    id="resolve-relation-system"
+                                    maxlength="2000"
+                                    autocomplete="off"
+                                    spellcheck="false"
+                            /></label>
+                            <label
+                                >Verified relationship identifier
+                                <input
+                                    id="resolve-relation-value"
+                                    maxlength="512"
+                                    autocomplete="off"
+                                    spellcheck="false"
+                            /></label>
+                            <label
+                                >Relationship review reason
+                                <textarea id="resolve-relation-comment" maxlength="4000" rows="3"></textarea>
+                            </label>
+                            <button id="resolve-relation-preview">Review relationship decision</button>
+                        </details>
+                        <details>
+                            <summary>Reconcile an uncertain write or review a failed attempt</summary>
+                            <p>
+                                The server checks the authorised destination against the complete saved delivery plan.
+                                Existing conflicting content stays blocked. A retry sends only missing conditional
+                                creates after your explicit confirmation.
+                            </p>
+                            <label
+                                >Recovery action
+                                <select id="recovery-action">
+                                    <option value="confirm">Confirm verified delivery</option>
+                                    <option value="retry-missing">Retry missing conditional creates</option>
+                                </select></label
+                            >
+                            <label
+                                >Recovery review reason
+                                <textarea id="recovery-comment" maxlength="4000" rows="3"></textarea>
+                            </label>
+                            <button id="recovery-preview">Check destination and review recovery</button>
+                        </details>
+                    </details>
                 </section>
                 <section id="sharing-step" role="tabpanel" aria-labelledby="tab-sharing" tabindex="0" hidden>
                     <h2 id="sharing-heading">Shared channel groups</h2>

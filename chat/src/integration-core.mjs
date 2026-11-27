@@ -43,6 +43,7 @@ export class IntegrationCore {
             nativeKeyFile: this.config.integrationNativeKeyFile,
             operationalRoot: join(this.config.dataDir, "integration-operational"),
             operationalKeyFile,
+            connectionsFile: this.config.integrationConnectionsFile || null,
             runtimeFiles: [
                 join(dirname(this.config.integrationWorker), "Modeller.Processing.dll"),
                 join(dirname(this.config.integrationWorker), "Modeller.Operational.dll"),
@@ -59,6 +60,7 @@ export class IntegrationCore {
         const env = {
             PATH: process.env.PATH,
             LANG: "C.UTF-8",
+            HTTP_CA_BUNDLE: process.env.HTTP_CA_BUNDLE,
             DOTNET_ENVIRONMENT: "Production",
             DOTNET_EnableDiagnostics: "0",
             DOTNET_GCHeapHardLimit: "0x18000000",
@@ -109,7 +111,7 @@ export class IntegrationCore {
     async request(session, method, target, input) {
         if (!this.ready) throw problem("The C# modelling service is unavailable.", 503);
         if (
-            !/^\/api\/v1\/integration\/(?:projects(?:\/[A-Za-z0-9][A-Za-z0-9_.-]{0,63}(?:\/(?:models|mappings|reuse|source-trust|destinations\/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}\/privacy))?)?|mappings\/[a-f0-9]{64}(?:\/decisions)?|execute)$/.test(
+            !/^\/api\/v1\/integration\/(?:projects(?:\/[A-Za-z0-9][A-Za-z0-9_.-]{0,63}(?:\/(?:models|mappings|reuse|source-trust|pending\/(?:inspect|resolve-patient|resolve-relationship|recover)|destinations\/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}\/privacy))?)?|mappings\/[a-f0-9]{64}(?:\/decisions)?|execute)$/.test(
                 target,
             )
         )

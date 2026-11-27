@@ -443,3 +443,124 @@ test("HL7 upload selection is explicit and a missing identity domain cannot sile
         f.close();
     }
 });
+test("private recovery reviews bind actor, record revision and original hash before dispatch", async () => {
+    const f = fixture();
+    try {
+        const requests = [];
+        let revision = 7;
+        f.workspace.recoveryContext = async (_session, jobId, record) => {
+            assert.equal(jobId, "synthetic-job");
+            assert.equal(record, 1);
+            return {
+                request: { projectId: "lab" },
+                pending: { id: "c".repeat(64), revision, sourceSha256: "d".repeat(64), patientIdentityPresent: false },
+                scope: { pendingId: "c".repeat(64), sourceSystem: "hospital", destinationId: "fhir" },
+                target: "/api/v1/integration/projects/lab/pending/",
+            };
+        };
+        f.core.request = async (_session, _method, target, body) => {
+            requests.push({ target, body });
+            return { revision: ++revision, state: "RECONCILIATION_REQUIRED", verifiedPresent: 1, missing: 1 };
+        };
+        const input = {
+            jobId: "synthetic-job",
+            record: 1,
+            patientSystem: "urn:synthetic:patient",
+            patientValue: "000001",
+            comment: "Reviewed original registration evidence",
+        };
+        const patient = await f.workspace.previewPatientResolution(f.session, input);
+        await assert.rejects(f.workspace.commitPatientResolution({ identity: "another" }, patient.confirmation));
+        assert.equal(requests.length, 0);
+        const current = await f.workspace.previewPatientResolution(f.session, input);
+        revision++;
+        await assert.rejects(f.workspace.commitPatientResolution(f.session, current.confirmation), /changed/);
+        assert.equal(requests.length, 0);
+        const accepted = await f.workspace.previewPatientResolution(f.session, input);
+        await f.workspace.commitPatientResolution(f.session, accepted.confirmation);
+        assert.equal(requests[0].body.patientValue, "000001");
+        assert.equal(requests[0].body.sourceSha256, "d".repeat(64));
+        const recovery = await f.workspace.previewRecovery(f.session, {
+            jobId: "synthetic-job",
+            record: 1,
+            action: "retry-missing",
+            comment: "Only retry outputs verified absent",
+        });
+        assert.equal(requests[1].body.action, "check");
+        assert.equal(requests.length, 2);
+        await f.workspace.commitRecovery(f.session, recovery.confirmation);
+        assert.equal(requests[2].body.action, "retry-missing");
+        await assert.rejects(f.workspace.commitRecovery(f.session, recovery.confirmation), /expired/);
+        assert.equal(requests.length, 3);
+    } finally {
+        f.close();
+    }
+});
+test("relationship review cannot silently follow a changed held record", async () => {
+    const f = fixture();
+    try {
+        let revision = 2,
+            writes = 0;
+        f.workspace.recoveryContext = async () => ({
+            pending: { id: "c".repeat(64), revision, sourceSha256: "d".repeat(64) },
+            scope: {},
+            target: "/pending/",
+        });
+        f.core.request = async (_session, _method, target, body) => {
+            writes++;
+            assert.equal(target, "/pending/resolve-relationship");
+            assert.equal(body.role, "encounter");
+        };
+        const input = {
+            jobId: "synthetic-job",
+            record: 1,
+            role: "encounter",
+            identifierSystem: "urn:synthetic:encounter",
+            identifierValue: "001",
+            comment: "Verified actual same-patient Encounter",
+        };
+        const stale = await f.workspace.previewRelationshipResolution(f.session, input);
+        revision++;
+        await assert.rejects(f.workspace.commitRelationshipResolution(f.session, stale.confirmation), /changed/);
+        assert.equal(writes, 0);
+        const current = await f.workspace.previewRelationshipResolution(f.session, input);
+        await f.workspace.commitRelationshipResolution(f.session, current.confirmation);
+        assert.equal(writes, 1);
+    } finally {
+        f.close();
+    }
+});
+
+test("source trust review fingerprints Unicode connection metadata exactly", async () => {
+    const f = fixture();
+    try {
+        const source = {
+            id: 'source-é+"',
+            root: '/synthetic/医院+"',
+            format: "json",
+            projects: ["lab"],
+            owners: ["owner"],
+            identityDomain: "hospital-é",
+            trustPatientRegistration: false,
+        };
+        f.workspace.selection = async () => ({
+            executionMapping: JSON.stringify({
+                clinicalPolicy: { identityDomain: "hospital-é", destinationId: "fhir" },
+            }),
+        });
+        f.workspace.configuration = () => ({ sources: [source] });
+        f.core.request = async (_session, _method, _target, body) => {
+            assert.equal(body.connectionSha256, "d206ae7fab0a75d3235ea629932f621d4128c634ccb712e303ef3da2f3714a41");
+            return {};
+        };
+        const ticket = await f.workspace.previewSourceTrust(f.session, {
+            projectId: "lab",
+            subject: f.subject,
+            sourceId: source.id,
+            comment: "Reviewed exact synthetic registration interface",
+        });
+        await f.workspace.commitSourceTrust(f.session, ticket.confirmation);
+    } finally {
+        f.close();
+    }
+});

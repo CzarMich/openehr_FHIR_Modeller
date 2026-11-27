@@ -220,10 +220,20 @@ function reviewOperation(kind, result) {
     pending = { kind, token: result.confirmation };
     $("confirmation-detail").textContent = pretty(result.summary);
     $("confirmation").hidden = false;
+    activateTab(
+        workflowTabs.find((tab) => tab.getAttribute("aria-controls") === "run-step"),
+        true,
+    );
     notice("Review the exact source, mapping and destination, then confirm.");
 }
 async function jobs() {
     const [jobs, channels] = await Promise.all([api("jobs"), api("channels")]);
+    options(
+        $("recovery-job"),
+        jobs.items,
+        (item) => item.id,
+        (item) => item.id.slice(0, 12) + " · " + item.status,
+    );
     $("jobs").replaceChildren();
     for (const job of jobs.items) {
         const row = document.createElement("div"),
@@ -258,6 +268,8 @@ async function jobs() {
         for (const [kind, label] of [
             ["download", "Validated export"],
             ["quarantine", "Private quarantine"],
+            ["original", "Received source"],
+            ["patient-index", "Patient association index"],
         ]) {
             const link = document.createElement("a");
             link.href = "/chat/api/integration/jobs/" + job.id + "/" + kind;
@@ -369,7 +381,8 @@ $("upload").onclick = () =>
                 "Content-Type": "application/octet-stream",
                 "X-Model-Project": project(),
                 "X-Source-Format": $("source-format").value,
-                "X-Source-Name": file.name,
+                "X-Source-Name": encodeURIComponent(file.name),
+                "X-Source-Name-Encoding": "uri",
                 "X-Source-Domain": encodeURIComponent($("source-domain").value),
             },
         });
@@ -417,12 +430,22 @@ $("commit").onclick = () =>
         pending = null;
         $("confirmation").hidden = true;
         await api(value.kind + "/commit", { confirmation: value.token });
+        $("confirmation-detail").textContent = "";
+        if (value.kind === "patient-resolution") {
+            $("resolve-patient-value").value = "";
+            $("resolve-patient-comment").value = "";
+        }
+        if (value.kind === "relationship-resolution") {
+            $("resolve-relation-value").value = "";
+            $("resolve-relation-comment").value = "";
+        }
         await jobs();
         notice("Operation confirmed. Review status in Jobs & monitoring.");
     });
 $("dismiss").onclick = () => {
     pending = null;
     $("confirmation").hidden = true;
+    $("confirmation-detail").textContent = "";
 };
 $("jobs-refresh").onclick = () => run(jobs);
 run(async () => {
@@ -833,5 +856,49 @@ $("source-trust-review").onclick = () =>
             comment: $("source-trust-comment").value,
         });
         reviewOperation("source-trust", result);
+        activateTab($("tab-run"));
+    });
+
+$("recovery-report-load").onclick = () =>
+    run(async () => {
+        const job = $("recovery-job").value;
+        if (!/^[a-f0-9]{64}$/.test(job)) throw new Error("Choose a private job.");
+        $("recovery-report").textContent = pretty(await api("jobs/" + job + "/report"));
+    });
+$("resolve-patient-preview").onclick = () =>
+    run(async () => {
+        const result = await api("patient-resolution/preview", {
+            jobId: $("recovery-job").value,
+            record: Number($("recovery-record").value),
+            patientSystem: $("resolve-patient-system").value,
+            patientValue: $("resolve-patient-value").value,
+            comment: $("resolve-patient-comment").value,
+        });
+        reviewOperation("patient-resolution", result);
+        activateTab($("tab-run"));
+    });
+$("recovery-preview").onclick = () =>
+    run(async () => {
+        const result = await api("recovery/preview", {
+            jobId: $("recovery-job").value,
+            record: Number($("recovery-record").value),
+            action: $("recovery-action").value,
+            comment: $("recovery-comment").value,
+        });
+        reviewOperation("recovery", result);
+        activateTab($("tab-run"));
+    });
+
+$("resolve-relation-preview").onclick = () =>
+    run(async () => {
+        const result = await api("relationship-resolution/preview", {
+            jobId: $("recovery-job").value,
+            record: Number($("recovery-record").value),
+            role: $("resolve-relation-role").value,
+            identifierSystem: $("resolve-relation-system").value,
+            identifierValue: $("resolve-relation-value").value,
+            comment: $("resolve-relation-comment").value,
+        });
+        reviewOperation("relationship-resolution", result);
         activateTab($("tab-run"));
     });
