@@ -58,3 +58,13 @@ Native ADL 2/AOM/RM validation, AQL syntax parsing and OPT 2 output checks, plus
 `model_project_qa` checks one exact repository revision. It verifies source integrity, project lifecycle, freshness and recorded provenance, follows an explicit requirements graph, resolves protected validation/human-review events, and checks saved compiler evidence. Build verification includes output hashes, compiler profile, exact dependency revisions/hashes and canonical build identity. Historical source queries can use matching historical build evidence, while still reporting that the source is no longer current.
 
 Recorded requirements/provenance are modeller assertions. Authentic review presence does not mean a current approval; an unqualified validation event remains unqualified. Checks requiring an unavailable model-aware resolver remain explicitly unexecuted. This operation never modifies models or grants clinical approval/release eligibility. Evidence is based on observed repository and ledger reads, not a distributed snapshot transaction.
+
+## Current document profiles and bounded comparison
+
+The C# document operation is a preflight check. `model_validate` reports separate `parse_valid`, `structurally_valid` and stage results. Well-formed generic XML can be valid within its requested syntax-only scope. A passing OET/OPT, FLAT or STRUCTURED shape leaves overall `valid` unset and release eligibility false. ADL header recognition is not a grammar parse. Use the named native-engine operations with the exact dependencies for compiler/parser evidence.
+
+The implementation checks typed OET placements, supported namespaces, explicit references, occurrence/cardinality bounds without integer overflow, simplified field/occurrence/raw-object shapes and ambiguous JSON. XML processing has a 64-level depth boundary and 20,000-element limit. These bounded profiles do not establish RM membership, inherited constraints, terminology suitability or clinical meaning.
+
+`model_diff` compares explicit XML projections and classifies changes to identities, paths, RM types, cardinalities, terminology, units, descriptions and other fields. Only unique explicit node/archetype identities support a move classification. The response returns at most 1,000 entries per change map and semantic-difference list, with `truncated`/`complete` indicators; narrow inputs when truncated. Inherited model semantics remain unresolved.
+
+[Document profiles](../dotnet/Modeller.Application/DocumentProfiles.cs), [XML comparison](../dotnet/Modeller.Application/XmlModelDiff.cs), [domain cases](../dotnet/Modeller.Application.Tests/DocumentProfileTests.cs) and the packaged product smoke workflow substantiate this scope.

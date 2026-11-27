@@ -1,0 +1,23 @@
+using System.Text.Json.Nodes;
+using Modeller.Application;
+using Modeller.Core;
+static class TerminologyBindingTests
+{
+    public static async Task Run(string root,Action<bool,string> check){
+        var repository=new SnapshotRepository(Path.Combine(root,"term-binding-fixture"));using var remote=new RemoteDefinitions();var actor=new ModellingIdentity("synthetic","shared",true,[],false,["modeller"]);var workspace=new TerminologyWorkspace(repository,actor,remote);async Task<JsonObject> Call(string name,JsonObject args)=>(JsonObject)await workspace.Execute(name,args,CancellationToken.None);
+        JsonObject Binding()=>new(){["id"]="binding-1",["artifact"]="template.oet",["node"]="/data/items[at0001]",["strength"]="REQUIRED",["system"]="https://example.org/codes",["value_set"]="set-1",["value_set_version"]="1",["codes"]=new JsonArray("A")};
+        JsonObject Set()=>new(){["id"]="set-1",["system"]="https://example.org/codes",["version"]="1",["concepts"]=new JsonArray(new JsonObject{["code"]="A",["display"]="Synthetic A",["parents"]=new JsonArray()},new JsonObject{["code"]="B",["display"]="Synthetic B",["parents"]=new JsonArray("A")})};
+        const string model="<template><Rule path=\"/data/items[at0001]\"/></template>";
+        JsonObject Args(JsonObject? binding=null,JsonObject? set=null,string? xml=null)=>new(){["binding"]=binding??Binding(),["valueSet"]=set??Set(),["model"]=xml??model};
+        var result=await Call("terminology_binding_validate",Args());check(result["valid"] is null&&result["terminology_valid"]?.GetValue<bool>()==true&&result["status"]?.GetValue<string>()=="PARTIAL","local membership and explicit target do not imply native binding validity");
+        var inactive=Set();inactive["concepts"]![0]!["inactive"]=true;check((await Call("terminology_binding_validate",Args(set:inactive)))["terminology_valid"]?.GetValue<bool>()==false,"inactive local code rejected");
+        var wrong=Binding();wrong["value_set_version"]="2";check((await Call("terminology_binding_validate",Args(wrong)))["valid"]?.GetValue<bool>()==false,"binding requires exact value-set version");
+        var ambiguous=await Call("terminology_binding_validate",Args(xml:"<template><Rule path=\"/data/items[at0001]\"/><Rule path=\"/data/items[at0001]\"/></template>"));check(ambiguous["errors"]!.AsArray().Any(error=>error?.GetValue<string>()=="BINDING_TARGET_AMBIGUOUS"),"duplicate explicit binding target requires disambiguation");
+        var located=Binding();located["target_location"]="/1/2";check((await Call("terminology_binding_validate",Args(located,xml:"<template><Rule path=\"/data/items[at0001]\"/><Rule path=\"/data/items[at0001]\"/></template>")))["target_locations"]!.AsArray().Count==1,"explicit element location resolves only the intended target");
+        var manifest=await Call("terminology_manifest",new JsonObject{["artifact"]="template.oet",["bindings"]=new JsonArray(Binding(),new JsonObject{["artifact"]="other.oet"})});check(manifest["terminology_dependencies"]!.AsArray().Count==1&&manifest["terminology_dependencies"]![0]!["codes"] is null,"manifest contains declared dependencies for the selected artifact only");
+        check((await Call("terminology_manifest",new JsonObject{["artifact"]="unbound.oet",["bindings"]=new JsonArray()}))["terminology_dependencies"]!.AsArray().Count==0,"unbound template has explicit empty dependencies");
+        var before=Set();var after=Set();after["version"]="2";after["concepts"]![0]!["inactive"]=true;after["concepts"]![0]!["replacement"]="B";after["concepts"]![1]!["parents"]=new JsonArray();var diff=await Call("terminology_diff",new JsonObject{["before"]=before,["after"]=after});check(diff["inactive"]![0]?.GetValue<string>()=="A"&&diff["replacements"]!.AsArray().Count==1&&diff["codes_replaced_automatically"]?.GetValue<bool>()==false,"terminology changes propose review without replacing codes");check(diff["hierarchy"]?["removed"]?.AsArray().Count==1&&diff["hierarchy"]?["status"]?.GetValue<string>()=="COMPARED_DECLARED_RELATIONSHIPS","only declared parent edges are compared");
+        var incomplete=Set();((JsonObject)incomplete["concepts"]![0]!).Remove("parents");check((await Call("terminology_diff",new JsonObject{["before"]=Set(),["after"]=incomplete}))["hierarchy"]?["status"]?.GetValue<string>()=="NOT_COMPARABLE","missing relationships do not imply an unchanged hierarchy");
+        var duplicate=Set();duplicate["concepts"]!.AsArray().Add(duplicate["concepts"]![0]!.DeepClone());try{await Call("terminology_diff",new JsonObject{["before"]=Set(),["after"]=duplicate});throw new Exception("Duplicate concept accepted");}catch(ProcessingException error){check(error.Code=="VALUE_SET_CONCEPT_INVALID","duplicate concept identities rejected");}
+    }
+}

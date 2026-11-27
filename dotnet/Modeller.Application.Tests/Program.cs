@@ -58,5 +58,8 @@ try{
     FhirTerminologyTests.Run(Check);
     RemoteDefinitionTests.Run(Check);
     await OptionalRepositoryTests.Run(root,Check);
+    await DocumentProfileTests.Run(Check);
+    await TerminologyBindingTests.Run(root,Check);
+    await BindingPlanTests.Run(root,Check);
     Console.WriteLine(new JsonObject{["suite"]="application-domain-and-security",["status"]="PASS",["checks"]=checks,["clinicalData"]=false}.ToJsonString());
 }finally{SqliteConnection.ClearAllPools();Directory.Delete(root,true);}

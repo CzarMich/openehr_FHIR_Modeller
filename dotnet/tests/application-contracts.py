@@ -82,7 +82,7 @@ def verify(url):
     print(json.dumps({'suite':'full-modelling-application','status':'PASS','checks':checks,'publishedTools':len(actual),'resources':len(resources),'clinicalData':False}))
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('--url');parser.add_argument('--dll');parser.add_argument('--sdk-image');parser.add_argument('--image');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('--url');parser.add_argument('--dll');parser.add_argument('--sdk-image');parser.add_argument('--image');parser.add_argument('--product-smoke',action='store_true');args=parser.parse_args()
     if args.url:
         assert urllib.parse.urlsplit(args.url).hostname in ['127.0.0.1','localhost'],'Run these mutating synthetic probes only against an isolated loopback fixture.'
         verify(args.url);return
@@ -104,6 +104,8 @@ def main():
                 except (urllib.error.URLError,TimeoutError):time.sleep(.1)
             else:raise AssertionError('Application readiness timed out')
             verify(url)
+            if args.product_smoke:
+                subprocess.run(['python3',str(ROOT/'scripts/mcp-smoke.py'),'--url',url,'--without-terminology','--writes','--evidence',str(fixture/'product-smoke.json')],env=environment,check=True)
         finally:
             process.terminate()
             try:process.wait(timeout=10)

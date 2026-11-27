@@ -8,8 +8,8 @@ Tests establish the behaviour and scope of the exact revision being checked. A s
 |---|---|---|
 | Application build | `make compile` | Locked C# dependencies, compiler warnings as errors |
 | Requirement drift | `python3 scripts/spec-check.py`; `python3 scripts/spec-check-test.py` | Current IDs, paths, ADRs and derived matrix |
-| Application domain | `dotnet/Modeller.Application.Tests` through the pinned SDK | Repository revisions/concurrency, exact imports, governance, traceability, saved build evidence, terminology response/version semantics |
-| Primary MCP | `dotnet/tests/application-contracts.py` | Published tool/resource/prompt metadata, actual resource bytes and synthetic operations over HTTP |
+| Application domain | `dotnet/Modeller.Application.Tests` through the pinned SDK | Repository revisions/concurrency, exact imports, governance, traceability, saved build evidence, staged document profiles, XML differences and terminology/binding-plan freshness |
+| Primary MCP | `dotnet/tests/application-contracts.py` | Published tool/resource/prompt metadata, actual resource bytes and synthetic operations over HTTP; `--product-smoke` also runs the independent draft/catalogue/binding/traceability workflow |
 | Human/authentication adapters | `dotnet/tests/application-auth-contracts.py` and `dotnet/tests/workspace-contracts.py` | Verified identity, project rights, request-bound human proof, fresh writes, exact confirmation and read-only reuse |
 | Mapping/private worker | `dotnet/Modeller.Processing.Tests` | Exact arithmetic, source structure, executable examples, confirmation/revocation, reuse invalidation, export and delivery state |
 | Internal audit cutover | `dotnet/tests/storage-contracts.py` | Consistent SQLite backup, exact PostgreSQL event/hash/nonce import, idempotence, conflict rollback and restart persistence |

@@ -105,7 +105,7 @@ jobs:
       - name: Verify actual packaged application and human authentication
         run: |
           test "$(docker inspect --format '{{.Config.User}}' modeller-primary-ci:${{ github.sha }})" = '1000:1000'
-          python3 dotnet/tests/application-contracts.py --image modeller-primary-ci:${{ github.sha }}
+          python3 dotnet/tests/application-contracts.py --image modeller-primary-ci:${{ github.sha }} --product-smoke
           python3 dotnet/tests/application-auth-contracts.py --image modeller-primary-ci:${{ github.sha }}
       - name: Verify real authenticated terminology operation compatibility
         run: python3 dotnet/tests/terminology-contracts.py --image modeller-primary-ci:${{ github.sha }} --evidence "$RUNNER_TEMP/terminology-acceptance.json"

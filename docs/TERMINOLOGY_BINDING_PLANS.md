@@ -65,3 +65,11 @@ Secure XML parsing rejects DTDs, entities, malformed and oversized input. Inspec
 ## Verification
 
 `TerminologyBindingPlanTest` covers all three repository contracts, exact-source preservation, revision conflicts, history, new-edition and source staleness, named queries, OPT references, namespace confusion, entities, bounded inspection, local-code ambiguity, scoped aliases and write access. The independent HTTP MCP smoke client exercises inspection, planning, saving, stale-write rejection and stale-evidence detection. Browser tests verify confirmation includes both source and plan revisions. These checks do not prove native binding round trips through an OPT compiler; that acceptance gate belongs to the engine integration.
+
+## Current runtime verification
+
+The C# implementation preserves explicit OET choices/exclusions and named queries, OPT coded lists/references, declared aliases and pinned project catalogue evidence. Existing named queries stay named queries; they are not guessed FHIR canonicals. Multiple candidate editions remain ambiguous, and a local CodeSystem edition is required for local code validation. Plans do not change the model or confer approval.
+
+Saving recomputes the plan server-side against the exact model revision. Reading a saved plan compares its complete analysis, original source and catalogue snapshot with current state. New catalogue editions, source changes or edited plan content produce `STALE_OR_MODIFIED`; unavailable context produces `NOT_EXECUTED`. Retrieving or regenerating this deterministic evidence requires no AI call.
+
+Limits are 100 catalogue records, 10 MiB of catalogue input, 50,000 concepts and a 2 MiB encoded plan. The explicit inspector bounds slots/references/findings and source codings. Unsupported formats and inherited terminology semantics remain explicit rather than being inferred. See [the implementation](../dotnet/Modeller.Application/TerminologyBindingPlans.cs) and [functional cases](../dotnet/Modeller.Application.Tests/BindingPlanTests.cs).

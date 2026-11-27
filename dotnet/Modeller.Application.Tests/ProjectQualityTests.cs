@@ -14,7 +14,7 @@ static class ProjectQualityTests
         using var engine = new StandardsGateway(); using var remote = new RemoteDefinitions();
         var quality = new ProjectQuality(repo, actor, engine, remote);
         var metadata = new JsonObject { ["provenance"] = new JsonObject { ["source"] = "Synthetic QA fixture" } };
-        var source = repo.Save(project, "templates/qa.oet", "<template><definition /></template>", metadata, null);
+        var source = repo.Save(project, "templates/qa.oet", "<template xmlns=\"openEHR/v1/Template\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><id>QA</id><name>Synthetic QA</name><definition xsi:type=\"COMPOSITION\" archetype_id=\"openEHR-EHR-COMPOSITION.synthetic.v1\" /></template>", metadata, null);
         JsonObject Args(JsonObject s) => new() { ["project"] = project, ["path"] = s["path"]!.DeepClone(), ["revision"] = s["revision"]!.DeepClone() };
         string Status(JsonObject report, string name) => ((JsonArray)report["checks"]!).OfType<JsonObject>().First(c => c["name"]!.GetValue<string>() == name)["status"]!.GetValue<string>();
         var empty = await quality.Evaluate(Args(source), CancellationToken.None);
