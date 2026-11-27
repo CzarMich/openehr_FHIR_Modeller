@@ -87,3 +87,12 @@ The node in this example is a placeholder and must be replaced with an actual mo
 The optional ADL 2 engine preserves component terminologies in generated OPT 2. Mechanical terminology-constraint checks are distinct from external terminology membership validation; compilation does not require a terminology server. See [compiler profiles](OPT_COMPILATION.md).
 
 The legacy OET compiler keeps original ADL 1.4 typed system/version/code bindings and multilingual component ontologies in OPT 1.4 XML. It does not use URLs inferred by ADL 2 conversion or silently invent external versions. This preservation does not apply or clinically validate new bindings. [Legacy profile](LEGACY_OPT_COMPILATION.md).
+
+
+## C# external operation verification
+
+The C# adapter uses authenticated GET operations against the configured HTTPS terminology server. Canonicals identify resources on that server and are not fetched as arbitrary URLs. FHIR R4 parameter handling follows [CodeSystem validation](https://hl7.org/fhir/R4/codesystem-operation-validate-code.html), [ValueSet expansion](https://hl7.org/fhir/R4/valueset-operation-expand.html) and [ConceptMap translation](https://hl7.org/fhir/R4/conceptmap-operation-translate.html).
+
+ValueSet, CodeSystem and ConceptMap versions have separate request/response evidence. Missing version evidence remains unconfirmed; a contradictory version fails the operation. Repeated designations/properties/matches are retained. Expansion pages, hierarchical results, size-only requests, unclosed sets and incomplete search results are not presented as complete value sets. Returned search links are not automatically followed. Translation candidates require review and are never applied by a terminology lookup.
+
+`dotnet/tests/terminology-contracts.py` verifies the actual MCP adapter against a disposable authenticated HTTPS fixture, covering lookup, positive/negative membership, independent versions, expansion paging, translation review and exact resource discovery. It can use an already compiled SDK runtime or a hosted-CI-built primary image. It creates temporary synthetic keys and certificates, requires no operator security key, and does not use a hospital server or perform attack testing. This is adapter compatibility evidence, not clinical qualification or evidence of per-record enrichment in an operational channel.
