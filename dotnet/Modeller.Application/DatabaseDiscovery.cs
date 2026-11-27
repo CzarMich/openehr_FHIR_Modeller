@@ -6,10 +6,10 @@ namespace Modeller.Application;
 
 public static class DatabaseDiscovery
 {
-    public static async Task<JsonNode> Execute(string name,JsonObject args,ModellingIdentity actor,CancellationToken cancellation){
+    public static async Task<JsonNode> Execute(string name,JsonObject args,ModellingIdentity actor,SnapshotRepository repository,CancellationToken cancellation){
         if(Environment.GetEnvironmentVariable("SOURCE_DATABASE_ENABLED")!="true")throw new ProcessingException("SOURCE_DATABASE_DISABLED");
         var project=Data.Required(args,"project");actor.Read(project);
-        var id=Data.Required(args,"sourceProfile");var root=Environment.GetEnvironmentVariable("SOURCE_DATABASE_PROFILES_DIR")??"/run/secrets/source-databases";
+        var id=SourceDiscoveryJobs.SqlProfile(repository,project,Data.Required(args,"jobId"));var root=Environment.GetEnvironmentVariable("SOURCE_DATABASE_PROFILES_DIR")??"/run/secrets/source-databases";
         var profile=SqlSourceProfile.Load(root,id,actor.Tenant,project);using var timeout=CancellationTokenSource.CreateLinkedTokenSource(cancellation);timeout.CancelAfter(TimeSpan.FromSeconds(45));
         await using var source=await SqlServerSource.Open(profile,timeout.Token);var catalogue=await source.Discover(timeout.Token);
         var fingerprint=catalogue.Fingerprint;

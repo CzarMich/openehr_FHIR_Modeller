@@ -63,7 +63,15 @@ def verify(url):
     client.tool('model_artifact_save',{'project':project,'path':'requirements/approved.md','content':'Synthetic','metadata':{'approved_by':'agent'}},error=True);checks+=1
     for name,args in [('aql_execute',{'connection_id':'synthetic','query':'SELECT e FROM EHR e LIMIT 1'}),('aql_history',{}),('aql_saved_get',{'id':'0'*32})]:
         result=client.tool(name,args,error=True);assert result['structuredContent']['error']['code']=='CDR_BROWSER_ONLY';checks+=1
-    disabled=client.tool('source_database_discover',{'project':project,'sourceProfile':'synthetic'},error=True);assert json.loads(disabled['content'][0]['text'])['error']['code']=='SOURCE_DATABASE_DISABLED';checks+=1
+    connectors=client.tool('source_connectors')['connectors'];assert len([c for c in connectors if c['family']=='database'])>=5 and {'epic-fhir','sap-bw','fhir-api','clinical-rest-api'} <= {c['id'] for c in connectors};checks+=1
+    for connector in connectors:
+        job=client.tool('source_discovery_job_create',{'project':project,'connector':connector['id'],'sourceProfile':'synthetic','purpose':'Synthetic discovery of resource source candidates','userNarrative':'Preserve vendor-specific schema evidence; do not infer clinical meaning or include patient rows.'})
+        assert job['job']['state']=='PLANNED' and not job['executionAuthorised'] and not job['clinicalApproval'];checks+=1
+        assert client.tool('source_discovery_job_get',{'project':project,'jobId':job['job']['id']})==job;checks+=1
+        failure=client.tool('source_discovery_job_run',{'project':project,'jobId':job['job']['id'],'expectedRevision':job['revision']},error=True)
+        code=json.loads(failure['content'][0]['text'])['error']['code'];assert code==('SOURCE_DATABASE_DISABLED' if connector['id']=='sqlserver' else 'SOURCE_CONNECTOR_NOT_QUALIFIED');checks+=1
+    assert len(client.tool('source_discovery_jobs',{'project':project})['items'])==len(connectors);checks+=1
+    disabled=client.tool('source_database_discover',{'project':project,'jobId':'discovery-'+'0'*32},error=True);assert json.loads(disabled['content'][0]['text'])['error']['code']=='SOURCE_DATABASE_DISABLED';checks+=1
     origin=url.removesuffix('/mcp')
     for path,headers,status in [('/mcp',{},401),('/mcp',{'X-API-Key':KEY,'Origin':'https://untrusted.invalid'},403),('/mcp',{'X-API-Key':KEY,'Host':'untrusted.invalid'},400),('/api/v1/reviews',{'X-API-Key':KEY},503),('/api/v1/projects',{},401)]:
         request=urllib.request.Request(origin+path,headers=headers)
@@ -74,7 +82,7 @@ def verify(url):
     print(json.dumps({'suite':'full-modelling-application','status':'PASS','checks':checks,'publishedTools':len(actual),'resources':len(resources),'clinicalData':False}))
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('--url');parser.add_argument('--dll');parser.add_argument('--sdk-image');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('--url');parser.add_argument('--dll');parser.add_argument('--sdk-image');parser.add_argument('--image');args=parser.parse_args()
     if args.url:
         assert urllib.parse.urlsplit(args.url).hostname in ['127.0.0.1','localhost'],'Run these mutating synthetic probes only against an isolated loopback fixture.'
         verify(args.url);return
@@ -84,6 +92,9 @@ def main():
         dll=str(Path(args.dll or ROOT/'dotnet/Modeller.Mcp/bin/Release/net10.0/Modeller.Mcp.dll').resolve());command=['dotnet',dll]
         if args.sdk_image:
             command=['docker','run','--rm','--network','host','-v',f'{ROOT}:{ROOT}:ro','-v',f'{fixture}:{fixture}']+sum((['-e',k+'='+v] for k,v in environment.items() if k not in os.environ or os.environ[k]!=v),[])+[args.sdk_image]+command
+        if args.image:
+            environment['MODELLER_RESOURCE_ROOT']='/app/resources'
+            command=['docker','run','--rm','--network','host','--user',f'{os.getuid()}:{os.getgid()}','-v',f'{fixture}:{fixture}']+sum((['-e',k+'='+v] for k,v in environment.items() if k not in os.environ or os.environ[k]!=v),[])+['--entrypoint','dotnet',args.image,'/app/Modeller.Mcp.dll']
         process=subprocess.Popen(command,env=environment,stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,text=True)
         try:
             url=f'http://127.0.0.1:{port}/mcp'

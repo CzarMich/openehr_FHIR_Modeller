@@ -10,10 +10,6 @@
           "minLength": 1,
           "maxLength": 64
         },
-        "sourceProfile": {
-          "type": "string",
-          "pattern": "^[a-z][a-z0-9-]{0,63}$"
-        },
         "query": {
           "type": "string",
           "maxLength": 128
@@ -27,11 +23,15 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 50
+        },
+        "jobId": {
+          "type": "string",
+          "pattern": "^discovery-[a-f0-9]{32}$"
         }
       },
       "required": [
         "project",
-        "sourceProfile"
+        "jobId"
       ],
       "additionalProperties": false
     },
@@ -53,10 +53,6 @@
           "minLength": 1,
           "maxLength": 64
         },
-        "sourceProfile": {
-          "type": "string",
-          "pattern": "^[a-z][a-z0-9-]{0,63}$"
-        },
         "schemaFingerprint": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
@@ -70,11 +66,15 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 2147483647
+        },
+        "jobId": {
+          "type": "string",
+          "pattern": "^discovery-[a-f0-9]{32}$"
         }
       },
       "required": [
         "project",
-        "sourceProfile",
+        "jobId",
         "schemaFingerprint",
         "tableId"
       ],
@@ -97,10 +97,6 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 64
-        },
-        "sourceProfile": {
-          "type": "string",
-          "pattern": "^[a-z][a-z0-9-]{0,63}$"
         },
         "schemaFingerprint": {
           "type": "string",
@@ -199,11 +195,15 @@
             "limit"
           ],
           "additionalProperties": false
+        },
+        "jobId": {
+          "type": "string",
+          "pattern": "^discovery-[a-f0-9]{32}$"
         }
       },
       "required": [
         "project",
-        "sourceProfile",
+        "jobId",
         "schemaFingerprint",
         "plan"
       ],
@@ -213,6 +213,167 @@
       "readOnlyHint": true,
       "destructiveHint": false,
       "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "source_connectors",
+    "description": "List explicit database and platform/API source choices with per-connector implementation and qualification status. Selection does not grant patient-data access or establish connector support.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "source_discovery_job_create",
+    "description": "Create a versioned source-selection and discovery job. Retains the exact user narrative and selected connector/profile. No clinical rows, credentials or patient-specific filter values belong in this job.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "connector": {
+          "type": "string",
+          "enum": [
+            "sqlserver",
+            "oracle",
+            "postgresql",
+            "mysql",
+            "mariadb",
+            "sap-hana",
+            "epic-fhir",
+            "sap-bw",
+            "fhir-api",
+            "clinical-rest-api"
+          ]
+        },
+        "sourceProfile": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,63}$"
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "userNarrative": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 16000
+        }
+      },
+      "required": [
+        "project",
+        "connector",
+        "sourceProfile",
+        "purpose",
+        "userNarrative"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "source_discovery_jobs",
+    "description": "List up to 100 versioned source-selection jobs in an authorised modelling project.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "project"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "source_discovery_job_get",
+    "description": "Read a versioned source-selection job and its connector qualification status. Job fields cannot authorise extraction or clinical mapping.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "jobId": {
+          "type": "string",
+          "pattern": "^discovery-[a-f0-9]{32}$"
+        }
+      },
+      "required": [
+        "project",
+        "jobId"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "source_discovery_job_run",
+    "description": "Perform qualified metadata-only discovery for the explicitly selected source job. Requires a current revision and an operator-registered read-only connection. Unqualified connector types fail closed.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "jobId": {
+          "type": "string",
+          "pattern": "^discovery-[a-f0-9]{32}$"
+        },
+        "expectedRevision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "project",
+        "jobId",
+        "expectedRevision"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
       "openWorldHint": true
     }
   }

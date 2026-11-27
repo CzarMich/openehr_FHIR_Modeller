@@ -22,7 +22,8 @@ public sealed class ModellingApplication:IDisposable
     private static string S(JsonObject o,string key,string fallback="")=>KnowledgeCorpus.Text(o,key,fallback);
     public async Task<JsonNode> Execute(string name,JsonObject args,ModellingIdentity actor,CancellationToken cancellation){
         var project=S(args,"project");if(project!="")actor.Read(project);var repository=Repository(actor);var operations=new RepositoryOperations(repository,remote);
-        if(name.StartsWith("source_database_",StringComparison.Ordinal))return await DatabaseDiscovery.Execute(name,args,actor,cancellation);
+        if(name=="source_connectors"||name.StartsWith("source_discovery_job",StringComparison.Ordinal))return await new SourceDiscoveryJobs(repository,actor).Execute(name,args,cancellation);
+        if(name.StartsWith("source_database_",StringComparison.Ordinal))return await DatabaseDiscovery.Execute(name,args,actor,repository,cancellation);
         if(name.StartsWith("ckm_",StringComparison.Ordinal))return await remote.Ckm(name,args,cancellation);
         if(name is "guide_search" or "examples_search" or "type_specification_search")return corpus.Search(name,args);
         if(name=="type_specification_get")return corpus.Type(args);
