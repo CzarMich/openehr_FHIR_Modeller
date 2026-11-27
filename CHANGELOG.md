@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Keep a visible restore button when Michael is hidden and simplify his introduction.
+
 - Standardise workspace navigation, visual styles and accessible integration workflow steps.
 
 - Complete the primary C# runtime, retain exact repository/audit contracts and retire superseded application sources.

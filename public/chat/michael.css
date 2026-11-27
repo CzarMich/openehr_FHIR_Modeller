@@ -275,3 +275,26 @@ body[data-section="chat"] .michael-character svg {
 body[data-section="chat"] .michael-panel {
     bottom: 104px;
 }
+
+/* Keep restoration outside the hidden companion and every tab panel. */
+.michael-restore {
+    position: fixed;
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    z-index: 24;
+    min-height: 44px;
+    padding: 10px 14px;
+    margin: 0;
+    border: 1px solid var(--ui-control-border, #9baec0);
+    border-radius: var(--ui-radius, 8px);
+    background: var(--ui-surface, #fff);
+    color: var(--ui-primary, #005eb8);
+    font: 600 13px/1.5 var(--ui-font, system-ui, sans-serif);
+    cursor: pointer;
+}
+.michael-restore:hover {
+    background: var(--ui-primary-soft, #e9f2fc);
+}
+.michael-restore[hidden] {
+    display: none !important;
+}
