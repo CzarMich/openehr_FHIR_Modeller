@@ -91,7 +91,7 @@ def main():
         environment={**os.environ,'MODELLER_APPLICATION_ENABLED':'true','MODELLER_RESOURCE_ROOT':str(ROOT/'resources'),'AUTH_MODE':'api_key','AUTH_API_KEY':KEY,'APP_ENV':'testing','MODEL_REPOSITORY_PATH':str(fixture/'models'),'FHIR_REPOSITORY_PATH':str(fixture/'fhir-models'),'GOVERNANCE_DATABASE_PATH':str(fixture/'audit.sqlite'),'FHIR_AUDIT_PATH':str(fixture/'fhir.sqlite'),'MODEL_REPOSITORY_WRITE_ENABLED':'true','ASPNETCORE_URLS':f'http://127.0.0.1:{port}','GOVERNANCE_ENABLED':'false','CDR_ENABLED':'false','SOURCE_DATABASE_ENABLED':'false'}
         dll=str(Path(args.dll or ROOT/'dotnet/Modeller.Mcp/bin/Release/net10.0/Modeller.Mcp.dll').resolve());command=['dotnet',dll]
         if args.sdk_image:
-            command=['docker','run','--rm','--network','host','-v',f'{ROOT}:{ROOT}:ro','-v',f'{fixture}:{fixture}']+sum((['-e',k+'='+v] for k,v in environment.items() if k not in os.environ or os.environ[k]!=v),[])+[args.sdk_image]+command
+            command=['docker','run','--rm','--user',f'{os.getuid()}:{os.getgid()}','--network','host','-v',f'{ROOT}:{ROOT}:ro','-v',f'{fixture}:{fixture}']+sum((['-e',k+'='+v] for k,v in environment.items() if k not in os.environ or os.environ[k]!=v),[])+[args.sdk_image]+command
         if args.image:
             environment['MODELLER_RESOURCE_ROOT']='/app/resources'
             command=['docker','run','--rm','--network','host','--user',f'{os.getuid()}:{os.getgid()}','-v',f'{fixture}:{fixture}']+sum((['-e',k+'='+v] for k,v in environment.items() if k not in os.environ or os.environ[k]!=v),[])+['--entrypoint','dotnet',args.image,'/app/Modeller.Mcp.dll']

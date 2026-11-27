@@ -50,7 +50,7 @@ public sealed class ModellingApplication:IDisposable
             case "model_diff":return ModelChecks.Diff(S(args,"before"),S(args,"after"));
             case "template_build_oet":return await new TemplateAuthoring(engines,remote).Build(args,cancellation);
             case "template_compile_project":actor.Write(project);return await new TemplateAuthoring(engines,remote).CompileProject(repository,args,cancellation);
-            case "model_project_qa":return await ModelChecks.Project(repository,args,engines,cancellation);
+            case "model_project_qa":return await new ProjectQuality(repository,actor,engines,remote).Evaluate(args,cancellation);
             case "model_requirements_coverage":return Traceability.Coverage(args,repository.Artifacts(project));
             case "model_repository_info":return operations.Info();
             case "model_repository_branches":return await operations.Branches(args,cancellation);

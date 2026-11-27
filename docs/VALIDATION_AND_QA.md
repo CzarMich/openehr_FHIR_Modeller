@@ -51,3 +51,10 @@ Existing tool names and envelope fields remain. Responses add stage results and 
 Run `StagedValidationTest`, `ProjectQualityTest`, the existing model/governance suites, PHPStan/spec checks and `scripts/mcp-smoke.py --writes --governance` against disposable storage. Tests cover filesystem, Git and isolated SharePoint contracts, exact source/audit links, tenant isolation, stale revisions, malicious or ambiguous input, integer overflow and bounded diagnostics. The container probe exercises the same public MCP operations as clients. Execution metadata belongs in the [verification evidence](evidence/validation-qa-verification.json).
 
 Native ADL 2/AOM/RM validation, AQL syntax parsing and OPT 2 output checks, plus a bounded OET-to-OPT 1.4 schema/RM structure profile, are available through separate engine tools. The existing `model_validate` document profiles retain their bounded scope. Compiler findings and repository evidence do not silently replace the governance validation provider. See [OPT compilation](OPT_COMPILATION.md).
+
+
+## Exact-source project QA in the C# runtime
+
+`model_project_qa` checks one exact repository revision. It verifies source integrity, project lifecycle, freshness and recorded provenance, follows an explicit requirements graph, resolves protected validation/human-review events, and checks saved compiler evidence. Build verification includes output hashes, compiler profile, exact dependency revisions/hashes and canonical build identity. Historical source queries can use matching historical build evidence, while still reporting that the source is no longer current.
+
+Recorded requirements/provenance are modeller assertions. Authentic review presence does not mean a current approval; an unqualified validation event remains unqualified. Checks requiring an unavailable model-aware resolver remain explicitly unexecuted. This operation never modifies models or grants clinical approval/release eligibility. Evidence is based on observed repository and ledger reads, not a distributed snapshot transaction.
