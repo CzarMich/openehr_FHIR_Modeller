@@ -18,6 +18,7 @@ Tests establish the behaviour and scope of the exact revision being checked. A s
 | CDR HTTPS | `dotnet/tests/cdr-contracts.py` | Real C# connection, catalogue array and XML retrieval, credential redaction/encryption; optional installed native-engine query checks, with metadata-only history |
 | CKM HTTPS | `dotnet/tests/ckm-contracts.py` | Actual MCP source-specific credentials, federated provenance/window totals, explicit failures and mounted credential rotation |
 | SharePoint HTTPS | `dotnet/tests/sharepoint-contracts.py` | OAuth, schema-backed immutable snapshots, historical/binary bytes, revision conflicts and new-adapter readback against a synthetic Graph contract |
+| Remote FHIR/IG HTTPS | `dotnet/tests/fhir-remote-contracts.py` | Actual IG login/health/project contracts, bounded definition summaries, original profile bytes, returned resource types and explicitly synthetic validation |
 | Browser backend | `npm --prefix chat test` | Sessions, repositories, groups/teams, privacy boundaries and integration orchestration |
 | Browser UI | `npm --prefix chat run test:browser` | User workflows, exact reviews, sharing, reuse and viewport behaviour using synthetic fixtures |
 | Standards engines | `fhir` acceptance and `engine` test/fixture scripts on hosted CI | Actual compilation/validation with retained scope and exact source/dependency evidence |

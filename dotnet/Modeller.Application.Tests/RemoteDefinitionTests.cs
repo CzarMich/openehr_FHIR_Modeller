@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 using Modeller.Application;
-static class CkmScoringTests
+static class RemoteDefinitionTests
 {
     public static void Run(Action<bool,string> check){
         JsonObject Row(string name="Blood pressure",string status="PUBLISHED",string project="Custom")=>new(){["resourceMainDisplayName"]=name,["resourceMainId"]="openEHR-EHR-OBSERVATION.blood_pressure.v1",["status"]=status,["projectName"]=project};
@@ -11,6 +11,8 @@ static class CkmScoringTests
         var old=Row(status:"DRAFT");old["creationTime"]="2020-01-01T00:00:00Z";old["modificationTime"]="2021-01-01T00:00:00Z";check(Score(old)<Score(Row(status:"DRAFT")),"CKM old draft penalty retained");
         var template=Row("Other");var baseline=Score(template,false);template["resourceMainId"]="unrelated";check(baseline==Score(template,false),"CKM template ranking ignores archetype identity");
         var numeric=Row(status:"INITIAL");numeric["creationTime"]=1577836800000L;check(Score(numeric)<Score(Row(status:"INITIAL")),"CKM numeric epoch dates retain age evidence");
+        check(!RemoteDefinitions.AdvertisesValidation(new JsonObject{["resourceType"]="CapabilityStatement",["name"]="validate"}),"FHIR incidental validation text does not advertise an operation");
+        check(RemoteDefinitions.AdvertisesValidation(JsonNode.Parse("{\"resourceType\":\"CapabilityStatement\",\"rest\":[{\"mode\":\"server\",\"resource\":[{\"operation\":[{\"name\":\"validate\"}]}]}]}")!.AsObject()),"FHIR resource-level validation declaration accepted");
         var shape=Row();shape["resourceMainDisplayName"]=new JsonObject();check(Score(shape)<Score(Row()),"CKM non-scalar fields are not invented text");
     }
 }

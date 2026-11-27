@@ -42,6 +42,8 @@ jobs:
         run: python3 dotnet/tests/cdr-contracts.py --evidence "$RUNNER_TEMP/cdr-acceptance.json"
       - name: Verify SharePoint immutable repository contracts over HTTPS
         run: python3 dotnet/tests/sharepoint-contracts.py --evidence "$RUNNER_TEMP/sharepoint-acceptance.json"
+      - name: Verify remote FHIR definition and IG authentication contracts
+        run: python3 dotnet/tests/fhir-remote-contracts.py --evidence "$RUNNER_TEMP/fhir-remote-acceptance.json"
       - uses: docker/setup-buildx-action@v3
       - name: Build the independent runtime image on the hosted runner
         uses: docker/build-push-action@v6
@@ -66,6 +68,7 @@ jobs:
             ${{ runner.temp }}/dotnet-runtime-contracts.jsonl
             ${{ runner.temp }}/cdr-acceptance.json
             ${{ runner.temp }}/sharepoint-acceptance.json
+            ${{ runner.temp }}/fhir-remote-acceptance.json
 
   sql-server-safety:
     # Source write-denial/attack testing is deferred at the user's request.

@@ -21,14 +21,14 @@
       "id": "mcp-conformance",
       "status": "IMPLEMENTED",
       "scope": "Explicit supported profile, production HTTP/stdio product probes and applicable pinned official scenarios; not universal demonstration-suite certification",
-      "implementation": "src/Mcp",
+      "implementation": "dotnet/Modeller.Mcp/ApplicationHost.cs",
       "evidence": "https://github.com/CzarMich/openehr_FHIR_Modeller/blob/59c99e3/docs/evidence/protocol-verification.json"
     },
     {
       "id": "ckm",
       "status": "IMPLEMENTED",
       "scope": "Named public/authenticated CKM retrieval and bounded federated discovery with source/version provenance; isolated authentication and two live public CKMs verified",
-      "implementation": "dotnet/Modeller.Application/RemoteDefinitions.cs",
+      "implementation": "dotnet/Modeller.Application/CkmDefinitions.cs",
       "evidence": "https://github.com/CzarMich/openehr_FHIR_Modeller/blob/59c99e3/docs/evidence/ckm-verification.json"
     },
     {
@@ -49,7 +49,7 @@
       "id": "hosted-git",
       "status": "IMPLEMENTED",
       "scope": "Configured-repository metadata, branches/protection and draft reviews over shared Git; GitLab live acceptance requires credentials",
-      "implementation": "src/Integrations/Repository/Hosted",
+      "implementation": "dotnet/Modeller.Application/RepositoryOperations.cs",
       "evidence": "docs/evidence/hosted-github-acceptance.json"
     },
     {
