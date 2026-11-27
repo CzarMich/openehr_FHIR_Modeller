@@ -21,3 +21,9 @@ Do not send patient data, credentials or private job results into chat to render
 ## Verification
 
 Run `npm --prefix chat run test:browser`. The browser suite checks desktop and phone layouts, keyboard navigation, shared control styles, real asset serving, WCAG AA automated checks and the existing exact-model confirmation and channel sharing workflows using synthetic fixtures. Automated checks supplement manual review; they are not accessibility certification. Use the [testing guide](testing.md) for release gates.
+
+## Moving Leticia
+
+Hold the mouse button on Leticia and drag her anywhere within the browser window. Touch and pen input use the same gesture. A normal click still opens or closes tips; dragging does not activate a tip. Her position is remembered locally as a relative viewport position and kept inside the window after resizing or changing workspace views. Tips reposition to stay visible. The restore button remains in its familiar bottom-right location when she is hidden.
+
+Keyboard users can focus Leticia and press Alt with an arrow key to move her; Shift increases the step. **Reset position** in her tips returns her to the default corner. Movement and saved positioning use no AI calls.
