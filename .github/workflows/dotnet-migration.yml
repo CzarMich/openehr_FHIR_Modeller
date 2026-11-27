@@ -36,6 +36,11 @@ jobs:
           python3 dotnet/tests/run-contracts.py --dll dotnet/Modeller.Mcp/bin/Release/net10.0/Modeller.Mcp.dll | tee "$RUNNER_TEMP/dotnet-contracts.jsonl"
       - name: Verify protected C# workspace independently over HTTP
         run: python3 dotnet/tests/workspace-contracts.py --dll dotnet/Modeller.Mcp/bin/Release/net10.0/Modeller.Mcp.dll
+      - name: Verify the complete application protocol and authentication boundaries
+        run: |
+          python3 dotnet/tests/application-contracts.py --dll dotnet/Modeller.Mcp/bin/Release/net10.0/Modeller.Mcp.dll
+          python3 dotnet/tests/application-auth-contracts.py --dll dotnet/Modeller.Mcp/bin/Release/net10.0/Modeller.Mcp.dll
+          dotnet run --project dotnet/Modeller.Application.Tests -c Release
       - uses: docker/setup-buildx-action@v3
       - name: Build the independent runtime image on the hosted runner
         uses: docker/build-push-action@v6
