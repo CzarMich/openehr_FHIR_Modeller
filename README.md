@@ -1,4 +1,4 @@
-# openEHR and FHIR Modeller
+# openEHR Modeller
 
 Discover clinical source structures, build reusable clinical models, and define explicit mappings from source data to openEHR and FHIR. Use an MCP agent or the browser workspace to inspect source definitions,
 reuse archetypes and profiles, author templates, compile models and review the

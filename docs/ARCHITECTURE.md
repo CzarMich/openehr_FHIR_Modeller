@@ -1,6 +1,6 @@
 # Architecture
 
-The openEHR and FHIR Modeller is a C#/.NET 10 application for clinical model development, schema discovery, reviewed mapping and controlled data delivery. MCP and versioned REST adapters call shared application services. The browser supplies human identity, explicit decisions and optional access to a model provider. External MCP clients supply their own model and orchestration. Deterministic record processing does not invoke a language model for each patient record.
+The openEHR Modeller is a C#/.NET 10 application for clinical model development, schema discovery, reviewed mapping and controlled data delivery. MCP and versioned REST adapters call shared application services. The browser supplies human identity, explicit decisions and optional access to a model provider. External MCP clients supply their own model and orchestration. Deterministic record processing does not invoke a language model for each patient record.
 
 The product direction is a standards-based clinical data integration platform. That direction does not establish universal connector coverage, clinical correctness, certification, high availability or suitability for every jurisdiction. Supported operations and acceptance evidence must be evaluated separately from planned capabilities and the revision actually deployed.
 
