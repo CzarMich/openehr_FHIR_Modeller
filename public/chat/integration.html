@@ -36,27 +36,93 @@
             <h1>Integration workspace</h1>
             <p>Prepare and confirm versioned mappings, process private files and assign mappings to channels.</p>
         </div>
+        <details class="policy-note">
+            <summary>Clinical data handling: read-only sources</summary>
+            <p>
+                Clinical databases are strictly read-only. This version accepts file sources. FHIR delivery uses a
+                separately authorised HTTP API. Uploaded records stay outside the chat and model registry. Storage
+                encryption and retention are managed by your operator.
+            </p>
+        </details>
         <div class="integration-layout">
             <nav class="workflow-nav" aria-label="Integration workflow">
-                <h2>Set up and operate</h2>
-                <ol>
-                    <li><a href="#project-step">1. Project</a></li>
-                    <li><a href="#models-step">2. Models</a></li>
-                    <li><a href="#mapping-step">3. Mapping and confirmation</a></li>
-                    <li><a href="#source-step">4. Private source</a></li>
-                    <li><a href="#run-step">5. Run and channels</a></li>
-                    <li><a href="#monitor-step">Jobs and monitoring</a></li>
-                    <li><a href="#sharing-step">Groups and access</a></li>
-                </ol>
+                <div role="tablist" aria-label="Integration sections">
+                    <button
+                        type="button"
+                        role="tab"
+                        id="tab-project"
+                        aria-controls="project-step"
+                        aria-selected="true"
+                        tabindex="0"
+                    >
+                        Project
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        id="tab-models"
+                        aria-controls="models-step"
+                        aria-selected="false"
+                        tabindex="-1"
+                    >
+                        Models
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        id="tab-mapping"
+                        aria-controls="mapping-step"
+                        aria-selected="false"
+                        tabindex="-1"
+                    >
+                        Mapping &amp; review
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        id="tab-source"
+                        aria-controls="source-step"
+                        aria-selected="false"
+                        tabindex="-1"
+                    >
+                        Private source
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        id="tab-run"
+                        aria-controls="run-step"
+                        aria-selected="false"
+                        tabindex="-1"
+                    >
+                        Run &amp; channels
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        id="tab-monitor"
+                        aria-controls="monitor-step"
+                        aria-selected="false"
+                        tabindex="-1"
+                    >
+                        Jobs &amp; monitoring
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        id="tab-sharing"
+                        aria-controls="sharing-step"
+                        aria-selected="false"
+                        tabindex="-1"
+                    >
+                        Groups &amp; access
+                    </button>
+                </div>
             </nav>
             <main id="integration-content" tabindex="-1">
+                <p class="workspace-context">Current project: <strong id="active-project">None selected</strong></p>
                 <p id="notice" role="status" aria-live="polite">Checking your session…</p>
-                <p class="policy-note">
-                    <strong>Clinical databases are read-only.</strong> This version accepts file sources. FHIR delivery
-                    uses a separately authorised HTTP API. Uploaded records stay outside the chat and model registry.
-                    Storage encryption and retention are managed by your operator.
-                </p>
-                <section id="project-step" aria-labelledby="project-heading">
+                <section id="project-step" role="tabpanel" aria-labelledby="tab-project" tabindex="0">
                     <h2 id="project-heading">1. Choose a project</h2>
                     <label
                         >Project
@@ -77,11 +143,11 @@
                         </p>
                     </details>
                 </section>
-                <section id="models-step" aria-labelledby="models-heading">
+                <section id="models-step" role="tabpanel" aria-labelledby="tab-models" tabindex="0" hidden>
                     <h2 id="models-heading">2. Supply the models</h2>
                     <p>
-                        Provide the actual FHIR StructureDefinition and, for a route through openEHR or a reverse
-                        mapping, the actual openEHR template. A URL or name alone is insufficient. Agent-modelled and
+                        Provide the actual FHIR StructureDefinition for FHIR output and the actual openEHR template when
+                        openEHR is the source or target. A URL or name alone is insufficient. Agent-modelled and
                         externally provided models both require confirmation for this mapping.
                     </p>
                     <div class="grid">
@@ -111,7 +177,7 @@
                     ><button class="primary-button" id="provide-model">Provide model</button>
                     <div id="models"></div>
                 </section>
-                <section id="mapping-step" aria-labelledby="mapping-heading">
+                <section id="mapping-step" role="tabpanel" aria-labelledby="tab-mapping" tabindex="0" hidden>
                     <h2 id="mapping-heading">3. Prepare and review mapping rules</h2>
                     <p>
                         The agent can draft a mapping using the C# MCP tools. Original user instructions,
@@ -138,8 +204,7 @@
                         <label
                             >Mapping direction
                             <select id="reuse-direction">
-                                <option value="source-direct-to-fhir">Source directly to FHIR</option>
-                                <option value="source-to-fhir">Source through openEHR to FHIR</option>
+                                <option value="source-direct-to-fhir">Source to FHIR</option>
                                 <option value="fhir-to-openehr">FHIR to openEHR</option>
                             </select></label
                         >
@@ -195,7 +260,7 @@
                     ><button class="danger-button" id="revoke">Revoke confirmation</button>
                     <p>Mapping confirmation does not constitute clinical approval or successful instance validation.</p>
                 </section>
-                <section id="source-step" aria-labelledby="source-heading">
+                <section id="source-step" role="tabpanel" aria-labelledby="tab-source" tabindex="0" hidden>
                     <h2 id="source-heading">4. Inspect a private source</h2>
                     <p>
                         Upload a private file, or choose an operator-registered source folder. Inspection returns field
@@ -223,7 +288,7 @@
                     ><button id="inspect">Inspect schema</button>
                     <pre id="inspection"></pre>
                 </section>
-                <section id="run-step" aria-labelledby="run-heading">
+                <section id="run-step" role="tabpanel" aria-labelledby="tab-run" tabindex="0" hidden>
                     <h2 id="run-heading">5. Run or configure a channel</h2>
                     <label
                         >Mode
@@ -261,7 +326,7 @@
                         ><button id="dismiss">Cancel</button>
                     </div>
                 </section>
-                <section id="monitor-step" aria-labelledby="monitor-heading">
+                <section id="monitor-step" role="tabpanel" aria-labelledby="tab-monitor" tabindex="0" hidden>
                     <h2 id="monitor-heading">Jobs</h2>
                     <button id="jobs-refresh">Refresh jobs and channels</button>
                     <div id="jobs"></div>
@@ -270,7 +335,7 @@
                     <h3>Selected job report</h3>
                     <pre id="report"></pre>
                 </section>
-                <section id="sharing-step" aria-labelledby="sharing-heading">
+                <section id="sharing-step" role="tabpanel" aria-labelledby="tab-sharing" tabindex="0" hidden>
                     <h2 id="sharing-heading">Shared channel groups</h2>
                     <p>
                         Share operational channel metadata with people or reusable teams in your organisation. Monitor
