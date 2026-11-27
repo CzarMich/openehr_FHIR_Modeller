@@ -77,3 +77,26 @@ jobs:
         run: dotnet run --project dotnet/Modeller.Database.Tests -c Release
       - name: Verify SQL Server TLS, effective permissions and denied writes on synthetic data
         run: bash dotnet/tests/test-sql-server-fixture.sh
+
+  primary-runtime-image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the complete primary application on hosted CI
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          target: production
+          load: true
+          push: false
+          tags: modeller-primary-ci:${{ github.sha }}
+          cache-from: type=gha,scope=primary-dotnet
+          cache-to: type=gha,scope=primary-dotnet,mode=max
+      - name: Verify actual packaged application and human authentication
+        run: |
+          test "$(docker inspect --format '{{.Config.User}}' modeller-primary-ci:${{ github.sha }})" = '1000:1000'
+          python3 dotnet/tests/application-contracts.py --image modeller-primary-ci:${{ github.sha }}
+          python3 dotnet/tests/application-auth-contracts.py --image modeller-primary-ci:${{ github.sha }}

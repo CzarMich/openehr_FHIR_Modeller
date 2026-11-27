@@ -15,7 +15,7 @@ def request(base,path,token=None,method='GET',body=None,headers=None):
         with urllib.request.urlopen(urllib.request.Request(base+path,data=data,headers=hs,method=method),timeout=15) as r:return r.status,r.read()
     except urllib.error.HTTPError as e:return e.code,e.read()
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('--dll');parser.add_argument('--sdk-image');args=parser.parse_args();checks=0
+    parser=argparse.ArgumentParser();parser.add_argument('--dll');parser.add_argument('--sdk-image');parser.add_argument('--image');args=parser.parse_args();checks=0
     def check(value,label):
         nonlocal checks
         assert value,label;checks+=1
@@ -39,6 +39,9 @@ def main():
         env={'MODELLER_APPLICATION_ENABLED':'true','MODELLER_RESOURCE_ROOT':str(ROOT/'resources'),'AUTH_MODE':'oidc','APP_ENV':'testing','OIDC_ISSUER':issuer,'OIDC_JWKS_URI':issuer+'/keys','OIDC_AUDIENCE':'synthetic-api','OIDC_REQUIRED_SCOPES':'modelling.read','OIDC_TENANT_CLAIM':'organisation.id','OIDC_ROLES_CLAIM':'realm_access.roles','OIDC_ALLOWED_TENANTS':'one,two','OIDC_ALLOWED_CLIENT_IDS':'synthetic-client','OIDC_CLOCK_SKEW':'0','HTTP_CA_BUNDLE':str(cert),'MODEL_REPOSITORY_PATH':str(fixture/'models'),'FHIR_REPOSITORY_PATH':str(fixture/'fhir'),'MODEL_REPOSITORY_WRITE_ENABLED':'true','PROJECT_RBAC_ENABLED':'true','GOVERNANCE_DATABASE_DRIVER':'sqlite','GOVERNANCE_DATABASE_PATH':str(fixture/'audit.sqlite'),'GOVERNANCE_ENABLED':'true','GOVERNANCE_BROWSER_KEYS':json.dumps({'fixture':hmac_key}),'GOVERNANCE_BROWSER_ORIGIN':'https://browser.example.invalid','GOVERNANCE_LOCAL_IDENTITY_ISSUER':'http://localhost:18350/identity/local','GOVERNANCE_OIDC_ISSUER':issuer,'CDR_ENABLED':'false','SOURCE_DATABASE_ENABLED':'false','ASPNETCORE_URLS':base,'AUTH_API_KEY':api_key}
         dll=str(Path(args.dll or ROOT/'dotnet/Modeller.Mcp/bin/Release/net10.0/Modeller.Mcp.dll').resolve());command=['dotnet',dll]
         if args.sdk_image:command=['docker','run','--rm','--network','host','--user',f'{os.getuid()}:{os.getgid()}','-v',f'{ROOT}:{ROOT}:ro','-v',f'{fixture}:{fixture}']+sum((['-e',k+'='+v] for k,v in env.items()),[])+[args.sdk_image]+command
+        if args.image:
+            env['MODELLER_RESOURCE_ROOT']='/app/resources'
+            command=['docker','run','--rm','--network','host','--user',f'{os.getuid()}:{os.getgid()}','-v',f'{fixture}:{fixture}']+sum((['-e',k+'='+v] for k,v in env.items()),[])+['--entrypoint','dotnet',args.image,'/app/Modeller.Mcp.dll']
         process=subprocess.Popen(command,env={**os.environ,**env},stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,text=True)
         try:
             for _ in range(150):
