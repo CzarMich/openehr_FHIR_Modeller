@@ -214,6 +214,8 @@ export function createApplication(
                 "/chat/apple-touch-icon.png": ["apple-touch-icon.png", "image/png"],
                 "/": ["index.html", "text/html; charset=utf-8"],
                 "/chat/": ["index.html", "text/html; charset=utf-8"],
+                "/chat/michael.js": ["michael.js", "text/javascript"],
+                "/chat/michael.css": ["michael.css", "text/css"],
                 "/chat/workspace.js": ["workspace.js", "text/javascript"],
                 "/chat/workspace.css": ["workspace.css", "text/css"],
                 "/chat/app.js": ["app.js", "text/javascript"],

@@ -26,7 +26,7 @@ function activate(name, update = true) {
         $("panel-" + tab.dataset.tab).hidden = !active;
     }
     $("section-title").textContent = headings[name];
-    document.title = headings[name] + " · openEHR Modelling Assistant";
+    document.title = headings[name] + " · openEHR Modeller";
     if (update && location.hash !== "#" + name) history.pushState(null, "", "#" + name);
     $("sidebar").classList.remove("open");
     document.dispatchEvent(new CustomEvent("workspace:" + name));

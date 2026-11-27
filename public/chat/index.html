@@ -19,6 +19,8 @@
         <link rel="stylesheet" href="/chat/aql.css" />
         <script src="/chat/fhir.js" type="module"></script>
         <link rel="stylesheet" href="/chat/fhir.css" />
+        <link rel="stylesheet" href="/chat/michael.css" />
+        <script type="module" src="/chat/michael.js"></script>
     </head>
     <body data-section="chat">
         <a class="skip-link" href="#workspace-content">Skip to workspace</a>
@@ -906,7 +908,7 @@
                 <section id="panel-chat" role="tabpanel" aria-labelledby="tab-chat">
                     <div id="notice" role="alert" class="notice" hidden></div>
                     <section id="welcome" class="welcome">
-                        <div class="eyebrow"><span class="status-dot"></span> OPENEHR MODELLING ASSISTANT</div>
+                        <div class="eyebrow"><span class="status-dot"></span> OPENEHR MODELLER</div>
                         <h1>Your clinical modelling workspace</h1>
                         <p class="intro">
                             Discover reusable archetypes, develop templates, and prepare models for review. Start with a
@@ -2154,6 +2156,7 @@ LIMIT 100</textarea
                         <a href="#help-copilot-browser">Copilot Studio in this browser</a>
                         <a href="#help-copilot">Tools inside Copilot Studio</a>
                         <a href="#help-troubleshooting">Solve a problem</a>
+                        <a href="#help-michael">Michael and local tips</a>
                         <a href="#help-about">About and licensing</a>
                     </nav>
                     <section class="help-topic" aria-labelledby="help-fhir">
@@ -2825,6 +2828,20 @@ Help the user model openEHR artefacts in the browser workspace. Use OpenEhrWorks
                             >
                         </p>
                     </section>
+                    <section class="help-topic" aria-labelledby="help-michael">
+                        <h2 id="help-michael" tabindex="-1">Michael, your optional workspace guide</h2>
+                        <p>
+                            Michael offers short prompt-writing and token-saving tips. His guidance is stored locally in
+                            the app and uses no AI tokens. He never reads your records or conversations.
+                        </p>
+                        <button type="button" data-show-michael>Show Michael</button>
+                        <label><input type="checkbox" data-michael-still /> Keep Michael still</label>
+                        <p>
+                            Close an individual suggestion or choose <strong>Hide Michael</strong> to send him away.
+                            Preferences are remembered on this browser. Your system’s reduced-motion preference is
+                            respected.
+                        </p>
+                    </section>
                     <section class="help-topic" aria-labelledby="help-about">
                         <h2 id="help-about" tabindex="-1">About openEHR Modeller</h2>
                         <p>Independently maintained and developed by Michael Anywar.</p>
@@ -2835,14 +2852,14 @@ Help the user model openEHR artefacts in the browser workspace. Use OpenEhrWorks
                         </p>
                         <p>
                             <a
-                                href="https://github.com/CzarMich/openehr-modelling-assistant/blob/main/LICENSE"
+                                href="https://github.com/CzarMich/openehr_FHIR_Modeller/blob/main/LICENSE"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 >MIT License</a
                             >
                             ·
                             <a
-                                href="https://github.com/CzarMich/openehr-modelling-assistant/blob/main/THIRD_PARTY_NOTICES.md"
+                                href="https://github.com/CzarMich/openehr_FHIR_Modeller/blob/main/THIRD_PARTY_NOTICES.md"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 >Third-party notices</a

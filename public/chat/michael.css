@@ -1,0 +1,277 @@
+.michael-companion {
+    position: fixed;
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    z-index: 24;
+    width: 86px;
+    color: #183747;
+    font:
+        14px/1.5 system-ui,
+        sans-serif;
+    --michael-gaze-x: 0px;
+    --michael-gaze-y: 0px;
+}
+.michael-companion[hidden],
+.michael-companion [hidden] {
+    display: none !important;
+}
+.michael-character {
+    display: block;
+    width: 86px;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    color: #294052;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+.michael-character:hover {
+    background: transparent;
+    transform: none;
+}
+.michael-character svg {
+    display: block;
+    width: 78px;
+    height: 106px;
+    overflow: visible;
+    filter: drop-shadow(0 2px 2px #173b5015);
+}
+.michael-character:focus-visible {
+    outline: 3px solid #007e87;
+    outline-offset: 4px;
+    border-radius: 16px;
+}
+.michael-name {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 650;
+    letter-spacing: 0.03em;
+    background: #fffffff0;
+    border: 1px solid #dce5eb;
+    padding: 0 8px;
+    border-radius: 20px;
+}
+.michael-pupil {
+    transform: translate(var(--michael-gaze-x), var(--michael-gaze-y));
+    transition: transform 0.12s ease-out;
+}
+.michael-panel {
+    position: absolute;
+    right: 0;
+    bottom: 132px;
+    width: min(320px, calc(100vw - 2rem));
+    box-sizing: border-box;
+    padding: 22px 20px 14px;
+    background: #fff;
+    border: 1px solid #d5e4e9;
+    border-radius: 18px 18px 6px 18px;
+    box-shadow: 0 10px 40px #173b5024;
+    text-align: left;
+}
+.michael-panel::after {
+    content: "";
+    position: absolute;
+    bottom: -9px;
+    right: 35px;
+    width: 14px;
+    height: 14px;
+    background: white;
+    border-right: 1px solid #d5e4e9;
+    border-bottom: 1px solid #d5e4e9;
+    transform: rotate(45deg);
+}
+.michael-panel .michael-kicker {
+    margin: 0 20px 10px 0;
+    color: #52727e;
+    font-size: 10px;
+    letter-spacing: 0.11em;
+    font-weight: 700;
+}
+.michael-panel .michael-heading {
+    font-size: 19px;
+    line-height: 1.25;
+    margin: 0 0 9px;
+    color: #183747;
+}
+.michael-panel .michael-copy {
+    margin: 0 0 15px;
+    font-size: 13px;
+    color: #3b5663;
+}
+.michael-panel button {
+    font-family: inherit;
+    min-height: 30px;
+    border-radius: 7px;
+    font-size: 12px;
+    cursor: pointer;
+    box-shadow: none;
+}
+.michael-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #56707c;
+    font-size: 22px !important;
+}
+.michael-topics {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+.michael-topics button {
+    padding: 5px 10px;
+    background: #eef7f7;
+    color: #17636b;
+    border: 1px solid #c9e3e4;
+}
+.michael-panel-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-top: 13px;
+    padding-top: 9px;
+    border-top: 1px solid #edf1f3;
+    font-size: 10px;
+    color: #4e6672;
+}
+.michael-hide {
+    padding: 0 2px;
+    background: transparent;
+    color: #4f6c79;
+    border: 0;
+    text-decoration: underline;
+}
+.michael-panel button:focus-visible {
+    outline: 3px solid #007e87;
+    outline-offset: 2px;
+}
+.michael-arriving {
+    animation: michael-arrive 4.4s cubic-bezier(0.2, 0.65, 0.3, 1) both;
+}
+.michael-arriving .michael-body {
+    transform-origin: 50% 90%;
+    animation: michael-jog 0.2s ease-in-out infinite alternate;
+}
+.michael-arriving .michael-foot-left {
+    transform-origin: 30px 115px;
+    animation: michael-step 0.2s ease-in-out infinite alternate;
+}
+.michael-arriving .michael-foot-right {
+    transform-origin: 65px 115px;
+    animation: michael-step 0.2s ease-in-out infinite alternate-reverse;
+}
+.michael-eye,
+.michael-brow {
+    transform-box: fill-box;
+    transform-origin: center;
+}
+.michael-blink .michael-eye {
+    animation: michael-blink 0.2s ease-in-out;
+}
+.michael-curious .michael-brow-left {
+    animation: michael-curious 1s ease-in-out;
+}
+@keyframes michael-arrive {
+    0% {
+        transform: translateX(calc(-100vw - 110px));
+    }
+    87% {
+        transform: translateX(5px);
+    }
+    100% {
+        transform: translateX(0);
+    }
+}
+@keyframes michael-jog {
+    from {
+        transform: translateY(0) rotate(-3deg);
+    }
+    to {
+        transform: translateY(-3px) rotate(3deg);
+    }
+}
+@keyframes michael-step {
+    from {
+        transform: rotate(-16deg);
+    }
+    to {
+        transform: rotate(16deg);
+    }
+}
+@keyframes michael-blink {
+    50% {
+        transform: scaleY(0.1);
+    }
+}
+@keyframes michael-curious {
+    40%,
+    65% {
+        transform: translateY(-4px) rotate(-8deg);
+    }
+}
+@media (max-width: 719px) {
+    .michael-companion {
+        width: 58px;
+        right: 10px;
+        bottom: 10px;
+    }
+    .michael-character {
+        width: 58px;
+    }
+    .michael-character svg {
+        width: 52px;
+        height: 71px;
+    }
+    .michael-panel {
+        bottom: 96px;
+        right: 0;
+        max-height: calc(100dvh - 125px);
+        overflow: auto;
+    }
+    .michael-name {
+        font-size: 10px;
+    }
+}
+
+.michael-looking .michael-pupil {
+    animation: michael-look 1s ease-in-out;
+}
+@keyframes michael-look {
+    25% {
+        transform: translate(-2px, -3px);
+    }
+    60% {
+        transform: translate(2px, -3px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .michael-companion,
+    .michael-companion * {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+/* The chat composer has fixed controls near the corner: keep the parked guide below them. */
+body[data-section="chat"] .michael-companion {
+    width: 58px;
+    right: 10px;
+    bottom: 10px;
+}
+body[data-section="chat"] .michael-character {
+    width: 58px;
+}
+body[data-section="chat"] .michael-character svg {
+    width: 52px;
+    height: 71px;
+}
+body[data-section="chat"] .michael-panel {
+    bottom: 104px;
+}
