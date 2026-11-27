@@ -59,3 +59,16 @@ jobs:
           path: |
             ${{ runner.temp }}/dotnet-contracts.jsonl
             ${{ runner.temp }}/dotnet-runtime-contracts.jsonl
+
+  sql-server-safety:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.404
+      - name: Verify vendor-neutral metadata and bounded query plans
+        run: dotnet run --project dotnet/Modeller.Database.Tests -c Release
+      - name: Verify SQL Server TLS, effective permissions and denied writes on synthetic data
+        run: bash dotnet/tests/test-sql-server-fixture.sh
