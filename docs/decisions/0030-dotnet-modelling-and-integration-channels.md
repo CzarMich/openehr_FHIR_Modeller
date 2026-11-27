@@ -1,5 +1,6 @@
 # ADR-0030: C# modelling core and optional integration-engine mode
 
+> Mapping-route semantics in this decision are superseded by [ADR-0031](0031-independent-clinical-routes-and-identity.md): source → FHIR, source → openEHR, openEHR → FHIR and FHIR → openEHR are separate operations. Historical combined definitions require a new reviewed version.
 Status: accepted for implementation, 2026-11-26. Delivery status remains partial
 until the executable acceptance evidence and deployment verification are recorded.
 

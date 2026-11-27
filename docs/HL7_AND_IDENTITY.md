@@ -2,7 +2,7 @@
 
 ## Delivery status
 
-This guide describes the clinical-runtime feature branch. The released platform must not be described as supporting these operations until its exact images have passed hosted CI, actual Dev acceptance and production promotion. The branch includes HL7 readers, source projection/profile validation, a private identity/dependency store, worker admission, destination evidence checks, reviewed recovery controls and channel resumption. End-to-end acceptance and operational controls are being completed.
+This guide describes the clinical-runtime implementation: HL7 file readers, source projection/profile validation, a private identity/dependency store, worker admission, destination evidence checks, reviewed recovery controls and channel resumption. Availability in an environment requires its exact images to pass hosted CI, actual Dev acceptance and production promotion. Synthetic acceptance does not qualify a hospital interface; the remaining operational limits below still apply.
 
 ## Four independent mapping routes
 
