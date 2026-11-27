@@ -2489,6 +2489,8 @@ test("shared workspace styles load on both pages and navigation identifies the c
     );
     const sharedStyle = page.locator('link[href="/chat/design-system.css"]');
     await expect(sharedStyle).toHaveCount(1);
+    const guide = await page.locator(".sidebar-bottom a").boundingBox();
+    expect(guide.height).toBeGreaterThanOrEqual(44);
     const css = await page.request.get("/chat/design-system.css");
     expect(css.ok()).toBe(true);
     expect(css.headers()["content-type"]).toContain("text/css");
@@ -2545,4 +2547,43 @@ test("integration landmarks and shared controls pass automated WCAG AA checks", 
     await expect(page.locator("#notice")).toContainText("not enabled or ready");
     const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
     expect(result.violations).toEqual([]);
+});
+
+test("Michael can be restored after hiding and reloading in either workspace", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.addInitScript(() => {
+        if (localStorage.getItem("modeller.michael.hidden") === null)
+            localStorage.setItem("modeller.michael.hidden", "true");
+        localStorage.setItem("modeller.michael.seen", "true");
+    });
+    await page.route("**/chat/api/session", (route) =>
+        route.fulfill({ json: { authenticated: true, integrationReady: false } }),
+    );
+    for (const width of [1440, 390]) {
+        await page.setViewportSize({ width, height: 900 });
+        for (const path of ["/chat/", "/chat/integration/"]) {
+            await page.goto(path);
+            const restore = page.locator("#michael-restore");
+            const character = page.getByRole("button", { name: "Ask Michael for prompt and token tips", exact: true });
+            await expect(restore).toBeVisible();
+            await expect(character).toBeHidden();
+            await restore.click();
+            await expect(restore).toBeHidden();
+            await expect(character).toBeFocused();
+            await expect(page.getByRole("region", { name: "Michael's guidance", exact: true })).toBeVisible();
+            await page.getByRole("button", { name: "Hide Michael", exact: true }).click();
+            await expect(character).toBeHidden();
+            await expect(restore).toBeFocused();
+            expect(await restore.evaluate((button) => button.getBoundingClientRect().height)).toBeGreaterThanOrEqual(
+                44,
+            );
+            await page.reload();
+            await expect(restore).toBeVisible();
+            await expect(character).toBeHidden();
+            await restore.click();
+            await expect(character).toBeVisible();
+            expect(await page.evaluate(() => localStorage.getItem("modeller.michael.hidden"))).toBe("false");
+            await page.getByRole("button", { name: "Hide Michael", exact: true }).click();
+        }
+    }
 });

@@ -83,11 +83,19 @@ root.innerHTML = `
  <path class="michael-foot michael-foot-left" d="M32 115L24 123H17" fill="none" stroke="#435466" stroke-width="3" stroke-linecap="round"/>
  <path class="michael-foot michael-foot-right" d="M63 115L70 123H78" fill="none" stroke="#435466" stroke-width="3" stroke-linecap="round"/>
 </svg><span class="michael-name">Michael</span></button>`;
-document.body.append(root);
+const restore = document.createElement("button");
+restore.id = "michael-restore";
+restore.className = "michael-restore";
+restore.type = "button";
+restore.textContent = "Show Michael";
+restore.setAttribute("data-show-michael", "");
+restore.setAttribute("aria-controls", "michael-panel");
+restore.hidden = true;
+document.body.append(root, restore);
 const panel = root.querySelector(".michael-panel");
 const character = root.querySelector(".michael-character");
 root.prepend(character);
-let active, idleTimer, resetTimer, greetingTimer, arrivalTimer, frame, previousFocus;
+let active, idleTimer, resetTimer, greetingTimer, arrivalTimer, frame;
 let position = { x: 0, y: 0 },
     topic = "prompts";
 const next = { prompts: 0, tokens: 0 };
@@ -136,7 +144,10 @@ function stopArrival() {
 function greet() {
     if (root.hidden || preference(seenKey)) return;
     remember(seenKey, true);
-    openPanel("Hi, I’m Michael.", "I’m here to help you write clear prompts and save AI tokens—whenever you need me.");
+    openPanel(
+        "Hi, I’m Michael.",
+        "I can help you write clear prompts and save AI tokens. Ask me whenever you need a tip.",
+    );
     // No focus changes or repeated interruptions; the greeting quietly closes itself.
     greetingTimer = setTimeout(closePanel, 12000);
 }
@@ -144,6 +155,7 @@ function show() {
     active?.abort();
     active = new AbortController();
     root.hidden = false;
+    restore.hidden = true;
     remember(hiddenKey, false);
     if (motion()) {
         document.addEventListener(
@@ -183,14 +195,12 @@ function hide() {
     if (frame) cancelAnimationFrame(frame);
     frame = null;
     root.hidden = true;
+    restore.hidden = false;
     remember(hiddenKey, true);
     remember(seenKey, true);
-    if (previousFocus?.isConnected && !previousFocus.closest("[hidden]")) previousFocus.focus({ preventScroll: true });
+    restore.focus({ preventScroll: true });
 }
-root.addEventListener("focusin", (event) => {
-    clearTimeout(greetingTimer);
-    if (event.relatedTarget && !root.contains(event.relatedTarget)) previousFocus = event.relatedTarget;
-});
+root.addEventListener("focusin", () => clearTimeout(greetingTimer));
 root.addEventListener("pointerenter", () => clearTimeout(greetingTimer), { passive: true });
 character.addEventListener("click", () => {
     stopArrival();
@@ -234,8 +244,10 @@ reduced.addEventListener("change", () => {
     stopArrival();
     if (!root.hidden) show();
 });
-if (preference(hiddenKey)) root.hidden = true;
-else {
+if (preference(hiddenKey)) {
+    root.hidden = true;
+    restore.hidden = false;
+} else {
     show();
     if (!preference(seenKey) && motion() && innerWidth >= 720) {
         root.classList.add("michael-arriving");
