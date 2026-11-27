@@ -139,10 +139,11 @@ try {
     using (var registry = new IdentityRegistry(root, key)) {
         var resolutionScope = scope with { ProjectId = "manual-resolution" };
         var queue = new DependencyQueue(registry);
-        var unknown = queue.Enqueue(resolutionScope, Input("patient-identifier-not-yet-known") with { PatientIdentity = null }, now);
+        var unknown = queue.Enqueue(resolutionScope, Input("patient-identifier-not-yet-known") with { PatientIdentity = null, ExpectedPatientSystem = identity.System }, now);
         Check(unknown.State == "WAITING_PATIENT_IDENTITY", "An input with no patient ID is retained privately");
         Reject(() => queue.AttachVerifiedPatient(resolutionScope, unknown.Id, unknown.Revision, unknown.Input.SourceSha256, identity, "synthetic-human-reviewer", new string('b', 64), now), "WAITING_PATIENT_IDENTITY");
         registry.RegisterVerifiedPatient(resolutionScope, identity, "synthetic-source-row-1", new string('b', 64));
+        Reject(() => queue.AttachVerifiedPatient(resolutionScope, unknown.Id, unknown.Revision, unknown.Input.SourceSha256, identity with { System = "urn:synthetic:wrong-authority" }, "synthetic-human-reviewer", new string('b', 64), now), "PATIENT_ASSIGNING_AUTHORITY_MISMATCH");
         var resolved = queue.AttachVerifiedPatient(resolutionScope, unknown.Id, unknown.Revision, unknown.Input.SourceSha256, identity, "synthetic-human-reviewer", new string('b', 64), now);
         Check(resolved.State == "READY" && resolved.Input.SourceSha256 == unknown.Input.SourceSha256 && Data.Canonical(resolved.Input.Source) == Data.Canonical(unknown.Input.Source), "A verified identity resolution retains the original input and its hash");
         Reject(() => queue.AttachVerifiedPatient(resolutionScope, unknown.Id, unknown.Revision, unknown.Input.SourceSha256, identity with { Value = "000002" }, "synthetic-human-reviewer", new string('b', 64), now), "PATIENT_RESOLUTION_CONFLICT");

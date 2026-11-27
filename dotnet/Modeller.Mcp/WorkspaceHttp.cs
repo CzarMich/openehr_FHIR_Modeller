@@ -78,7 +78,7 @@ public static class WorkspaceHttp
                         if (operation == "resolve-patient") {
                             var identity = new ClinicalIdentity(Data.Required(args, "patientSystem"), Data.Required(args, "patientValue"));
                             var comment = Data.Required(args, "comment"); if (string.IsNullOrWhiteSpace(comment) || comment.Length > 4000) throw new ProcessingException("IDENTITY_RESOLUTION_COMMENT_REQUIRED");
-                            var dependencies = policy.References.Where(reference => reference.Role == "patient" && reference.RequireDestination).Select(reference => new EntityKey("Patient", identity.System, identity.Value)).Distinct().ToArray();
+                            var dependencies = policy.References.Where(reference => reference.Role == "patient" && (reference.RequireDestination || reference.Mode != "logical")).Select(reference => new EntityKey("Patient", identity.System, identity.Value)).Distinct().ToArray();
                             var after = queue.AttachVerifiedPatient(scope, pending.Id, args["expectedRevision"]!.GetValue<int>(), Data.Required(args, "sourceSha256"), identity, actor.Id, Data.Hash(Data.Canonical(args)), DateTimeOffset.UtcNow, dependencies, comment);
                             result = new JsonObject { ["id"] = after.Id, ["revision"] = after.Revision, ["state"] = after.State, ["originalSourcePreserved"] = true };
                         } else if (operation == "resolve-relationship") {

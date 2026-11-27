@@ -134,6 +134,7 @@ public sealed partial class DependencyQueue(IdentityRegistry registry, int maxim
         var item = registry.Read<PendingMessage>(token, "pending", id, transaction) ?? throw new ProcessingException("PENDING_INPUT_UNAVAILABLE");
         if (item.Revision != expectedRevision || item.Input.SourceSha256 != originalSourceSha256 || item.Input.PatientIdentity is not null || Final.Contains(item.State) || item.State is "LEASED" or "RECONCILING" or "RECONCILIATION_REQUIRED") throw new ProcessingException("PATIENT_RESOLUTION_CONFLICT");
         if (item.Input.ExpiresAt <= now) throw new ProcessingException("PENDING_INPUT_EXPIRED");
+        if (item.Input.ExpectedPatientSystem is not null && item.Input.ExpectedPatientSystem != identity.System) throw new ProcessingException("PATIENT_ASSIGNING_AUTHORITY_MISMATCH");
         var patient = registry.Read<RegisteredPatient>(token, "patient", registry.PatientKey(identity), transaction);
         if (patient?.State != "VERIFIED") throw new ProcessingException("WAITING_PATIENT_IDENTITY");
         var dependencies = item.Input.Dependencies.Concat(additionalDependencies ?? []).Distinct().ToArray();
