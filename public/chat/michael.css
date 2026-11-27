@@ -298,3 +298,54 @@ body[data-section="chat"] .michael-panel {
 .michael-restore[hidden] {
     display: none !important;
 }
+
+/* Character movement is direct manipulation; tips stay within the viewport. */
+.michael-character {
+    touch-action: none;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.michael-dragging .michael-character {
+    cursor: grabbing;
+}
+.michael-dragging {
+    animation: none;
+}
+.michael-companion .michael-panel {
+    position: fixed;
+    right: auto;
+    bottom: auto;
+    max-height: calc(100dvh - 16px);
+    overflow: auto;
+}
+.michael-companion .michael-panel::after {
+    display: none;
+}
+.michael-move-hint {
+    color: #4e6672;
+    font-size: 12px;
+    margin: 12px 0;
+}
+.michael-panel-footer {
+    flex-wrap: wrap;
+}
+.michael-reset {
+    border: 1px solid #c9d8e4;
+    background: #f6f8fb;
+    color: #17324d;
+    padding: 5px 8px;
+}
+
+.michael-companion .michael-panel {
+    margin: 0;
+}
+.integration-page .michael-character,
+.integration-page .michael-character:not(:disabled):hover {
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    min-height: 0;
+    box-shadow: none;
+}

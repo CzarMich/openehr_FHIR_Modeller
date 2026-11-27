@@ -2602,3 +2602,89 @@ test("Help names Leticia and omits the personal copyright line", async ({ page }
         page.getByRole("button", { name: "Ask Leticia for prompt and token tips", exact: true }),
     ).toBeVisible();
 });
+
+test("Leticia can be dragged without opening tips and her position survives hide and reload", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.addInitScript(() => localStorage.setItem("modeller.michael.seen", "true"));
+    await page.goto("/chat/");
+    const character = page.getByRole("button", { name: "Ask Leticia for prompt and token tips", exact: true });
+    const panel = page.getByRole("region", { name: "Leticia's guidance", exact: true });
+    const before = await character.boundingBox();
+    await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(120 + before.width / 2, 100 + before.height / 2, { steps: 20 });
+    await page.mouse.up();
+    const moved = await character.boundingBox();
+    expect(Math.abs(moved.x - 120)).toBeLessThan(2);
+    expect(Math.abs(moved.y - 100)).toBeLessThan(2);
+    await expect(panel).toBeHidden();
+    await character.click();
+    await expect(panel).toBeVisible();
+    await page.getByRole("button", { name: "Hide Leticia", exact: true }).click();
+    await page.locator("#michael-restore").click();
+    expect(Math.abs((await character.boundingBox()).x - moved.x)).toBeLessThan(2);
+    await page.reload();
+    await expect(character).toBeVisible();
+    expect(Math.abs((await character.boundingBox()).x - moved.x)).toBeLessThan(2);
+    expect(Math.abs((await character.boundingBox()).y - moved.y)).toBeLessThan(2);
+    await expect(panel).toBeHidden();
+    expect((await page.request.get("/chat/companion-position.js")).ok()).toBe(true);
+});
+
+test("dragged Leticia and her open tips stay within the viewport at every corner and after resize", async ({
+    page,
+}) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.addInitScript(() => localStorage.setItem("modeller.michael.seen", "true"));
+    await page.goto("/chat/integration/");
+    const character = page.getByRole("button", { name: "Ask Leticia for prompt and token tips", exact: true });
+    const panel = page.getByRole("region", { name: "Leticia's guidance", exact: true });
+    await character.click();
+    for (const [x, y] of [
+        [1, 1],
+        [1439, 1],
+        [1, 999],
+        [1439, 999],
+    ]) {
+        const box = await character.boundingBox();
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        await page.mouse.down();
+        await page.mouse.move(x, y, { steps: 12 });
+        await page.mouse.up();
+        await expect(panel).toBeVisible();
+        for (const target of [character, panel]) {
+            const placed = await target.boundingBox();
+            expect(placed.x).toBeGreaterThanOrEqual(0);
+            expect(placed.y).toBeGreaterThanOrEqual(0);
+            expect(placed.x + placed.width).toBeLessThanOrEqual(1440);
+            expect(placed.y + placed.height).toBeLessThanOrEqual(1000);
+        }
+    }
+    await page.setViewportSize({ width: 320, height: 740 });
+    await expect
+        .poll(async () => (await character.boundingBox()).x + (await character.boundingBox()).width)
+        .toBeLessThanOrEqual(320);
+    const tip = await panel.boundingBox();
+    expect(tip.x).toBeGreaterThanOrEqual(0);
+    expect(tip.y).toBeGreaterThanOrEqual(0);
+    expect(tip.x + tip.width).toBeLessThanOrEqual(320);
+    expect(tip.y + tip.height).toBeLessThanOrEqual(740);
+    await page.screenshot({ path: "test-results/leticia-movable-mobile.png" });
+});
+
+test("Leticia supports keyboard movement and resetting the saved position", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.addInitScript(() => localStorage.setItem("modeller.michael.seen", "true"));
+    await page.goto("/chat/");
+    const character = page.getByRole("button", { name: "Ask Leticia for prompt and token tips", exact: true });
+    await character.focus();
+    const before = await character.boundingBox();
+    await page.keyboard.press("Alt+ArrowLeft");
+    expect(Math.abs((await character.boundingBox()).x - (before.x - 16))).toBeLessThan(2);
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("region", { name: "Leticia's guidance", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Reset position", exact: true }).click();
+    await expect(character).toBeFocused();
+    expect(await page.evaluate(() => localStorage.getItem("modeller.leticia.position"))).toBeNull();
+    expect(await page.locator("#michael-companion").evaluate((root) => root.style.left)).toBe("");
+});

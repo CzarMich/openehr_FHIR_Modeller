@@ -1,3 +1,5 @@
+import { attachCompanionPosition } from "/chat/companion-position.js";
+
 // Local guidance only: this companion makes no network requests or model calls.
 const hiddenKey = "modeller.michael.hidden";
 const seenKey = "modeller.michael.seen";
@@ -65,7 +67,8 @@ root.innerHTML = `
   <p class="michael-kicker">LETICIA · WORKSPACE GUIDE</p>
   <h2 class="michael-heading"></h2><p class="michael-copy"></p>
   <div class="michael-topics"><button type="button" data-topic="prompts">Prompt tips</button><button type="button" data-topic="tokens">Save tokens</button></div>
-  <div class="michael-panel-footer"><span>No AI tokens used</span><button type="button" class="michael-hide">Hide Leticia</button></div>
+  <p class="michael-move-hint">Drag Leticia to move her. When focused, Alt + arrow keys also move her.</p>
+  <div class="michael-panel-footer"><span>No AI tokens used</span><button type="button" class="michael-reset">Reset position</button><button type="button" class="michael-hide">Hide Leticia</button></div>
 </section>
 <button type="button" class="michael-character" aria-label="Ask Leticia for prompt and token tips" aria-controls="michael-panel" aria-expanded="false">
 <svg viewBox="0 0 100 136" aria-hidden="true" focusable="false">
@@ -100,6 +103,17 @@ let position = { x: 0, y: 0 },
     topic = "prompts";
 const next = { prompts: 0, tokens: 0 };
 const motion = () => !reduced.matches && !preference(stillKey);
+const placement = attachCompanionPosition({
+    root,
+    character,
+    panel,
+    beforeMove: () => {
+        stopArrival();
+        clearTimeout(greetingTimer);
+    },
+});
+character.setAttribute("aria-description", "Drag to move Leticia. Alt + arrow keys move her when focused.");
+root.querySelector(".michael-reset").addEventListener("click", () => placement.reset());
 function closePanel() {
     panel.hidden = true;
     character.setAttribute("aria-expanded", "false");
@@ -109,6 +123,7 @@ function openPanel(title, copy) {
     root.querySelector(".michael-heading").textContent = title;
     root.querySelector(".michael-copy").textContent = copy;
     panel.hidden = false;
+    placement.positionPanel();
     character.setAttribute("aria-expanded", "true");
     clearTimeout(greetingTimer);
 }
@@ -155,6 +170,7 @@ function show() {
     active?.abort();
     active = new AbortController();
     root.hidden = false;
+    placement.refresh();
     restore.hidden = true;
     remember(hiddenKey, false);
     if (motion()) {
@@ -187,6 +203,7 @@ function show() {
     }
 }
 function hide() {
+    placement.cancel();
     closePanel();
     stopArrival();
     active?.abort();
@@ -249,7 +266,7 @@ if (preference(hiddenKey)) {
     restore.hidden = false;
 } else {
     show();
-    if (!preference(seenKey) && motion() && innerWidth >= 720) {
+    if (!placement.hasSavedPosition && !preference(seenKey) && motion() && innerWidth >= 720) {
         root.classList.add("michael-arriving");
         arrivalTimer = setTimeout(() => {
             stopArrival();

@@ -218,6 +218,7 @@ export function createApplication(
                 "/": ["index.html", "text/html; charset=utf-8"],
                 "/chat/": ["index.html", "text/html; charset=utf-8"],
                 "/chat/michael.js": ["michael.js", "text/javascript"],
+                "/chat/companion-position.js": ["companion-position.js", "text/javascript"],
                 "/chat/michael.css": ["michael.css", "text/css"],
                 "/chat/workspace.js": ["workspace.js", "text/javascript"],
                 "/chat/workspace.css": ["workspace.css", "text/css"],
