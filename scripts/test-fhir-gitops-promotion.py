@@ -41,6 +41,8 @@ class GitOpsTest(unittest.TestCase):
         self.assertEqual(primary['env'][0],{'name':'STABLE_ISSUER','value':'http://localhost/existing-identity'})
         self.assertEqual({entry['name']:entry['value'] for entry in primary['env']}['MODELLER_APPLICATION_ENABLED'],'true')
         primary['env']=before[0]['spec']['template']['spec']['containers'][0]['env'];primary['command']=['superseded-entrypoint'];primary['args']=['superseded-server']
+        self.assertEqual(after[0]['metadata']['annotations']['argocd.argoproj.io/sync-options'],'Replace=true')
+        after[0]['metadata'].pop('annotations')
         self.assertEqual(after,before)
         with self.assertRaises(ValueError):module.application_http(yaml.safe_dump_all(documents[:-2]))
 

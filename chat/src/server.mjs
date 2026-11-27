@@ -223,6 +223,7 @@ export function createApplication(
                 "/chat/workspace.css": ["workspace.css", "text/css"],
                 "/chat/app.js": ["app.js", "text/javascript"],
                 "/chat/style.css": ["style.css", "text/css"],
+                "/chat/design-system.css": ["design-system.css", "text/css"],
                 "/chat/reviews.js": ["reviews.js", "text/javascript"],
                 "/chat/mapping-confirmations.js": ["mapping-confirmations.js", "text/javascript"],
                 "/chat/identity.js": ["identity.js", "text/javascript"],

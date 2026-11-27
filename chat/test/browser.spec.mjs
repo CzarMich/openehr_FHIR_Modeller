@@ -2476,3 +2476,73 @@ test("existing confirmed mapping can be found and inspected without AI generatio
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test("shared workspace styles load on both pages and navigation identifies the current workspace", async ({ page }) => {
+    await page.route("**/chat/api/session", (route) =>
+        route.fulfill({ json: { authenticated: true, integrationReady: false } }),
+    );
+    await page.goto("/chat/");
+    const navigation = page.getByRole("navigation", { name: "Platform workspaces", exact: true });
+    await expect(navigation.getByRole("link", { name: "Modelling", exact: true })).toHaveAttribute(
+        "aria-current",
+        "page",
+    );
+    const sharedStyle = page.locator('link[href="/chat/design-system.css"]');
+    await expect(sharedStyle).toHaveCount(1);
+    const css = await page.request.get("/chat/design-system.css");
+    expect(css.ok()).toBe(true);
+    expect(css.headers()["content-type"]).toContain("text/css");
+    const font = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
+    await navigation.getByRole("link", { name: "Integration", exact: true }).click();
+    await expect(
+        page
+            .getByRole("navigation", { name: "Platform workspaces", exact: true })
+            .getByRole("link", { name: "Integration", exact: true }),
+    ).toHaveAttribute("aria-current", "page");
+    expect(await page.evaluate(() => getComputedStyle(document.body).fontFamily)).toBe(font);
+    await expect(page.locator("#notice")).toContainText("not enabled or ready");
+    await expect(page.locator("#confirm")).toHaveCSS("background-color", "rgb(0, 94, 184)");
+    await expect(page.locator("#revoke")).toHaveCSS("color", "rgb(165, 34, 34)");
+    const modelling = page
+        .getByRole("navigation", { name: "Platform workspaces", exact: true })
+        .getByRole("link", { name: "Modelling", exact: true });
+    await modelling.click();
+    await expect(page.locator("#workspace-content")).toBeAttached();
+});
+
+test("integration workflow supports keyboard skips, step links, phone layout and zoom-sized content", async ({
+    page,
+}) => {
+    await page.route("**/chat/api/session", (route) =>
+        route.fulfill({ json: { authenticated: true, integrationReady: false } }),
+    );
+    await page.goto("/chat/integration/");
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("link", { name: "Skip to integration workspace" })).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#integration-content")).toBeFocused();
+    const workflow = page.getByRole("navigation", { name: "Integration workflow", exact: true });
+    await workflow.getByRole("link", { name: "Groups and access", exact: true }).click();
+    await expect(page).toHaveURL(/#sharing-step$/);
+    await expect(page.getByRole("heading", { name: "Shared channel groups", exact: true })).toBeInViewport();
+    for (const width of [1440, 390, 320]) {
+        await page.setViewportSize({ width, height: 900 });
+        await workflow.getByRole("link", { name: "1. Project", exact: true }).click();
+        await expect(page.getByRole("heading", { name: "1. Choose a project", exact: true })).toBeInViewport();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        const control = await page.locator("#project").boundingBox();
+        expect(control.height).toBeGreaterThanOrEqual(44);
+        await page.screenshot({ path: `test-results/standard-integration-${width}.png`, fullPage: true });
+    }
+});
+
+test("integration landmarks and shared controls pass automated WCAG AA checks", async ({ page }) => {
+    const { default: AxeBuilder } = await import("@axe-core/playwright");
+    await page.route("**/chat/api/session", (route) =>
+        route.fulfill({ json: { authenticated: true, integrationReady: false } }),
+    );
+    await page.goto("/chat/integration/");
+    await expect(page.locator("#notice")).toContainText("not enabled or ready");
+    const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
+    expect(result.violations).toEqual([]);
+});

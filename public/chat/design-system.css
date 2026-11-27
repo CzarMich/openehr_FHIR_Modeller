@@ -1,0 +1,398 @@
+/* Shared visual contract. Layout remains in each workspace stylesheet. */
+:root {
+    --ui-font: "Segoe UI", Inter, system-ui, -apple-system, sans-serif;
+    --ui-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+    --ui-canvas: #f6f8fb;
+    --ui-surface: #ffffff;
+    --ui-ink: #17324d;
+    --ui-muted: #52677d;
+    --ui-primary: #005eb8;
+    --ui-primary-hover: #003d78;
+    --ui-primary-soft: #e9f2fc;
+    --ui-border: #dbe4ed;
+    --ui-control-border: #9baec0;
+    --ui-danger: #a52222;
+    --ui-radius: 8px;
+    --ui-card-radius: 12px;
+    --ui-space-1: 4px;
+    --ui-space-2: 8px;
+    --ui-space-3: 12px;
+    --ui-space-4: 16px;
+    --ui-space-6: 24px;
+    --blue: var(--ui-primary);
+    --blue-deep: var(--ui-primary-hover);
+    --blue-soft: var(--ui-primary-soft);
+    --green: var(--ui-primary);
+    --ink: var(--ui-ink);
+    --text: var(--ui-ink);
+    --muted: var(--ui-muted);
+    --line: var(--ui-border);
+    --border: var(--ui-border);
+    --radius: var(--ui-card-radius);
+    --serif: var(--ui-font);
+    color-scheme: light;
+}
+* {
+    box-sizing: border-box;
+}
+body {
+    font-family: var(--ui-font);
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ui-ink);
+    background: var(--ui-canvas);
+}
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+button,
+a,
+summary,
+input,
+select,
+textarea {
+    touch-action: manipulation;
+}
+[hidden] {
+    display: none !important;
+}
+:is(button, a, input, select, textarea, summary):focus-visible {
+    outline: 3px solid var(--ui-primary);
+    outline-offset: 3px;
+}
+a {
+    color: var(--ui-primary);
+    text-underline-offset: 3px;
+}
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, textarea) {
+    min-width: 0;
+    max-width: 100%;
+    min-height: 44px;
+    border: 1px solid var(--ui-control-border);
+    border-radius: var(--ui-radius);
+    padding: 10px 12px;
+    color: var(--ui-ink);
+    background: var(--ui-surface);
+}
+textarea {
+    resize: vertical;
+}
+input[type="checkbox"],
+input[type="radio"] {
+    accent-color: var(--ui-primary);
+}
+.content-panel input:not([type="checkbox"]):not([type="radio"]),
+.content-panel select,
+.content-panel textarea,
+.identity-form input:not([type="checkbox"]),
+.identity-form textarea {
+    border-color: var(--ui-control-border);
+    border-radius: var(--ui-radius);
+    min-height: 44px;
+    background: var(--ui-surface);
+}
+.content-panel button,
+.identity-form button,
+.integration-page button {
+    min-height: 44px;
+    border-radius: var(--ui-radius);
+}
+:where(.aql-card, .fhir-card, .identity-admin-section),
+.integration-page main > section {
+    border-color: var(--ui-border);
+    border-radius: var(--ui-card-radius);
+    background: var(--ui-surface);
+}
+.fhir-card,
+.fhir-panel input,
+.fhir-panel select,
+.fhir-panel textarea {
+    background: var(--ui-surface);
+}
+.content-panel table,
+.integration-page table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.content-panel th,
+.integration-page th {
+    text-align: left;
+    background: var(--ui-canvas);
+    font-weight: 600;
+}
+.content-panel :is(th, td),
+.integration-page :is(th, td) {
+    padding: 12px;
+    border-bottom: 1px solid var(--ui-border);
+    vertical-align: top;
+}
+.workspace-switcher {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0 20px;
+}
+.workspace-switcher a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius);
+    text-decoration: none;
+    font-weight: 600;
+    background: var(--ui-surface);
+}
+.workspace-switcher a[aria-current="page"] {
+    color: var(--ui-primary-hover);
+    background: var(--ui-primary-soft);
+    border-color: var(--ui-primary);
+}
+.skip-link {
+    position: fixed;
+    left: 16px;
+    top: -100px;
+    z-index: 100;
+    background: var(--ui-surface);
+    padding: 12px 20px;
+    border: 2px solid var(--ui-primary);
+    border-radius: var(--ui-radius);
+}
+.skip-link:focus {
+    top: 12px;
+}
+.integration-page {
+    max-width: 1440px;
+    padding: 24px;
+    margin: auto;
+    overflow-wrap: anywhere;
+}
+.integration-page .platform-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+.integration-page .brand {
+    font-size: 22px;
+    font-weight: 650;
+    text-decoration: none;
+}
+.integration-page .workspace-switcher {
+    margin: 0;
+}
+.integration-page .page-heading {
+    padding: 24px 0 8px;
+}
+.integration-page h1 {
+    font-size: 28px;
+    line-height: 1.25;
+    margin: 0 0 8px;
+}
+.integration-page h2 {
+    font-size: 19px;
+    line-height: 1.4;
+}
+.integration-page .page-heading p {
+    color: var(--ui-muted);
+    margin: 0;
+}
+.integration-layout {
+    display: grid;
+    grid-template-columns: 216px minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+.integration-layout main {
+    min-width: 0;
+}
+.workflow-nav {
+    position: sticky;
+    top: 24px;
+    padding: 20px 0;
+}
+.workflow-nav h2 {
+    margin: 0 0 12px;
+    font-size: 14px;
+}
+.workflow-nav ol {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.workflow-nav a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    border-radius: var(--ui-radius);
+    text-decoration: none;
+    color: var(--ui-ink);
+}
+.workflow-nav a:hover {
+    background: var(--ui-primary-soft);
+    color: var(--ui-primary-hover);
+}
+.integration-page main > section {
+    padding: 24px;
+    margin: 20px 0;
+    scroll-margin-top: 24px;
+}
+.integration-page label {
+    font-weight: 600;
+}
+.integration-page input,
+.integration-page select,
+.integration-page textarea {
+    font-weight: 400;
+    border-radius: var(--ui-radius);
+    border-color: var(--ui-control-border);
+}
+.integration-page textarea,
+.integration-page pre {
+    font-family: var(--ui-mono);
+    font-size: 13px;
+}
+.integration-page button {
+    background: var(--ui-surface);
+    color: var(--ui-primary);
+    border-color: var(--ui-control-border);
+    padding: 10px 16px;
+    font-weight: 600;
+}
+.integration-page button:not(:disabled):hover {
+    background: var(--ui-primary-soft);
+}
+.integration-page button.primary-button {
+    background: var(--ui-primary);
+    border-color: var(--ui-primary);
+    color: white;
+}
+.integration-page button.primary-button:not(:disabled):hover {
+    background: var(--ui-primary-hover);
+}
+.integration-page button.danger-button {
+    color: var(--ui-danger);
+    border-color: var(--ui-danger);
+    background: var(--ui-surface);
+}
+.integration-page button.danger-button:not(:disabled):hover {
+    background: #fff1f1;
+}
+.integration-page #notice {
+    position: static;
+    border-color: var(--ui-primary);
+    background: var(--ui-primary-soft);
+    border-radius: 0 var(--ui-radius) var(--ui-radius) 0;
+}
+.integration-page .policy-note {
+    padding: 16px;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius);
+}
+.integration-page summary {
+    min-height: 44px;
+    padding: 10px 0;
+}
+.integration-page .grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+}
+.integration-page .item {
+    border-color: var(--ui-border);
+}
+@media (max-width: 800px) {
+    .integration-page {
+        padding: 16px;
+    }
+    .integration-layout {
+        display: block;
+    }
+    .workflow-nav {
+        position: static;
+        padding: 12px 0;
+    }
+    .workflow-nav ol {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    .workflow-nav a {
+        border: 1px solid var(--ui-border);
+        background: var(--ui-surface);
+        margin: 0;
+    }
+    .integration-page main > section {
+        padding: 16px;
+    }
+    .integration-page .platform-header {
+        gap: 12px;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+    }
+}
+
+.integration-page .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    line-height: 1.2;
+}
+.integration-page .brand-symbol {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 9px;
+    background: var(--ui-primary);
+    color: white;
+}
+.integration-page .brand-subtitle {
+    display: block;
+    margin-top: 4px;
+    color: var(--ui-muted);
+    font-size: 11px;
+    font-weight: 500;
+}
+
+@media (max-width: 800px) {
+    .sidebar {
+        position: relative;
+    }
+    .sidebar .brand {
+        font-size: 16px;
+        gap: 8px;
+    }
+    .sidebar .brand-symbol {
+        width: 30px;
+        height: 30px;
+    }
+    .sidebar .brand-subtitle {
+        font-size: 10px;
+    }
+    .sidebar .workspace-switcher {
+        position: absolute;
+        top: 12px;
+        right: 16px;
+        margin: 0;
+        gap: 4px;
+    }
+    .sidebar .workspace-switcher a {
+        font-size: 11px;
+        padding: 6px;
+    }
+}

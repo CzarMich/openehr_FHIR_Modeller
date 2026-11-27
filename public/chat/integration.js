@@ -37,6 +37,7 @@ function options(select, items, value, label) {
 }
 function button(label, action) {
     const item = document.createElement("button");
+    item.type = "button";
     item.textContent = label;
     item.onclick = () => run(action);
     return item;

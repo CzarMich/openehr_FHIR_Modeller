@@ -973,6 +973,23 @@
         "0021"
       ],
       "verification": "Migration acceptance remains scoped to actual verified adapters; historical test counts are not current qualification. See docs/DOTNET_MIGRATION.md."
+    },
+    {
+      "id": "REQ-F39",
+      "title": "Consistent accessible platform interface",
+      "canonical": "docs/requirements.md",
+      "status": "draft",
+      "implementation": "landed",
+      "packages": [
+        "public/chat/design-system.css",
+        "public/chat/index.html",
+        "public/chat/integration.html",
+        "chat/src/server.mjs"
+      ],
+      "tests": [
+        "chat/test/browser.spec.mjs"
+      ],
+      "verification": "Shared visual contract and responsive keyboard navigation; protected confirmation regression tests remain in force."
     }
   ]
 }

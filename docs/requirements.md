@@ -118,3 +118,4 @@ a shared workspace, not per-browser-user isolation.
 - **REQ-F36** — Human-managed channel groups, teams and separate view/monitor grants. View/monitor sharing only; no shared edit, operate, clinical approval or patient-result access.
 - **REQ-F37** — Deterministic mapping reuse and human-confirmed project learning. Exact-context lookup makes no provider call; current authorisation and confirmation are rechecked. Corrections require a new version and human confirmation.
 - **REQ-F38** — Routine post-install configuration through protected browser controls. Existing personal/account/group controls are delivered; general source, terminology and destination profile forms remain pending.
+- **REQ-F39** — Share visual tokens and consistent control, navigation and focus styles across modelling, FHIR, AQL and integration views. Provide keyboard-accessible integration step navigation and responsive layouts without changing protected confirmation or data-access boundaries.
