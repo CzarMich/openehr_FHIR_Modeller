@@ -21,6 +21,7 @@
         <link rel="stylesheet" href="/chat/fhir.css" />
         <link rel="stylesheet" href="/chat/michael.css" />
         <script type="module" src="/chat/michael.js"></script>
+        <link rel="stylesheet" href="/chat/design-system.css" />
     </head>
     <body data-section="chat">
         <a class="skip-link" href="#workspace-content">Skip to workspace</a>
@@ -42,7 +43,10 @@
                 >
 
                 <div class="platform-label">CLINICAL DATA WORKSPACE</div>
-                <a href="/chat/integration/" class="integration-link">Integration workspace</a>
+                <nav class="workspace-switcher" aria-label="Platform workspaces">
+                    <a href="/chat/" aria-current="page">Modelling</a>
+                    <a href="/chat/integration/">Integration</a>
+                </nav>
                 <nav class="workspace-tabs" role="tablist" aria-label="Workspace">
                     <button id="tab-chat" role="tab" aria-controls="panel-chat" aria-selected="true" data-tab="chat">
                         <svg

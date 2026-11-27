@@ -19,6 +19,7 @@ material retains its respective terms; see the
 
 - [Installation](install.md), [deployment](DEPLOYMENT.md) and [configuration](CONFIGURATION.md)
 - [Claude, Codex and other MCP clients](MCP_CLIENTS.md); [Microsoft clients](MICROSOFT_AGENT_INTEGRATION.md)
+- [Interface standards](INTERFACE_STANDARDS.md): shared visual styles, navigation, accessibility and contribution rules.
 - [Browser chat](BROWSER_CHAT.md), [workspace](BROWSER_WORKSPACE.md) and [human review setup](REVIEW_DEPLOYMENT.md)
 - [Reuse, project learning and AI credit control](REUSE_AND_LEARNING.md): recover saved work, find exact approved mappings and retain human corrections without patient-data training.
 - [Bounded AI task execution](TASK_EXECUTION.md): context budgets, project handoffs and independent review.

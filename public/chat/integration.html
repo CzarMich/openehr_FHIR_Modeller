@@ -8,289 +8,330 @@
         <script type="module" src="/chat/integration.js"></script>
         <link rel="stylesheet" href="/chat/michael.css" />
         <script type="module" src="/chat/michael.js"></script>
+        <link rel="stylesheet" href="/chat/design-system.css" />
     </head>
-    <body>
-        <header>
-            <a href="/chat/">← Modelling workspace</a>
+    <body class="integration-page">
+        <a class="skip-link" href="#integration-content">Skip to integration workspace</a>
+        <header class="platform-header">
+            <a class="brand" href="/chat/" aria-label="openEHR Modeller"
+                ><span class="brand-symbol" aria-hidden="true"
+                    ><svg
+                        viewBox="0 0 28 28"
+                        width="28"
+                        height="28"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.4"
+                    >
+                        <rect x="5" y="5" width="15" height="18" rx="2" />
+                        <path d="M9 5V2h15v18h-4M9 11h7M9 15h7M9 19h4" /></svg></span
+                ><span>openEHR<span class="brand-subtitle">Modeller</span></span></a
+            >
+            <nav class="workspace-switcher" aria-label="Platform workspaces">
+                <a href="/chat/">Modelling</a>
+                <a href="/chat/integration/" aria-current="page">Integration</a>
+            </nav>
             <button type="button" data-show-michael>Show Michael</button>
+        </header>
+        <div class="page-heading">
             <h1>Integration workspace</h1>
             <p>Prepare and confirm versioned mappings, process private files and assign mappings to channels.</p>
-        </header>
-        <main>
-            <p id="notice" role="status" aria-live="polite">Checking your session…</p>
-            <p>
-                <strong>Clinical databases are read-only.</strong> This version accepts file sources. FHIR delivery uses
-                a separately authorised HTTP API. Uploaded records stay outside the chat and model registry. Storage
-                encryption and retention are managed by your operator.
-            </p>
-            <section>
-                <h2>1. Choose a project</h2>
-                <label
-                    >Project
-                    <select id="project"></select></label
-                ><button id="refresh">Refresh workspace</button>
-                <details>
-                    <summary>Create a project with pinned dependencies</summary>
-                    <label>Project identifier <input id="project-id" maxlength="64" /></label
-                    ><label
-                        >Configuration JSON
-                        <textarea id="project-json" rows="9" spellcheck="false">
-{"name":"My integration","fhirVersion":"4.0.1","canonical":"https://example.org/my-integration","packageId":"org.example.integration","version":"1.0.0","publisher":"My organisation","dependencies":[]}</textarea
-                        ></label
-                    ><button id="create-project">Create project</button>
-                    <p>
-                        Project settings are immutable. Choose the actual release, canonical, publisher and exact
-                        package versions before creating.
-                    </p>
-                </details>
-            </section>
-            <section>
-                <h2>2. Supply the models</h2>
-                <p>
-                    Provide the actual FHIR StructureDefinition and, for a route through openEHR or a reverse mapping,
-                    the actual openEHR template. A URL or name alone is insufficient. Agent-modelled and externally
-                    provided models both require confirmation for this mapping.
+        </div>
+        <div class="integration-layout">
+            <nav class="workflow-nav" aria-label="Integration workflow">
+                <h2>Set up and operate</h2>
+                <ol>
+                    <li><a href="#project-step">1. Project</a></li>
+                    <li><a href="#models-step">2. Models</a></li>
+                    <li><a href="#mapping-step">3. Mapping and confirmation</a></li>
+                    <li><a href="#source-step">4. Private source</a></li>
+                    <li><a href="#run-step">5. Run and channels</a></li>
+                    <li><a href="#monitor-step">Jobs and monitoring</a></li>
+                    <li><a href="#sharing-step">Groups and access</a></li>
+                </ol>
+            </nav>
+            <main id="integration-content" tabindex="-1">
+                <p id="notice" role="status" aria-live="polite">Checking your session…</p>
+                <p class="policy-note">
+                    <strong>Clinical databases are read-only.</strong> This version accepts file sources. FHIR delivery
+                    uses a separately authorised HTTP API. Uploaded records stay outside the chat and model registry.
+                    Storage encryption and retention are managed by your operator.
                 </p>
-                <div class="grid">
-                    <label>Identifier <input id="model-id" /></label
-                    ><label>Version <input id="model-version" value="1.0.0" /></label
-                    ><label
-                        >Standard
-                        <select id="model-standard">
-                            <option>FHIR</option>
-                            <option>openEHR</option>
-                        </select></label
-                    ><label
-                        >Origin
-                        <select id="model-origin">
-                            <option value="externally-provided">Externally provided</option>
-                            <option value="agent-modelled">Agent modelled</option>
-                        </select></label
-                    >
-                </div>
-                <label
-                    >Source and provenance
-                    <input id="model-provenance" placeholder="Source URL, author and relevant licence" /></label
-                ><label>Model file <input id="model-file" type="file" accept=".json,.xml,.opt,.oet" /></label
-                ><label>Actual model content <textarea id="model-content" rows="8" spellcheck="false"></textarea></label
-                ><button id="provide-model">Provide model</button>
-                <div id="models"></div>
-            </section>
-            <section>
-                <h2>3. Prepare and review mapping rules</h2>
-                <p>
-                    The agent can draft a mapping using the C# MCP tools. Original user instructions, interpretations,
-                    assumptions and synthetic examples belong in the mapping. Resolve all questions before confirmation.
-                    Changing the model selection, instructions or rules requires a new mapping version and a new
-                    confirmation.
-                </p>
-                <details>
-                    <summary>Reuse verified work and save AI calls</summary>
-                    <p>
-                        Look for existing work before generating a new mapping. Select the actual supplied target models
-                        above. Matching checks the source schema, declared source meaning/version, purpose, original
-                        user requirements, terminology snapshots and current runtime. Names and column types alone do
-                        not establish clinical meaning.
-                    </p>
+                <section id="project-step" aria-labelledby="project-heading">
+                    <h2 id="project-heading">1. Choose a project</h2>
                     <label
-                        >Stable source system / profile identifier <input id="reuse-source-system" maxlength="100"
-                    /></label>
-                    <label
-                        >Verified source dictionary / meaning version <input id="reuse-semantics" maxlength="100"
-                    /></label>
-                    <label>Intended use / purpose <input id="reuse-purpose" maxlength="500" /></label>
-                    <label>Current source schema SHA-256 <input id="reuse-schema" maxlength="64" /></label>
-                    <label
-                        >Mapping direction
-                        <select id="reuse-direction">
-                            <option value="source-direct-to-fhir">Source directly to FHIR</option>
-                            <option value="source-to-fhir">Source through openEHR to FHIR</option>
-                            <option value="fhir-to-openehr">FHIR to openEHR</option>
-                        </select></label
-                    >
-                    <label
-                        >Original user instructions (one requirement per blank-line-separated paragraph)<textarea
-                            id="reuse-narrative"
-                            rows="4"
-                        ></textarea>
-                    </label>
+                        >Project
+                        <select id="project"></select></label
+                    ><button id="refresh">Refresh workspace</button>
                     <details>
-                        <summary>Exact terminology snapshots</summary>
-                        <label
-                            >Terminology pins JSON
-                            <textarea id="reuse-terminology" rows="3" spellcheck="false">[]</textarea>
-                        </label>
+                        <summary>Create a project with pinned dependencies</summary>
+                        <label>Project identifier <input id="project-id" maxlength="64" /></label
+                        ><label
+                            >Configuration JSON
+                            <textarea id="project-json" rows="9" spellcheck="false">
+{"name":"My integration","fhirVersion":"4.0.1","canonical":"https://example.org/my-integration","packageId":"org.example.integration","version":"1.0.0","publisher":"My organisation","dependencies":[]}</textarea
+                            ></label
+                        ><button class="primary-button" id="create-project">Create project</button>
                         <p>
-                            Each pin requires canonical, exact version and SHA-256. Use an empty list only when no
-                            external terminology snapshots are dependencies; embedded rule dictionaries are already
-                            pinned in the mapping. Do not invent versions or hashes.
+                            Project settings are immutable. Choose the actual release, canonical, publisher and exact
+                            package versions before creating.
                         </p>
                     </details>
-                    <button id="find-reuse">Find existing work without AI</button>
-                    <div id="reuse-results" aria-live="polite"></div>
-                    <label
-                        ><input id="save-for-reuse" type="checkbox" /> Include this source/purpose/terminology context
-                        when preparing the next mapping, so it can be reused after human confirmation.</label
-                    >
+                </section>
+                <section id="models-step" aria-labelledby="models-heading">
+                    <h2 id="models-heading">2. Supply the models</h2>
                     <p>
-                        Corrections create a new version for human confirmation. Reuse does not train a model, create
-                        clinical approval, or start a delivery. No patient records belong in this form.
+                        Provide the actual FHIR StructureDefinition and, for a route through openEHR or a reverse
+                        mapping, the actual openEHR template. A URL or name alone is insufficient. Agent-modelled and
+                        externally provided models both require confirmation for this mapping.
                     </p>
-                </details>
-                <label
-                    >Mapping definition JSON
-                    <textarea
-                        id="mapping-json"
-                        rows="14"
-                        spellcheck="false"
-                        placeholder="Paste the version 2 execution mapping returned by the agent"
-                    ></textarea></label
-                ><button id="prepare">Prepare with checked models</button
-                ><label
-                    >Mapping version
-                    <select id="mapping"></select></label
-                ><button id="load-mapping">Inspect selection and rules</button>
-                <div id="review"></div>
-                <label
-                    ><input id="reviewed" type="checkbox" /> I inspected the exact models, narrative, assumptions, rules
-                    and synthetic examples for this mapping.</label
-                ><label>Decision comment <input id="decision-comment" /></label
-                ><button id="confirm">Confirm exact mapping</button><button id="revoke">Revoke confirmation</button>
-                <p>Mapping confirmation does not constitute clinical approval or successful instance validation.</p>
-            </section>
-            <section>
-                <h2>4. Inspect a private source</h2>
-                <p>
-                    Upload a private file, or choose an operator-registered source folder. Inspection returns field
-                    paths and types without record values. Do not paste patient records into mapping definitions or
-                    chat.
-                </p>
-                <label
-                    >Format
-                    <select id="source-format">
-                        <option>csv</option>
-                        <option>json</option>
-                        <option value="fhir-json">FHIR JSON</option>
-                        <option>xml</option>
-                        <option>xlsx</option>
-                    </select></label
-                ><label>Private file <input id="source-upload" type="file" /></label
-                ><button id="upload">Upload privately</button
-                ><label
-                    >Source
-                    <select id="source"></select></label
-                ><button id="files">List files</button
-                ><label
-                    >File
-                    <select id="file"></select></label
-                ><button id="inspect">Inspect schema</button>
-                <pre id="inspection"></pre>
-            </section>
-            <section>
-                <h2>5. Run or configure a channel</h2>
-                <label
-                    >Mode
-                    <select id="mode">
-                        <option value="export">Validate and export</option>
-                        <option value="deliver">Validate and deliver FHIR</option>
-                    </select></label
-                ><label
-                    >Authorised FHIR destination
-                    <select id="destination"></select></label
-                ><button id="run-preview">Review one file run</button>
-                <details>
-                    <summary>Continuous channel</summary>
-                    <p>
-                        A channel pins one confirmed mapping version and polls stable files. It never changes the
-                        mapping automatically. A restart requires an explicit start. Inputs are never deleted or
-                        modified.
-                    </p>
-                    <label>Channel name <input id="channel-name" /></label
-                    ><label
-                        >Poll interval in seconds <input id="poll" type="number" min="5" max="3600" value="10" /></label
-                    ><label
-                        >Rejected record policy
-                        <select id="failure-policy">
-                            <option value="pause">Pause</option>
-                            <option value="quarantine-and-continue">Quarantine and continue</option>
-                        </select></label
-                    ><button id="channel-preview">Review new channel assignment</button>
-                </details>
-                <div id="confirmation" hidden>
-                    <h3>Review this operation</h3>
-                    <pre id="confirmation-detail"></pre>
-                    <button id="commit">Confirm operation</button><button id="dismiss">Cancel</button>
-                </div>
-            </section>
-            <section>
-                <h2>Jobs</h2>
-                <button id="jobs-refresh">Refresh jobs and channels</button>
-                <div id="jobs"></div>
-                <h2>Channels</h2>
-                <div id="channels"></div>
-                <h3>Selected job report</h3>
-                <pre id="report"></pre>
-            </section>
-            <section>
-                <h2>Shared channel groups</h2>
-                <p>
-                    Share operational channel metadata with people or reusable teams in your organisation. Monitor
-                    access adds status and counts. It does not grant editing, start/pause, clinical approval, connection
-                    credentials, private files or patient results. Use group and channel names without patient
-                    information.
-                </p>
-                <button id="groups-refresh">Load / refresh groups</button>
-                <label
-                    >Channel group
-                    <select id="channel-group"></select
-                ></label>
-                <div id="group-monitor" aria-live="polite"></div>
-                <details id="group-management" hidden>
-                    <summary>Manage this group's access and channels</summary>
-                    <label>New group name <input id="group-name" maxlength="100" /></label>
-                    <button id="group-create">Create group</button>
-                    <div id="group-owner-controls" hidden>
-                        <label
-                            >Owned channel
-                            <select id="group-owned-channel"></select
-                        ></label>
-                        <button id="group-attach">Attach channel to group</button>
-                        <p>
-                            Choose each person's or team's access, then save. Team access follows current team
-                            membership. Saving replaces the group's current grants.
-                        </p>
-                        <div id="group-grants"></div>
-                        <button id="group-save-grants">Save access grants</button>
-                        <label
-                            >Transfer group ownership to
-                            <select id="group-next-owner"></select
-                        ></label>
-                        <button id="group-transfer">Transfer ownership</button>
-                        <p>
-                            Detach channel assignments before transferring group ownership. Transfer removes your
-                            management access immediately; private channel ownership and records remain unchanged.
-                        </p>
-                        <button id="group-audit">Show access history</button>
+                    <div class="grid">
+                        <label>Identifier <input id="model-id" /></label
+                        ><label>Version <input id="model-version" value="1.0.0" /></label
+                        ><label
+                            >Standard
+                            <select id="model-standard">
+                                <option>FHIR</option>
+                                <option>openEHR</option>
+                            </select></label
+                        ><label
+                            >Origin
+                            <select id="model-origin">
+                                <option value="externally-provided">Externally provided</option>
+                                <option value="agent-modelled">Agent modelled</option>
+                            </select></label
+                        >
                     </div>
-                </details>
-                <details id="team-management" hidden>
-                    <summary>Manage reusable teams</summary>
-                    <label>New team name <input id="team-name" maxlength="100" /></label>
-                    <button id="team-create">Create team</button>
                     <label
-                        >Team
-                        <select id="channel-team"></select
-                    ></label>
-                    <div id="team-members"></div>
-                    <button id="team-save-members">Save team membership</button>
+                        >Source and provenance
+                        <input id="model-provenance" placeholder="Source URL, author and relevant licence" /></label
+                    ><label>Model file <input id="model-file" type="file" accept=".json,.xml,.opt,.oet" /></label
+                    ><label
+                        >Actual model content
+                        <textarea id="model-content" rows="8" spellcheck="false"></textarea></label
+                    ><button class="primary-button" id="provide-model">Provide model</button>
+                    <div id="models"></div>
+                </section>
+                <section id="mapping-step" aria-labelledby="mapping-heading">
+                    <h2 id="mapping-heading">3. Prepare and review mapping rules</h2>
+                    <p>
+                        The agent can draft a mapping using the C# MCP tools. Original user instructions,
+                        interpretations, assumptions and synthetic examples belong in the mapping. Resolve all questions
+                        before confirmation. Changing the model selection, instructions or rules requires a new mapping
+                        version and a new confirmation.
+                    </p>
+                    <details>
+                        <summary>Reuse verified work and save AI calls</summary>
+                        <p>
+                            Look for existing work before generating a new mapping. Select the actual supplied target
+                            models above. Matching checks the source schema, declared source meaning/version, purpose,
+                            original user requirements, terminology snapshots and current runtime. Names and column
+                            types alone do not establish clinical meaning.
+                        </p>
+                        <label
+                            >Stable source system / profile identifier <input id="reuse-source-system" maxlength="100"
+                        /></label>
+                        <label
+                            >Verified source dictionary / meaning version <input id="reuse-semantics" maxlength="100"
+                        /></label>
+                        <label>Intended use / purpose <input id="reuse-purpose" maxlength="500" /></label>
+                        <label>Current source schema SHA-256 <input id="reuse-schema" maxlength="64" /></label>
+                        <label
+                            >Mapping direction
+                            <select id="reuse-direction">
+                                <option value="source-direct-to-fhir">Source directly to FHIR</option>
+                                <option value="source-to-fhir">Source through openEHR to FHIR</option>
+                                <option value="fhir-to-openehr">FHIR to openEHR</option>
+                            </select></label
+                        >
+                        <label
+                            >Original user instructions (one requirement per blank-line-separated paragraph)<textarea
+                                id="reuse-narrative"
+                                rows="4"
+                            ></textarea>
+                        </label>
+                        <details>
+                            <summary>Exact terminology snapshots</summary>
+                            <label
+                                >Terminology pins JSON
+                                <textarea id="reuse-terminology" rows="3" spellcheck="false">[]</textarea>
+                            </label>
+                            <p>
+                                Each pin requires canonical, exact version and SHA-256. Use an empty list only when no
+                                external terminology snapshots are dependencies; embedded rule dictionaries are already
+                                pinned in the mapping. Do not invent versions or hashes.
+                            </p>
+                        </details>
+                        <button id="find-reuse">Find existing work without AI</button>
+                        <div id="reuse-results" aria-live="polite"></div>
+                        <label
+                            ><input id="save-for-reuse" type="checkbox" /> Include this source/purpose/terminology
+                            context when preparing the next mapping, so it can be reused after human
+                            confirmation.</label
+                        >
+                        <p>
+                            Corrections create a new version for human confirmation. Reuse does not train a model,
+                            create clinical approval, or start a delivery. No patient records belong in this form.
+                        </p>
+                    </details>
                     <label
-                        >Transfer team ownership to
-                        <select id="team-next-owner"></select
+                        >Mapping definition JSON
+                        <textarea
+                            id="mapping-json"
+                            rows="14"
+                            spellcheck="false"
+                            placeholder="Paste the version 2 execution mapping returned by the agent"
+                        ></textarea></label
+                    ><button class="primary-button" id="prepare">Prepare with checked models</button
+                    ><label
+                        >Mapping version
+                        <select id="mapping"></select></label
+                    ><button id="load-mapping">Inspect selection and rules</button>
+                    <div id="review"></div>
+                    <label
+                        ><input id="reviewed" type="checkbox" /> I inspected the exact models, narrative, assumptions,
+                        rules and synthetic examples for this mapping.</label
+                    ><label>Decision comment <input id="decision-comment" /></label
+                    ><button class="primary-button" id="confirm">Confirm exact mapping</button
+                    ><button class="danger-button" id="revoke">Revoke confirmation</button>
+                    <p>Mapping confirmation does not constitute clinical approval or successful instance validation.</p>
+                </section>
+                <section id="source-step" aria-labelledby="source-heading">
+                    <h2 id="source-heading">4. Inspect a private source</h2>
+                    <p>
+                        Upload a private file, or choose an operator-registered source folder. Inspection returns field
+                        paths and types without record values. Do not paste patient records into mapping definitions or
+                        chat.
+                    </p>
+                    <label
+                        >Format
+                        <select id="source-format">
+                            <option>csv</option>
+                            <option>json</option>
+                            <option value="fhir-json">FHIR JSON</option>
+                            <option>xml</option>
+                            <option>xlsx</option>
+                        </select></label
+                    ><label>Private file <input id="source-upload" type="file" /></label
+                    ><button class="primary-button" id="upload">Upload privately</button
+                    ><label
+                        >Source
+                        <select id="source"></select></label
+                    ><button id="files">List files</button
+                    ><label
+                        >File
+                        <select id="file"></select></label
+                    ><button id="inspect">Inspect schema</button>
+                    <pre id="inspection"></pre>
+                </section>
+                <section id="run-step" aria-labelledby="run-heading">
+                    <h2 id="run-heading">5. Run or configure a channel</h2>
+                    <label
+                        >Mode
+                        <select id="mode">
+                            <option value="export">Validate and export</option>
+                            <option value="deliver">Validate and deliver FHIR</option>
+                        </select></label
+                    ><label
+                        >Authorised FHIR destination
+                        <select id="destination"></select></label
+                    ><button id="run-preview">Review one file run</button>
+                    <details>
+                        <summary>Continuous channel</summary>
+                        <p>
+                            A channel pins one confirmed mapping version and polls stable files. It never changes the
+                            mapping automatically. A restart requires an explicit start. Inputs are never deleted or
+                            modified.
+                        </p>
+                        <label>Channel name <input id="channel-name" /></label
+                        ><label
+                            >Poll interval in seconds
+                            <input id="poll" type="number" min="5" max="3600" value="10" /></label
+                        ><label
+                            >Rejected record policy
+                            <select id="failure-policy">
+                                <option value="pause">Pause</option>
+                                <option value="quarantine-and-continue">Quarantine and continue</option>
+                            </select></label
+                        ><button id="channel-preview">Review new channel assignment</button>
+                    </details>
+                    <div id="confirmation" hidden>
+                        <h3>Review this operation</h3>
+                        <pre id="confirmation-detail"></pre>
+                        <button class="primary-button" id="commit">Confirm operation</button
+                        ><button id="dismiss">Cancel</button>
+                    </div>
+                </section>
+                <section id="monitor-step" aria-labelledby="monitor-heading">
+                    <h2 id="monitor-heading">Jobs</h2>
+                    <button id="jobs-refresh">Refresh jobs and channels</button>
+                    <div id="jobs"></div>
+                    <h2>Channels</h2>
+                    <div id="channels"></div>
+                    <h3>Selected job report</h3>
+                    <pre id="report"></pre>
+                </section>
+                <section id="sharing-step" aria-labelledby="sharing-heading">
+                    <h2 id="sharing-heading">Shared channel groups</h2>
+                    <p>
+                        Share operational channel metadata with people or reusable teams in your organisation. Monitor
+                        access adds status and counts. It does not grant editing, start/pause, clinical approval,
+                        connection credentials, private files or patient results. Use group and channel names without
+                        patient information.
+                    </p>
+                    <button id="groups-refresh">Load / refresh groups</button>
+                    <label
+                        >Channel group
+                        <select id="channel-group"></select
                     ></label>
-                    <button id="team-transfer">Transfer team ownership</button>
-                </details>
-                <pre id="group-access-history"></pre>
-            </section>
-        </main>
+                    <div id="group-monitor" aria-live="polite"></div>
+                    <details id="group-management" hidden>
+                        <summary>Manage this group's access and channels</summary>
+                        <label>New group name <input id="group-name" maxlength="100" /></label>
+                        <button class="primary-button" id="group-create">Create group</button>
+                        <div id="group-owner-controls" hidden>
+                            <label
+                                >Owned channel
+                                <select id="group-owned-channel"></select
+                            ></label>
+                            <button id="group-attach">Attach channel to group</button>
+                            <p>
+                                Choose each person's or team's access, then save. Team access follows current team
+                                membership. Saving replaces the group's current grants.
+                            </p>
+                            <div id="group-grants"></div>
+                            <button id="group-save-grants">Save access grants</button>
+                            <label
+                                >Transfer group ownership to
+                                <select id="group-next-owner"></select
+                            ></label>
+                            <button class="danger-button" id="group-transfer">Transfer ownership</button>
+                            <p>
+                                Detach channel assignments before transferring group ownership. Transfer removes your
+                                management access immediately; private channel ownership and records remain unchanged.
+                            </p>
+                            <button id="group-audit">Show access history</button>
+                        </div>
+                    </details>
+                    <details id="team-management" hidden>
+                        <summary>Manage reusable teams</summary>
+                        <label>New team name <input id="team-name" maxlength="100" /></label>
+                        <button class="primary-button" id="team-create">Create team</button>
+                        <label
+                            >Team
+                            <select id="channel-team"></select
+                        ></label>
+                        <div id="team-members"></div>
+                        <button id="team-save-members">Save team membership</button>
+                        <label
+                            >Transfer team ownership to
+                            <select id="team-next-owner"></select
+                        ></label>
+                        <button class="danger-button" id="team-transfer">Transfer team ownership</button>
+                    </details>
+                    <pre id="group-access-history"></pre>
+                </section>
+            </main>
+        </div>
     </body>
 </html>
