@@ -45,3 +45,9 @@ artifacts; the existing IG platform retains review and distribution authority.
 
 The former Docker-on-VPS scripts and Compose fixtures remain legacy regression
 material and are not invoked by production promotion.
+
+## Primary runtime protocol upgrade
+
+Promotion updates all five exact image references and the matching primary HTTP contract in one infrastructure commit. The primary container uses its image entrypoint, explicit application mode and HTTP port 9000; startup/liveness use `/health` and readiness uses `/ready`, with an allowlisted loopback Host header. The retained standards-engine sidecar, persistent-volume references, secret references and stable identity settings are preserved. The delivery runner already requires PyYAML for the infrastructure validator; the promotion transformer uses that same dependency.
+
+Deployments use `Recreate`. The browser/channel orchestrator owns a single persistent store and must not overlap an old instance during upgrade. The protocol/cohort transition can briefly interrupt requests; confirm processing is stopped or reconciled before promotion, preserve rollback images and check delivery receipts before retrying any uncertain destination write. This change prepares the deployment contract; it does not itself mean a production upgrade has run.
