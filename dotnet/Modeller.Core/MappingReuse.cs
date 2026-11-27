@@ -5,12 +5,7 @@ namespace Modeller.Core;
 
 public sealed partial class ModelStore
 {
-    private static readonly Lazy<string> MappingRuntimeFingerprint = new(() => {
-        var path = typeof(Mapping).Assembly.Location;
-        if (string.IsNullOrEmpty(path)) throw new ProcessingException("REUSE_RUNTIME_FINGERPRINT_UNAVAILABLE");
-        return Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path)));
-    });
-    private static JsonObject ReuseContext(JsonObject input, string schemaHash, JsonArray requirements)
+    private JsonObject ReuseContext(JsonObject input, string schemaHash, JsonArray requirements)
     {
         Data.Keys(input, "sourceSystem", "sourceSemanticsVersion", "purpose", "terminologyPins");
         if (!Regex.IsMatch(schemaHash, "^[a-f0-9]{64}$")) throw new ProcessingException("REUSE_SCHEMA_HASH_REQUIRED");
@@ -37,7 +32,7 @@ public sealed partial class ModelStore
         }
         return new JsonObject {
             ["schemaVersion"] = 1, ["sourceSystem"] = input["sourceSystem"]!.DeepClone(), ["sourceSemanticsVersion"] = input["sourceSemanticsVersion"]!.DeepClone(), ["purpose"] = input["purpose"]!.DeepClone(),
-            ["sourceSchemaSha256"] = schemaHash, ["requirementsSha256"] = Data.Hash(Data.Canonical(new JsonArray(requirements.OfType<JsonObject>().Select(requirement => (JsonNode)new JsonObject { ["originalText"] = requirement["originalText"]!.DeepClone(), ["basis"] = requirement["basis"]!.DeepClone() }).ToArray()))), ["runtimeSha256"] = MappingRuntimeFingerprint.Value,
+            ["sourceSchemaSha256"] = schemaHash, ["requirementsSha256"] = Data.Hash(Data.Canonical(new JsonArray(requirements.OfType<JsonObject>().Select(requirement => (JsonNode)new JsonObject { ["originalText"] = requirement["originalText"]!.DeepClone(), ["basis"] = requirement["basis"]!.DeepClone() }).ToArray()))), ["runtimeSha256"] = runtimeFingerprint.Value,
             ["terminologyPins"] = new JsonArray(canonicalPins.Values.Select(pin => (JsonNode)pin).ToArray())
         };
     }

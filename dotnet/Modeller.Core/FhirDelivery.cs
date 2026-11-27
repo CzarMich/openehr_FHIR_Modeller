@@ -105,6 +105,7 @@ public sealed class FhirDelivery : IDisposable
         var resource = entries[0]?["resource"] as JsonObject ?? throw new ProcessingException("DESTINATION_SEARCH_RESOURCE_REQUIRED");
         _ = ReferenceOf(resource);
         if (resource["resourceType"]?.GetValue<string>() != type || (resource["identifier"] as JsonArray)?.Any(identifier => identifier?["system"]?.GetValue<string>() == system && identifier?["value"]?.GetValue<string>() == value) != true) throw new ProcessingException("DESTINATION_SEARCH_IDENTITY_MISMATCH");
+        if (type == "Patient" && (resource["active"]?.GetValueKind() == System.Text.Json.JsonValueKind.False || (resource["link"] as JsonArray)?.Any(link => link?["type"]?.GetValue<string>() == "replaced-by") == true)) throw new ProcessingException("PATIENT_IDENTITY_REVIEW_REQUIRED");
         return resource;
     }
     public async Task<JsonObject?> ReadExact(string reference, CancellationToken cancellation) {

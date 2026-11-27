@@ -1001,12 +1001,22 @@
       "status": "draft",
       "implementation": "partial",
       "packages": [
-        "dotnet/Modeller.Operational/Modeller.Operational.csproj"
+        "dotnet/Modeller.Operational/ClinicalMessages.cs",
+        "dotnet/Modeller.Operational/XmlSourceValidation.cs",
+        "dotnet/Modeller.Operational/SourceProjection.cs",
+        "dotnet/Modeller.Core/SourceContract.cs"
       ],
       "tests": [
-        "dotnet/Modeller.Operational.Tests/Program.cs"
+        "dotnet/Modeller.Operational.Tests/Program.cs",
+        "dotnet/Modeller.Processing.Tests/Program.cs",
+        "dotnet/tests/workspace-contracts.py",
+        "chat/test/integration.test.mjs",
+        "chat/test/browser.spec.mjs"
       ],
-      "verification": "Parser dependencies selected only; HL7 reader, profiles, transports and end-to-end qualification remain pending."
+      "verification": "Bounded file readers, typed v2 models, supplied XML profiles and private projection are implemented and tested. Network transports/ACKs, Schematron and hospital qualification remain pending.",
+      "adr": [
+        "0031"
+      ]
     },
     {
       "id": "REQ-F41",
@@ -1015,12 +1025,22 @@
       "status": "draft",
       "implementation": "partial",
       "packages": [
-        "dotnet/Modeller.Operational/DependencyQueue.cs"
+        "dotnet/Modeller.Operational/DependencyQueue.cs",
+        "dotnet/Modeller.Operational/DestinationEvidence.cs",
+        "dotnet/Modeller.Processing/Program.cs",
+        "chat/src/processing.mjs"
       ],
       "tests": [
-        "dotnet/Modeller.Operational.Tests/Program.cs"
+        "dotnet/Modeller.Operational.Tests/Program.cs",
+        "dotnet/Modeller.Processing.Tests/Program.cs",
+        "dotnet/tests/workspace-contracts.py",
+        "chat/test/integration.test.mjs",
+        "chat/test/browser.spec.mjs"
       ],
-      "verification": "Synthetic domain queue tests only; runtime intake, destination evidence verification and operational UI are not yet connected."
+      "verification": "Encrypted durable originals and queue admission are connected to the worker and channel scheduler. Synthetic real-worker hold/source-removal/resume acceptance passes. Identity-resolution, reconciliation and retention UI completion and release acceptance remain pending.",
+      "adr": [
+        "0031"
+      ]
     },
     {
       "id": "REQ-F42",
@@ -1029,12 +1049,22 @@
       "status": "draft",
       "implementation": "partial",
       "packages": [
-        "docs/HL7_AND_IDENTITY.md"
+        "dotnet/Modeller.Core/ClinicalPolicy.cs",
+        "dotnet/Modeller.Operational/FhirReferences.cs",
+        "dotnet/Modeller.Operational/DestinationEvidence.cs",
+        "public/chat/integration.js"
       ],
       "tests": [
-        "dotnet/Modeller.Operational.Tests/Program.cs"
+        "dotnet/Modeller.Operational.Tests/Program.cs",
+        "dotnet/Modeller.Processing.Tests/Program.cs",
+        "dotnet/tests/workspace-contracts.py",
+        "chat/test/integration.test.mjs",
+        "chat/test/browser.spec.mjs"
       ],
-      "verification": "Requirement and exact-key dependency foundation only; selectable reference-policy execution remains pending."
+      "verification": "Confirmed reference modes, exact destination lookup and cross-patient checks are implemented; target profile validation remains required. End-to-end dependency/destination and release qualification remain pending.",
+      "adr": [
+        "0031"
+      ]
     },
     {
       "id": "REQ-F43",
@@ -1043,12 +1073,22 @@
       "status": "draft",
       "implementation": "partial",
       "packages": [
-        "dotnet/Modeller.Operational/IdentityRegistry.cs"
+        "dotnet/Modeller.Operational/IdentityRegistry.cs",
+        "dotnet/Modeller.Operational/ClinicalPipeline.cs",
+        "dotnet/Modeller.Mcp/WorkspaceHttp.cs",
+        "public/chat/integration.js"
       ],
       "tests": [
-        "dotnet/Modeller.Operational.Tests/Program.cs"
+        "dotnet/Modeller.Operational.Tests/Program.cs",
+        "dotnet/Modeller.Processing.Tests/Program.cs",
+        "dotnet/tests/workspace-contracts.py",
+        "chat/test/integration.test.mjs",
+        "chat/test/browser.spec.mjs"
       ],
-      "verification": "Encrypted internal registry and policy-revision domain tests only; browser toggle and operational enforcement remain pending."
+      "verification": "Stable encrypted pseudonyms, mandatory patient gate and reviewed revision-bound browser toggle are tested. Controlled migration/merge/key-rotation procedures and full outbound-destination acceptance remain pending.",
+      "adr": [
+        "0031"
+      ]
     },
     {
       "id": "REQ-F44",
@@ -1062,9 +1102,16 @@
         "dotnet/Modeller.Processing/Program.cs"
       ],
       "tests": [
-        "dotnet/Modeller.Processing.Tests/Program.cs"
+        "dotnet/Modeller.Operational.Tests/Program.cs",
+        "dotnet/Modeller.Processing.Tests/Program.cs",
+        "dotnet/tests/workspace-contracts.py",
+        "chat/test/integration.test.mjs",
+        "chat/test/browser.spec.mjs"
       ],
-      "verification": "Additional route unit checks pass; packaged end-to-end composition/profile validation and release acceptance remain pending."
+      "verification": "Four independent routes pass synthetic acceptance against actual installed openEHR/FHIR engines. Retired combined definitions fail explicitly; hosted/package and production release acceptance remain pending.",
+      "adr": [
+        "0031"
+      ]
     }
   ]
 }

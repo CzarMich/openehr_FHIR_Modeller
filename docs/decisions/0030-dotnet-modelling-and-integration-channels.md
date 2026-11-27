@@ -35,7 +35,7 @@ The existing Java/Node native compilers and validators remain specialised engine
 
 Store actual supplied model bytes, origin, version, hash and provenance. Draft
 origin claims and compiler results never constitute approval. Both FHIR and
-openEHR models used by an openEHR-mediated mapping require explicit selection;
+openEHR models used as an input or output require explicit selection;
 a direct FHIR mapping requires the supplied target StructureDefinitions, not a
 fictitious openEHR input. Human confirmation covers exact models and executable
 rules. Keep clinical approval/publication separate in the existing governance

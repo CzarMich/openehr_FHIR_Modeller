@@ -31,6 +31,7 @@ public sealed class IdentityRegistry : IDisposable
             if (ancestor.LinkTarget is not null) throw new ProcessingException("IDENTITY_STORE_LINK_REJECTED");
         if (OperatingSystem.IsWindows()) Directory.CreateDirectory(directory.FullName);
         else Directory.CreateDirectory(directory.FullName, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(directory.FullName, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         var file = Path.Combine(directory.FullName, "operational.sqlite");
         if (new FileInfo(file).LinkTarget is not null) throw new ProcessingException("IDENTITY_STORE_LINK_REJECTED");
         encryptionKey = HMACSHA256.HashData(masterKey, Encoding.UTF8.GetBytes("modeller-operational/encryption/v1"));
@@ -53,6 +54,7 @@ public sealed class IdentityRegistry : IDisposable
         } catch { Dispose(); throw; }
         if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(file, UnixFileMode.UserRead | UnixFileMode.UserWrite);
     }
+    private sealed record SharedPseudonym(string Value);
     private sealed record PseudonymOwner(string SourceScope, string RegistryId);
     private sealed record StoreMarker(int Version, string Purpose);
     public void Dispose() { connection.Dispose(); CryptographicOperations.ZeroMemory(encryptionKey); CryptographicOperations.ZeroMemory(indexKey); }
@@ -70,7 +72,7 @@ public sealed class IdentityRegistry : IDisposable
     }
     internal string PolicyScope(OperationalScope scope) {
         _ = Scope(scope);
-        return Index("destination-privacy/v1\n" + JsonSerializer.Serialize(new { scope.Owner, scope.ProjectId, scope.DestinationId }, Data.Json));
+        return Index("destination-privacy/v1\n" + JsonSerializer.Serialize(new { scope.ProjectId, scope.DestinationId }, Data.Json));
     }
     internal void BindProcessingState(OperationalScope scope, string recordScope, string id, string state, SqliteTransaction transaction) {
         using var command = connection.CreateCommand(); command.Transaction = transaction;
@@ -122,7 +124,8 @@ public sealed class IdentityRegistry : IDisposable
     internal SqliteTransaction Transaction() => connection.BeginTransaction(deferred: false);
     public DestinationPrivacyPolicy Policy(OperationalScope scope) => Policy(scope, null);
     internal DestinationPrivacyPolicy Policy(OperationalScope scope, SqliteTransaction? transaction) => Read<DestinationPrivacyPolicy>(PolicyScope(scope), "privacy", "current", transaction) ?? new(0, false, null);
-    public DestinationPrivacyPolicy ChangePolicy(OperationalScope scope, int expectedRevision, bool pseudonymise, string? pseudonymSystem) {
+    public DestinationPrivacyPolicy ChangePolicy(OperationalScope scope, int expectedRevision, bool pseudonymise, string? pseudonymSystem, string? actorId = null) {
+        if (actorId is not null) Text(actorId);
         var token = PolicyScope(scope); if (pseudonymise) Identity(new(pseudonymSystem ?? "", "namespace-validation"));
         using var transaction = Transaction(); var before = Read<DestinationPrivacyPolicy>(token, "privacy", "current", transaction) ?? new(0, false, null);
         if (before.Revision != expectedRevision) throw new ProcessingException("PRIVACY_POLICY_REVISION_CONFLICT");
@@ -136,7 +139,7 @@ public sealed class IdentityRegistry : IDisposable
         if (usage is not null && (usage.Pseudonymise != pseudonymise || usage.PseudonymSystem != (pseudonymise ? pseudonymSystem : null))) throw new ProcessingException("DESTINATION_IDENTITY_MIGRATION_REQUIRED");
         var after = new DestinationPrivacyPolicy(before.Revision + 1, pseudonymise, pseudonymise ? pseudonymSystem : null);
         Write(token, "privacy", "current", after.Revision, after, transaction);
-        Write(token, "privacy-history", after.Revision.ToString(System.Globalization.CultureInfo.InvariantCulture), after.Revision, after, transaction);
+        Write(token, "privacy-history", after.Revision.ToString(System.Globalization.CultureInfo.InvariantCulture), after.Revision, new { policy = after, actorId = actorId ?? "trusted-system", changedAt = DateTimeOffset.UtcNow }, transaction);
         transaction.Commit(); return after;
     }
     internal RegisteredPatient? PatientById(string token, string registryId, SqliteTransaction? transaction = null) => Read<RegisteredPatient>(token, "patient-by-registry-id", Index(registryId), transaction);
@@ -147,6 +150,17 @@ public sealed class IdentityRegistry : IDisposable
         if (before is not null && (before.Pseudonymise != policy.PseudonymisePatientIdentifiers || before.PseudonymSystem != policy.PseudonymSystem)) throw new ProcessingException("DESTINATION_IDENTITY_POLICY_CONFLICT");
         if (before is null) Write(token, "privacy-use", "first", 1, new DestinationIdentityUse(policy.PseudonymisePatientIdentifiers, policy.PseudonymSystem, evidenceSha256, DateTimeOffset.UtcNow), transaction);
     }
+    public void AuthorisePatientSource(OperationalScope scope, string connectionSha256, string actorId, string comment) {
+        var token = Scope(scope);
+        if (!System.Text.RegularExpressions.Regex.IsMatch(connectionSha256, "^[a-f0-9]{64}$") || string.IsNullOrWhiteSpace(actorId) || actorId.Length > 256 || string.IsNullOrWhiteSpace(comment) || comment.Length > 4000) throw new ProcessingException("SOURCE_TRUST_REVIEW_REQUIRED");
+        using var transaction = Transaction();
+        var evidence = new SourceTrust(connectionSha256, actorId, comment, DateTimeOffset.UtcNow);
+        Write(token, "source-trust", connectionSha256, 1, evidence, transaction);
+        Write(token, "source-trust-history", Guid.NewGuid().ToString("N"), 1, evidence, transaction);
+        transaction.Commit();
+    }
+    private sealed record SourceTrust(string ConnectionSha256, string ActorId, string Comment, DateTimeOffset ConfirmedAt);
+    public bool PatientSourceAuthorised(OperationalScope scope, string connectionSha256) => Read<SourceTrust>(Scope(scope), "source-trust", connectionSha256)?.ConnectionSha256 == connectionSha256;
     public RegisteredPatient? FindPatient(OperationalScope scope, ClinicalIdentity identity) => Read<RegisteredPatient>(Scope(scope), "patient", PatientKey(identity));
     public RegisteredPatient RegisterVerifiedPatient(OperationalScope scope, ClinicalIdentity identity, string sourcePatientAnchor, string evidenceSha256) {
         var token = Scope(scope); var id = PatientKey(identity); Text(sourcePatientAnchor, 512);
@@ -161,13 +175,21 @@ public sealed class IdentityRegistry : IDisposable
             if (attempt >= 5) throw new ProcessingException("PATIENT_REGISTRY_ALLOCATION_CONFLICT");
             registryId = Guid.NewGuid().ToString("N");
         }
-        var pseudonymScope = PolicyScope(scope); var pseudonym = Guid.NewGuid().ToString("N");
-        for (var attempt = 0; Read<PseudonymOwner>(pseudonymScope, "pseudonym-uniqueness", Index(pseudonym), transaction) is not null; attempt++) {
-            if (attempt >= 5) throw new ProcessingException("PSEUDONYM_ALLOCATION_CONFLICT");
-            pseudonym = Guid.NewGuid().ToString("N");
+        var pseudonymScope = PolicyScope(scope);
+        // Reuse the opaque destination identity across authorised operators in the same project/domain.
+        // Their source registrations, originals, queue rows and registry records remain owner-private.
+        var sharedIdentity = Index(JsonSerializer.Serialize(new { scope.ProjectId, scope.SourceSystem, scope.DestinationId, identity }, Data.Json));
+        var shared = Read<SharedPseudonym>(pseudonymScope, "stable-pseudonym", sharedIdentity, transaction);
+        var pseudonym = shared?.Value ?? Guid.NewGuid().ToString("N");
+        if (shared is null) {
+            for (var attempt = 0; Read<PseudonymOwner>(pseudonymScope, "pseudonym-uniqueness", Index(pseudonym), transaction) is not null; attempt++) {
+                if (attempt >= 5) throw new ProcessingException("PSEUDONYM_ALLOCATION_CONFLICT");
+                pseudonym = Guid.NewGuid().ToString("N");
+            }
+            Write(pseudonymScope, "pseudonym-uniqueness", Index(pseudonym), 1, new PseudonymOwner(token, registryId), transaction);
+            Write(pseudonymScope, "stable-pseudonym", sharedIdentity, 1, new SharedPseudonym(pseudonym), transaction);
         }
         var patient = new RegisteredPatient(registryId, identity, sourcePatientAnchor, pseudonym, "VERIFIED", evidenceSha256, DateTimeOffset.UtcNow);
-        Write(pseudonymScope, "pseudonym-uniqueness", Index(pseudonym), 1, new PseudonymOwner(token, registryId), transaction);
         Write(token, "patient", id, 1, patient, transaction);
         Write(token, "patient-by-registry-id", Index(patient.RegistryId), 1, patient, transaction);
         transaction.Commit(); return patient;

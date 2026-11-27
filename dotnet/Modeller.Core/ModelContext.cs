@@ -13,7 +13,7 @@ public sealed class ModelContext : IAsyncDisposable
     public static Task<ModelContext> Connect(Configuration configuration, JobRequest job, CancellationToken cancellation) {
         var keys = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(Environment.GetEnvironmentVariable("MODELLER_APPROVAL_KEYS") ?? "{}") ?? throw new ProcessingException("APPROVAL_KEYS_REQUIRED");
         var active = Environment.GetEnvironmentVariable("MODELLER_APPROVAL_KEY_ID") ?? "active";
-        var context = new ModelContext(new ModelStore(configuration.ModelRoot, keys, active), job);
+        var context = new ModelContext(new ModelStore(configuration.ModelRoot, keys, active, configuration.RuntimeFiles), job);
         context.Refresh(cancellation).GetAwaiter().GetResult();
         context.Project = (JsonObject)context.Selection["projectConfiguration"]!.DeepClone();
         return Task.FromResult(context);

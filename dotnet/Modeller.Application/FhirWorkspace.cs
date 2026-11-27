@@ -65,6 +65,11 @@ public sealed class FhirWorkspace(SnapshotRepository repository,StandardsGateway
             if(action=="prepare-confirmation")return selections.Prepare(id,args["modelInputs"] as JsonArray??new JsonArray());
             if(action=="confirmation"){var view=selections.Get(Data.Required(args,"subject"));if(S(view,"project")!=id)throw new ProcessingException("MAPPING_MODEL_PROJECT_MISMATCH");return view;}
             var context=selections.Context(id,args["modelInputs"] as JsonArray??new JsonArray(),args["confirmationSubject"]?.GetValue<string>());if(action=="context")return context;if(context["ready"]?.GetValue<bool>()!=true)throw new ProcessingException("MAPPING_HUMAN_CONFIRMATION_REQUIRED");
+            var direction=args["mapping"]?["direction"]?.GetValue<string>()??throw new ProcessingException("MAPPING_SCOPE_REQUIRED");
+            if(direction=="source-to-fhir")throw new ProcessingException("LEGACY_CHAINED_MAPPING_REVIEW_REQUIRED");
+            if(direction is not("source-direct-to-fhir" or "source-to-openehr" or "openehr-to-fhir" or "fhir-to-openehr"))throw new ProcessingException("MAPPING_SCOPE_REQUIRED");
+            var standards=((JsonArray)context["items"]!).OfType<JsonObject>().Select(item=>item["pin"]?["standard"]?.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
+            if(standards.Contains("FHIR")!=(direction!="source-to-openehr")||standards.Contains("openEHR")!=(direction!="source-direct-to-fhir"))throw new ProcessingException("PIPELINE_MODELS_INVALID");
             var preview=await gateway.Fhir("mapping.preview",WithProject(args,project),tenant,cancellation);preview["modelReadiness"]=context;preview["operationalExecution"]="NOT_SUPPORTED";return preview;
         }
         if(category=="source")return await Source(action,id,args,project,cancellation);

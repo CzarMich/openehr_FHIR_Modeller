@@ -34,6 +34,19 @@ try {
         bytes = copy.ToArray();
     }
     if (Convert.ToHexStringLower(SHA256.HashData(bytes)) != request.SourceSha256) throw new ProcessingException("SOURCE_CHANGED");
+    if (args[0] == "inspect" && request.SourceContractKey is not null) {
+        if (!Regex.IsMatch(request.SourceContractKey, "^[a-f0-9]{64}$")) throw new ProcessingException("SOURCE_PROFILE_KEY_REQUIRED");
+        var keys = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string,string>>(Environment.GetEnvironmentVariable("MODELLER_APPROVAL_KEYS") ?? "{}")!;
+        var store = new ModelStore(config.ModelRoot, keys, Environment.GetEnvironmentVariable("MODELLER_APPROVAL_KEY_ID") ?? "active", config.RuntimeFiles);
+        var model = store.GetModel(request.SourceContractKey, ModelActor.Service);
+        if (model["projectId"]?.GetValue<string>() != request.ProjectId || model["standard"]?.GetValue<string>() != "source-contract") throw new ProcessingException("SOURCE_PROFILE_SELECTION_MISMATCH");
+        var contract = new SourceContract(Data.Required(model, "content"));
+        if (contract.Definition.Format != source.Format) throw new ProcessingException("DECLARED_SOURCE_FORMAT_MISMATCH");
+        var projected = new SourceProjection(contract).Read(bytes);
+        var description = System.Text.Json.JsonSerializer.SerializeToNode(Sources.Describe(projected.Select(record => record.Record).ToList()), Data.Json)!.AsObject();
+        description["sourceContractSha256"] = contract.Sha256; description["recordValues"] = "NOT_INCLUDED";
+        Console.WriteLine(description.ToJsonString()); return;
+    }
     if (args[0] == "inspect") {
         var description = source.Format is "hl7-v2" or "hl7-v2-xml" or "hl7-v3" or "cda"
             ? ClinicalMessages.Describe(bytes, source.Format) : System.Text.Json.JsonSerializer.SerializeToNode(Sources.Describe(Sources.Parse(bytes, source.Format)), Data.Json);

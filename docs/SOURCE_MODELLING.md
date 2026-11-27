@@ -2,7 +2,7 @@
 
 ## Current C# integration implementation
 
-The optional [C# integration workspace](INTEGRATION_ENGINE.md) now adds immutable model/rule revisions, protected human mapping selection, direct-to-FHIR and openEHR-mediated routes, private bounded file workers, channel assignments, checkpoints/quarantine, validation and conditional-create FHIR delivery. The original C# tools below remain the compatibility preview surface. The audit and initial backlog describe the earlier baseline; they must not be read as the current integration feature list. SQL/HL7/CDA/queue/dataset adapters and full C# repository migration remain incomplete. No clinical approval is inferred from this implementation.
+The optional [C# integration workspace](INTEGRATION_ENGINE.md) now adds immutable model/rule revisions, protected human mapping selection, independent source-to-FHIR, source-to-openEHR, openEHR-to-FHIR and FHIR-to-openEHR routes, private bounded file workers, channel assignments, checkpoints/quarantine, validation and conditional-create FHIR delivery. The original C# tools below remain the compatibility preview surface. The audit and initial backlog describe the earlier baseline; they must not be read as the current integration feature list. SQL/HL7/CDA/queue/dataset adapters and full C# repository migration remain incomplete. No clinical approval is inferred from this implementation.
 
 ## Audit
 
@@ -32,7 +32,7 @@ Operational retrieval, jobs and data handling require a separate private runtime
 ## Delivery backlog
 
 - Implemented: source-description schema, bounded CSV/JSON inspection, missingness,
-  source locations, unresolved meaning, explicit two-stage synthetic mapping,
+  source locations, unresolved meaning, explicit independent single-stage synthetic mappings,
   separately defined reverse rules, zero/null/absent handling, terminology lookup,
   numeric conversion, unmapped-field reporting, stable preview IDs and rejected
   records; exact-model context/readiness through existing repository/review state.
@@ -63,8 +63,8 @@ actual hashes and approval blockers. Combined model content is limited to 4 MiB.
 
 `fhir_mapping(action="preview", ...)` takes synthetic:true, records, sourceId,
 sourceVersion, mapping and modelInputs. Mapping has schemaVersion:1, version,
-direction (source-to-fhir or fhir-to-openehr), sourceSchemaSha256, reversibility,
-and stages:[{rules:[...]}]. Forward requires two stages, reverse one. A rule has
+direction (source-direct-to-fhir, source-to-openehr, openehr-to-fhir or fhir-to-openehr), sourceSchemaSha256, reversibility,
+and stages:[{rules:[...]}]. Every route requires one stage. Retired combined source-to-fhir definitions require a new reviewed version. A rule has
 source/target JSON Pointers, operation (copy/number/translate), missing
 (reject/omit), null (reject/preserve/omit), description, and optional factor,
 offset or dictionary. Forward stages explicitly construct the intermediate

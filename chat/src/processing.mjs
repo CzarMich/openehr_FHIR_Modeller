@@ -88,6 +88,11 @@ export class ProcessingWorkspace {
             ? json(this.config.integrationConnectionsFile)
             : { sources: [], destinations: [], requireTerminology: true };
         fields(configured, ["sources", "destinations", "requireTerminology"]);
+        for (const kind of ["sources", "destinations"]) {
+            const ids = (configured[kind] || []).map((item) => item.id);
+            if (new Set(ids).size !== ids.length)
+                throw problem("Registered connection identifiers must be unique across the installation.", 503);
+        }
         const allowed = (item) =>
             Array.isArray(item.owners) &&
             item.owners.includes(owner) &&
@@ -104,6 +109,7 @@ export class ProcessingWorkspace {
                     id: name,
                     root: join(uploads, name),
                     format: item.format,
+                    identityDomain: item.identityDomain || null,
                     projects: [item.projectId],
                     owners: [owner],
                     displayName: item.displayName,
@@ -135,10 +141,25 @@ export class ProcessingWorkspace {
     }
     async upload(session, input, bytes) {
         this.checkQuota(session);
-        fields(input, ["projectId", "format", "name"]);
+        fields(input, ["projectId", "format", "name", "identityDomain"]);
         if (
             !projectId.test(input.projectId) ||
-            !["csv", "json", "fhir-json", "openehr-json", "xml", "xlsx", "hl7-v2", "hl7-v2-xml", "hl7-v3", "cda"].includes(input.format) ||
+            ![
+                "csv",
+                "json",
+                "fhir-json",
+                "openehr-json",
+                "xml",
+                "xlsx",
+                "hl7-v2",
+                "hl7-v2-xml",
+                "hl7-v3",
+                "cda",
+            ].includes(input.format) ||
+            typeof input.identityDomain !== "string" ||
+            !input.identityDomain.trim() ||
+            input.identityDomain.length > 256 ||
+            /[\r\n\0]/.test(input.identityDomain) ||
             typeof input.name !== "string" ||
             input.name.length > 180 ||
             /[\r\n\0]/.test(input.name) ||
@@ -150,7 +171,7 @@ export class ProcessingWorkspace {
         await this.core.request(session, "GET", "/api/v1/integration/projects/" + input.projectId);
         const owner = this.owner(session),
             digest = hash(bytes),
-            id = hash(input.projectId + "\n" + input.format + "\n" + digest);
+            id = hash(input.projectId + "\n" + input.format + "\n" + input.identityDomain + "\n" + digest);
         const directory = join(this.directory(session, "sources"), id);
         mkdirSync(directory, { recursive: true, mode: 0o700 });
         if (!existsSync(join(directory, "source.bin")))
@@ -158,6 +179,7 @@ export class ProcessingWorkspace {
         save(join(directory, "source.json"), {
             projectId: input.projectId,
             format: input.format,
+            identityDomain: input.identityDomain,
             displayName: basename(input.name),
             sha256: digest,
         });
@@ -205,7 +227,17 @@ export class ProcessingWorkspace {
     matches(source, name) {
         return source.uploaded
             ? name === "source.bin"
-            : name.toLowerCase().endsWith("." + ({ "fhir-json": "json", "openehr-json": "json", "hl7-v2": "hl7", "hl7-v2-xml": "xml", "hl7-v3": "xml", cda: "xml" }[source.format] || source.format));
+            : name.toLowerCase().endsWith(
+                  "." +
+                      ({
+                          "fhir-json": "json",
+                          "openehr-json": "json",
+                          "hl7-v2": "hl7",
+                          "hl7-v2-xml": "xml",
+                          "hl7-v3": "xml",
+                          cda: "xml",
+                      }[source.format] || source.format),
+              );
     }
     async file(source, name) {
         if (
@@ -278,13 +310,27 @@ export class ProcessingWorkspace {
         return mapping;
     }
     async inspect(session, input) {
-        fields(input, ["projectId", "sourceId", "file"]);
+        fields(input, ["projectId", "sourceId", "file", "sourceContractKey"]);
         this.checkQuota(session);
         if (this.active.size + this.inspectionRequests >= 2) throw problem("Processing workers are busy.", 429);
         this.inspectionRequests++;
         try {
             await this.core.request(session, "GET", "/api/v1/integration/projects/" + input.projectId);
             if (!projectId.test(input.projectId)) throw problem("Choose a valid project.");
+            if (input.sourceContractKey !== undefined) {
+                if (!ids.test(input.sourceContractKey)) throw problem("Select a valid source contract.");
+                const models = await this.core.request(
+                    session,
+                    "GET",
+                    "/api/v1/integration/projects/" + input.projectId + "/models",
+                );
+                if (
+                    !models.items.some(
+                        (model) => model.key === input.sourceContractKey && model.standard === "source-contract",
+                    )
+                )
+                    throw problem("The source contract does not belong to this project.", 403);
+            }
             const owner = this.owner(session),
                 source = this.source(owner, input.projectId, input.sourceId),
                 file = await this.file(source, input.file);
@@ -295,6 +341,7 @@ export class ProcessingWorkspace {
                 owner,
                 projectId: input.projectId,
                 subject: "",
+                ...(input.sourceContractKey ? { sourceContractKey: input.sourceContractKey } : {}),
                 sourceId: input.sourceId,
                 file: input.file,
                 sourceSha256: file.sha256,
@@ -312,6 +359,8 @@ export class ProcessingWorkspace {
                             LANG: "C.UTF-8",
                             DOTNET_EnableDiagnostics: "0",
                             DOTNET_GCHeapHardLimit: "0x20000000",
+                            MODELLER_APPROVAL_KEYS: JSON.stringify(this.core.keys),
+                            MODELLER_APPROVAL_KEY_ID: this.config.reviewKeyId,
                         },
                         stdio: ["ignore", "pipe", "pipe"],
                         shell: false,
@@ -362,6 +411,63 @@ export class ProcessingWorkspace {
             this.inspectionRequests--;
         }
     }
+    async previewSourceTrust(session, input) {
+        fields(input, ["projectId", "subject", "sourceId", "comment"]);
+        if (typeof input.comment !== "string" || !input.comment.trim() || input.comment.length > 4000)
+            throw problem("Record why this source is authoritative for patient registration.");
+        const owner = this.owner(session),
+            mapping = await this.selection(session, input.projectId, input.subject);
+        const policy = JSON.parse(mapping.executionMapping).clinicalPolicy,
+            configuration = this.configuration(owner, input.projectId);
+        const source = configuration.sources.find((source) => source.id === input.sourceId);
+        if (!source || !policy || source.identityDomain !== policy.identityDomain)
+            throw problem("Select the exact source and a confirmed mapping with its identity domain.");
+        const canonical = (value) =>
+            Array.isArray(value)
+                ? "[" + value.map(canonical).join(",") + "]"
+                : value !== null && typeof value === "object"
+                  ? "{" +
+                    Object.keys(value)
+                        .sort()
+                        .map((key) => JSON.stringify(key) + ":" + canonical(value[key]))
+                        .join(",") +
+                    "}"
+                  : JSON.stringify(value);
+        return this.ticket(owner, "source-trust", {
+            projectId: input.projectId,
+            sourceId: input.sourceId,
+            sourceSystem: policy.identityDomain,
+            destinationId: policy.destinationId,
+            connectionSha256: hash(canonical(source)),
+            comment: input.comment,
+        });
+    }
+    async commitSourceTrust(session, token) {
+        const value = this.take(session, token, "source-trust");
+        const source = this.configuration(this.owner(session), value.projectId).sources.find(
+            (source) => source.id === value.sourceId,
+        );
+        if (!source) throw problem("Source access changed. Review again.", 403);
+        const canonical = (item) =>
+            Array.isArray(item)
+                ? "[" + item.map(canonical).join(",") + "]"
+                : item !== null && typeof item === "object"
+                  ? "{" +
+                    Object.keys(item)
+                        .sort()
+                        .map((key) => JSON.stringify(key) + ":" + canonical(item[key]))
+                        .join(",") +
+                    "}"
+                  : JSON.stringify(item);
+        if (hash(canonical(source)) !== value.connectionSha256)
+            throw problem("Source configuration changed. Review again.", 409);
+        return this.core.request(session, "POST", "/api/v1/integration/projects/" + value.projectId + "/source-trust", {
+            sourceSystem: value.sourceSystem,
+            destinationId: value.destinationId,
+            connectionSha256: value.connectionSha256,
+            comment: value.comment,
+        });
+    }
     async previewJob(session, input) {
         fields(input, ["projectId", "subject", "sourceId", "file", "mode", "destinationId"]);
         const owner = this.owner(session),
@@ -376,7 +482,9 @@ export class ProcessingWorkspace {
         )
             throw problem("Choose an authorised export or FHIR destination.", 403);
         if (input.mode === "deliver" && ["fhir-to-openehr", "source-to-openehr"].includes(mapping.direction))
-            throw problem("This mapping exports openEHR compositions. Select a FHIR-producing mapping for FHIR delivery.");
+            throw problem(
+                "This mapping exports openEHR compositions. Select a FHIR-producing mapping for FHIR delivery.",
+            );
         const file = await this.file(source, input.file);
         return this.ticket(owner, "job", { ...input, sourceSha256: file.sha256, mappingSha256: mapping.mappingSha256 });
     }
@@ -730,18 +838,36 @@ export class ProcessingWorkspace {
         if (!channel.waitingJobs?.length || channel.nextHeldRetry > this.clock()) return false;
         const id = channel.waitingJobs.shift();
         channel.nextHeldRetry = this.clock() + Math.max(5, channel.pollSeconds) * 1000;
-        const directory = this.jobDirectory(channel.owner, id), request = json(join(directory, "request.json"));
-        if (request.subject !== channel.subject || request.sourceId !== channel.sourceId || request.destinationId !== (channel.destinationId || null)) throw problem("Held work must retain its reviewed channel assignment.", 409);
+        const directory = this.jobDirectory(channel.owner, id),
+            request = json(join(directory, "request.json"));
+        if (
+            request.subject !== channel.subject ||
+            request.sourceId !== channel.sourceId ||
+            request.destinationId !== (channel.destinationId || null)
+        )
+            throw problem("Held work must retain its reviewed channel assignment.", 409);
         save(join(directory, "configuration.json"), this.configuration(channel.owner, channel.projectId));
         channel.activeJob = id;
         this.persist(channel);
-        this.launch({ id, directory, request }, true).then(state => {
-            channel.activeJob = null;
-            if (state.status === "WAITING_DEPENDENCIES") channel.waitingJobs.push(id);
-            else if (!terminal.has(state.status)) { channel.status = "PAUSED"; channel.error = state.error || state.status; channel.waitingJobs.push(id); }
-            if (channel.status === "STOPPING") channel.status = "STOPPED";
-            this.persist(channel);
-        }).catch(() => { channel.activeJob = null; channel.waitingJobs.push(id); channel.status = "PAUSED"; channel.error = "WORKER_UNAVAILABLE"; this.persist(channel); });
+        this.launch({ id, directory, request }, true)
+            .then((state) => {
+                channel.activeJob = null;
+                if (state.status === "WAITING_DEPENDENCIES") channel.waitingJobs.push(id);
+                else if (!terminal.has(state.status)) {
+                    channel.status = "PAUSED";
+                    channel.error = state.error || state.status;
+                    channel.waitingJobs.push(id);
+                }
+                if (channel.status === "STOPPING") channel.status = "STOPPED";
+                this.persist(channel);
+            })
+            .catch(() => {
+                channel.activeJob = null;
+                channel.waitingJobs.push(id);
+                channel.status = "PAUSED";
+                channel.error = "WORKER_UNAVAILABLE";
+                this.persist(channel);
+            });
         return true;
     }
     async tick() {
@@ -764,7 +890,11 @@ export class ProcessingWorkspace {
                 channel.nextPoll = this.clock() + channel.pollSeconds * 1000;
                 try {
                     this.source(channel.owner, channel.projectId, channel.sourceId);
-                    if (channel.lastPollWasIntake && this.resumeHeld(channel)) { channel.lastPollWasIntake = false; this.persist(channel); continue; }
+                    if (channel.lastPollWasIntake && this.resumeHeld(channel)) {
+                        channel.lastPollWasIntake = false;
+                        this.persist(channel);
+                        continue;
+                    }
                     channel.lastPollWasIntake = true;
                     const source = this.source(channel.owner, channel.projectId, channel.sourceId),
                         names = readdirSync(source.root)
@@ -799,7 +929,8 @@ export class ProcessingWorkspace {
                             .then((state) => {
                                 channel.activeJob = null;
                                 if (
-                                    state.status === "COMPLETED" || state.status === "WAITING_DEPENDENCIES" ||
+                                    state.status === "COMPLETED" ||
+                                    state.status === "WAITING_DEPENDENCIES" ||
                                     (state.status === "COMPLETED_WITH_FAILURES" &&
                                         channel.failurePolicy === "quarantine-and-continue")
                                 ) {

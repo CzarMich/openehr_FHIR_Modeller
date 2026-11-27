@@ -66,3 +66,6 @@ referenced from [requirements.md](../requirements.md),
 - [ADR-0026 — FHIR authoring and existing IG boundary](0026-fhir-authoring-and-existing-ig-boundary.md)
 
 - [ADR-0025 — Bounded AI execution backed by persistent project state](0025-bounded-ai-execution.md)
+
+- [ADR-0030: C# modelling and integration channels](0030-dotnet-modelling-and-integration-channels.md)
+- [ADR-0031: Independent clinical routes and protected patient identity](0031-independent-clinical-routes-and-identity.md)

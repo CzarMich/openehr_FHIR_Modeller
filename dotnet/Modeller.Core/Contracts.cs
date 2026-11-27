@@ -43,8 +43,8 @@ public static class Data
 }
 public sealed record SourceConnection(string Id, string Root, string Format, string[] Projects, string[] Owners, string? IdentityDomain = null, bool TrustPatientRegistration = false);
 public sealed record DestinationConnection(string Id, string BaseUrl, string TokenFile, string[] Projects, string[] Owners, string[] ResourceTypes);
-public sealed record Configuration(string ModelRoot, string FhirUrl, string FhirKeyFile, string NativeUrl, string NativeKeyFile, SourceConnection[] Sources, DestinationConnection[] Destinations, bool AllowLoopbackHttp = false, bool RequireTerminology = true, string? OperationalRoot = null, string? OperationalKeyFile = null);
-public sealed record JobRequest(string Owner, string ProjectId, string Subject, string SourceId, string File, string SourceSha256, string Mode, string? DestinationId = null, string? IntakeId = null);
+public sealed record Configuration(string ModelRoot, string FhirUrl, string FhirKeyFile, string NativeUrl, string NativeKeyFile, SourceConnection[] Sources, DestinationConnection[] Destinations, bool AllowLoopbackHttp = false, bool RequireTerminology = true, string? OperationalRoot = null, string? OperationalKeyFile = null, string[]? RuntimeFiles = null);
+public sealed record JobRequest(string Owner, string ProjectId, string Subject, string SourceId, string File, string SourceSha256, string Mode, string? DestinationId = null, string? IntakeId = null, string? SourceContractKey = null);
 public sealed class JobState {
     public string SchemaVersion { get; set; } = "1";
     public string Status { get; set; } = "PENDING";

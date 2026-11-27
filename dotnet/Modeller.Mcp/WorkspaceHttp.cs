@@ -25,14 +25,14 @@ public static class WorkspaceHttp
                 JsonObject args = body.Length == 0 ? new JsonObject() : Data.ParseStrict(Encoding.UTF8.GetBytes(body)) as JsonObject ?? throw new ProcessingException("ARGUMENTS_OBJECT_REQUIRED");
                 JsonObject result;
                 var parts = path.Split('/');
-                if (path == "projects" && context.Request.Method == "GET") result = await protocol.Workspace.Execute("modelling_project", "list", null, args, actor, context.RequestAborted);
+                if (path == "projects" && context.Request.Method == "GET") result = await protocol.Execute("modelling_project", "list", null, args, actor, context.RequestAborted);
                 else if (path == "projects" && context.Request.Method == "POST") {
                     Data.Keys(args, "projectId", "configuration");
-                    result = await protocol.Workspace.Execute("modelling_project", "create", Data.Required(args, "projectId"), args["configuration"] as JsonObject ?? throw new ProcessingException("PROJECT_CONFIGURATION_REQUIRED"), actor, context.RequestAborted);
+                    result = await protocol.Execute("modelling_project", "create", Data.Required(args, "projectId"), args["configuration"] as JsonObject ?? throw new ProcessingException("PROJECT_CONFIGURATION_REQUIRED"), actor, context.RequestAborted);
                 } else if (parts.Length == 2 && parts[0] == "projects" && context.Request.Method == "GET") result = protocol.Workspace.Models.GetProject(parts[1], actor);
                 else if (parts.Length == 3 && parts[0] == "projects" && parts[2] == "reuse" && context.Request.Method == "POST") result = protocol.Workspace.Models.Reuse(parts[1], args, actor);
-                else if (parts.Length == 3 && parts[0] == "projects" && parts[2] == "models") result = await protocol.Workspace.Execute("modelling_model", context.Request.Method == "GET" ? "list" : "provide", parts[1], args, actor, context.RequestAborted);
-                else if (parts.Length == 3 && parts[0] == "projects" && parts[2] == "mappings") result = await protocol.Workspace.Execute("modelling_mapping", context.Request.Method == "GET" ? "list" : "prepare", parts[1], args, actor, context.RequestAborted);
+                else if (parts.Length == 3 && parts[0] == "projects" && parts[2] == "models") result = await protocol.Execute("modelling_model", context.Request.Method == "GET" ? "list" : "provide", parts[1], args, actor, context.RequestAborted);
+                else if (parts.Length == 3 && parts[0] == "projects" && parts[2] == "mappings") result = await protocol.Execute("modelling_mapping", context.Request.Method == "GET" ? "list" : "prepare", parts[1], args, actor, context.RequestAborted);
                 else if (parts.Length == 2 && parts[0] == "mappings" && context.Request.Method == "GET") result = protocol.Workspace.Models.GetDefinition(parts[1], actor);
                 else if (parts.Length == 3 && parts[0] == "mappings" && parts[2] == "decisions" && context.Request.Method == "POST") {
                     Data.Keys(args, "decision", "expectedSequence", "comment");
@@ -47,12 +47,18 @@ public static class WorkspaceHttp
                     else {
                         actor.Decision(parts[1]);
                         Data.Keys(args, "expectedRevision", "pseudonymisePatientIdentifiers", "pseudonymSystem");
-                        policy = operational.ChangePolicy(scope, args["expectedRevision"]!.GetValue<int>(), args["pseudonymisePatientIdentifiers"]!.GetValue<bool>(), args["pseudonymSystem"]?.GetValue<string>());
+                        policy = operational.ChangePolicy(scope, args["expectedRevision"]!.GetValue<int>(), args["pseudonymisePatientIdentifiers"]!.GetValue<bool>(), args["pseudonymSystem"]?.GetValue<string>(), actor.Id);
                     }
                     result = System.Text.Json.JsonSerializer.SerializeToNode(policy, Data.Json)!.AsObject();
+                } else if (parts.Length == 3 && parts[0] == "projects" && parts[2] == "source-trust" && context.Request.Method == "POST") {
+                    _ = protocol.Workspace.Models.GetProject(parts[1], actor); actor.Decision(parts[1]);
+                    Data.Keys(args, "sourceSystem", "destinationId", "connectionSha256", "comment");
+                    using var operational = ClinicalPipeline.Open(protocol.Workspace.Configuration);
+                    operational.AuthorisePatientSource(new(actor.Owner, parts[1], Data.Required(args, "sourceSystem"), Data.Required(args, "destinationId")), Data.Required(args, "connectionSha256"), actor.Id, Data.Required(args, "comment"));
+                    result = new JsonObject { ["authorised"] = true, ["scope"] = "EXACT_SOURCE_CONFIGURATION", ["patientIdentityRequired"] = true };
                 } else if (path == "execute" && context.Request.Method == "POST") {
                     Data.Keys(args, "tool", "action", "projectId", "arguments");
-                    result = await protocol.Workspace.Execute(Data.Required(args, "tool"), Data.Required(args, "action"), args["projectId"]?.GetValue<string>(), args["arguments"] as JsonObject ?? new JsonObject(), actor, context.RequestAborted);
+                    result = await protocol.Execute(Data.Required(args, "tool"), Data.Required(args, "action"), args["projectId"]?.GetValue<string>(), args["arguments"] as JsonObject ?? new JsonObject(), actor, context.RequestAborted);
                 } else return Results.Json(new { error = "NOT_FOUND" }, statusCode: 404);
                 return Results.Json(result);
             } catch (ProcessingException error) {

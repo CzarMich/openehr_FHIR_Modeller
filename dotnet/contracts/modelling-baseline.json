@@ -5984,7 +5984,7 @@
         ],
         "additionalProperties": false
       },
-      "description": "Create mapping proposals; context retrieves supplied pinned template/profile content and confirmation blockers. prepare-confirmation records both exact model selections for human review; confirmation reads its protected state. preview executes explicit synthetic rules with modelInputs; requires both standards. No operational records, implicit reverse rules or automatic approval. See docs/SOURCE_MODELLING.md.",
+      "description": "Create mapping proposals; context retrieves supplied exact pinned models and confirmation blockers. prepare-confirmation records applicable model selections for human review; confirmation reads its protected state. Synthetic preview supports independent one-stage source-direct-to-fhir, source-to-openehr, openehr-to-fhir and fhir-to-openehr mappings. Source-to-FHIR needs FHIR SDs, source-to-openEHR needs openEHR templates, cross-standard mappings need both. Retired combined definitions require a new review. No operational records, inferred reverse rules or automatic approval. See docs/SOURCE_MODELLING.md.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,

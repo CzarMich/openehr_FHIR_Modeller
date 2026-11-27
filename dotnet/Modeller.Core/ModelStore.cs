@@ -28,9 +28,19 @@ public sealed partial class ModelStore
     private readonly string root;
     private readonly Dictionary<string, string> keys;
     private readonly string activeKey;
-    public ModelStore(string root, Dictionary<string, string> approvalKeys, string activeKey) {
+    private readonly Lazy<string> runtimeFingerprint;
+    public ModelStore(string root, Dictionary<string, string> approvalKeys, string activeKey, string[]? runtimeFiles = null) {
         if (!Path.IsPathFullyQualified(root) || !approvalKeys.TryGetValue(activeKey, out var secret) || secret.Length < 32 || approvalKeys.Count > 8 || approvalKeys.Values.Any(v => v.Length < 32)) throw new ProcessingException("MODEL_STORE_CONFIGURATION_REQUIRED");
         this.root = root; keys = approvalKeys; this.activeKey = activeKey;
+        var files = new[] { typeof(Mapping).Assembly.Location }.Concat(runtimeFiles ?? []).Distinct(StringComparer.Ordinal).ToArray();
+        if (files.Length > 8) throw new ProcessingException("REUSE_RUNTIME_COMPONENT_LIMIT");
+        runtimeFingerprint = new(() => {
+            var manifest = files.Select(path => {
+                if (!Path.IsPathFullyQualified(path) || !File.Exists(path) || new FileInfo(path).Length > 67108864) throw new ProcessingException("REUSE_RUNTIME_FINGERPRINT_UNAVAILABLE");
+                return Path.GetFileName(path) + ":" + Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path)));
+            }).Order(StringComparer.Ordinal);
+            return Data.Hash(string.Join("\n", manifest));
+        });
         Directory.CreateDirectory(root);
         if (new DirectoryInfo(root).LinkTarget is not null) throw new ProcessingException("MODEL_STORE_LINK_REJECTED");
         if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(root, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);

@@ -26,7 +26,7 @@ The private integration registry has its own model/mapping confirmation records.
 
 ## Runtime boundaries
 
-`Modeller.Core` and the file-processing worker do not depend on database drivers. Clinical-source adapters live separately from internal audit storage. SQL Server source discovery is metadata-only, uses operator-protected profiles and cannot be used to select an internal audit database for unrestricted operations.
+`Modeller.Core` and the file-processing worker do not depend on clinical source database drivers. The separate operational library uses SQLite solely for encrypted internal patient/queue state; it accepts no clinical-source connection string. Clinical-source adapters live separately from internal audit storage. SQL Server source discovery is metadata-only, uses operator-protected profiles and cannot be used to select an internal audit database for unrestricted operations.
 
 The primary application uses HTTP internally. Ingress and Kubernetes health/readiness probes must match that protocol and preserve Host allowlisting. Application images run as UID/GID 1000 for existing volume ownership. The ingress, browser, application and standards engines remain an immutable release cohort.
 

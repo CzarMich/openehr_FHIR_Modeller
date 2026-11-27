@@ -29,10 +29,11 @@ public sealed class ClinicalPipeline
         finally { CryptographicOperations.ZeroMemory(key); }
     }
     private ClinicalIdentity? Relation(ProjectedSourceRecord record, string role) => role == "patient" ? record.PatientIdentity : record.Relations.GetValueOrDefault(role);
+    public static string SourceFingerprint(SourceConnection source) => Data.Hash(Data.Canonical(System.Text.Json.JsonSerializer.SerializeToNode(source, Data.Json)));
     public PendingMessage Admit(SourceConnection source, string intakeId, string subject, string mappingHash, ProjectedSourceRecord record,
         string recordId, byte[] original, DateTimeOffset now) {
         if (source.IdentityDomain != policy.IdentityDomain || source.Format != contract.Definition.Format || record.SourceContractSha256 != contract.Sha256) throw new ProcessingException("SOURCE_IDENTITY_DOMAIN_MISMATCH");
-        if (record.AuthoritativePatientEvent && source.TrustPatientRegistration && record.PatientIdentity is not null && record.PatientAnchor is not null)
+        if (record.AuthoritativePatientEvent && (source.TrustPatientRegistration || registry.PatientSourceAuthorised(scope, SourceFingerprint(source))) && record.PatientIdentity is not null && record.PatientAnchor is not null)
             registry.RegisterVerifiedPatient(scope, record.PatientIdentity, record.PatientAnchor, record.SourceSha256);
         var dependencies = policy.References.Where(reference => reference.RequireDestination).Select(reference => {
             var identity = Relation(record, reference.Role);
@@ -78,6 +79,7 @@ public sealed class ClinicalPipeline
             if (resolved.State != "RESOLVED") throw new ProcessingException(resolved.State);
             Set(resource, reference.Path, resolved.Reference!);
         }
+        if (resource["resourceType"]?.GetValue<string>() == "Patient") resource["identifier"] = new JsonArray(new JsonObject { ["system"] = lease.OutboundPatientIdentity.System, ["value"] = lease.OutboundPatientIdentity.Value });
         CheckPrivacy(lease, resource);
         return resource;
     }

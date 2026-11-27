@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { createHash, createHmac, randomBytes } from "node:crypto";
 import { mkdirSync, writeFileSync, existsSync, lstatSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { problem } from "./personal-http.mjs";
 
 export class IntegrationCore {
@@ -22,11 +22,19 @@ export class IntegrationCore {
         mkdirSync(directory, { recursive: true, mode: 0o700 });
         const operationalKeyFile = join(directory, "operational-key");
         if (!existsSync(operationalKeyFile)) {
-            if (existsSync(join(this.config.dataDir, "integration-operational", "operational.sqlite"))) throw problem("The patient identity encryption key is missing. Restore the original key before starting.", 503);
-            try { writeFileSync(operationalKeyFile, randomBytes(32), { mode: 0o600, flag: "wx" }); }
-            catch (error) { if (error.code !== "EEXIST") throw error; }
+            if (existsSync(join(this.config.dataDir, "integration-operational", "operational.sqlite")))
+                throw problem(
+                    "The patient identity encryption key is missing. Restore the original key before starting.",
+                    503,
+                );
+            try {
+                writeFileSync(operationalKeyFile, randomBytes(32), { mode: 0o600, flag: "wx" });
+            } catch (error) {
+                if (error.code !== "EEXIST") throw error;
+            }
         }
-        if (lstatSync(operationalKeyFile).isSymbolicLink() || lstatSync(operationalKeyFile).size !== 32) throw problem("The patient identity encryption key is invalid.", 503);
+        if (lstatSync(operationalKeyFile).isSymbolicLink() || lstatSync(operationalKeyFile).size !== 32)
+            throw problem("The patient identity encryption key is invalid.", 503);
         const configuration = {
             modelRoot: join(this.config.dataDir, "integration-models"),
             fhirUrl: this.config.integrationFhirUrl,
@@ -35,6 +43,10 @@ export class IntegrationCore {
             nativeKeyFile: this.config.integrationNativeKeyFile,
             operationalRoot: join(this.config.dataDir, "integration-operational"),
             operationalKeyFile,
+            runtimeFiles: [
+                join(dirname(this.config.integrationWorker), "Modeller.Processing.dll"),
+                join(dirname(this.config.integrationWorker), "Modeller.Operational.dll"),
+            ],
             sources: [],
             destinations: [],
             requireTerminology: true,
@@ -97,7 +109,7 @@ export class IntegrationCore {
     async request(session, method, target, input) {
         if (!this.ready) throw problem("The C# modelling service is unavailable.", 503);
         if (
-            !/^\/api\/v1\/integration\/(?:projects(?:\/[A-Za-z0-9][A-Za-z0-9_.-]{0,63}(?:\/(?:models|mappings|reuse|destinations\/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}\/privacy))?)?|mappings\/[a-f0-9]{64}(?:\/decisions)?|execute)$/.test(
+            !/^\/api\/v1\/integration\/(?:projects(?:\/[A-Za-z0-9][A-Za-z0-9_.-]{0,63}(?:\/(?:models|mappings|reuse|source-trust|destinations\/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}\/privacy))?)?|mappings\/[a-f0-9]{64}(?:\/decisions)?|execute)$/.test(
                 target,
             )
         )

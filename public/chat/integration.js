@@ -39,6 +39,7 @@ restoreTab();
 
 let session,
     selected,
+    privacyState,
     pending,
     busy = false;
 const notice = (message) => {
@@ -95,6 +96,14 @@ async function run(action) {
 }
 function showReview(view) {
     selected = view;
+    const clinical = JSON.parse(view.executionMapping).clinicalPolicy;
+    if (clinical) {
+        $("identity-domain").value = clinical.identityDomain;
+        $("identity-destination").value = clinical.destinationId;
+        $("identity-hold-days").value = clinical.holdDays || 30;
+        $("identity-references").replaceChildren();
+        for (const reference of clinical.references || []) addReference(reference);
+    }
     $("review").replaceChildren();
     $("reviewed").checked = false;
     $("decision-comment").value = "";
@@ -134,6 +143,7 @@ async function load() {
         check.type = "checkbox";
         check.value = model.key;
         check.dataset.model = "true";
+        check.dataset.standard = model.standard;
         label.className = "item";
         label.append(
             check,
@@ -227,6 +237,8 @@ async function jobs() {
             (job.read || 0) +
             " · Rejected " +
             (job.rejected || 0) +
+            " · Held " +
+            (job.held || 0) +
             " · Emitted " +
             (job.emitted || 0);
         row.append(
@@ -358,6 +370,7 @@ $("upload").onclick = () =>
                 "X-Model-Project": project(),
                 "X-Source-Format": $("source-format").value,
                 "X-Source-Name": file.name,
+                "X-Source-Domain": encodeURIComponent($("source-domain").value),
             },
         });
         await load();
@@ -369,7 +382,12 @@ $("files").onclick = () => run(files);
 $("source").onchange = () => run(files);
 $("inspect").onclick = () =>
     run(async () => {
+        const contracts = [...document.querySelectorAll("[data-model]:checked")].filter(
+            (input) => input.dataset.standard === "source-contract",
+        );
+        if (contracts.length > 1) throw new Error("Select one source contract to inspect its declared projection.");
         const inspection = await api("sources/inspect", {
+            ...(contracts.length === 1 ? { sourceContractKey: contracts[0].value } : {}),
             projectId: project(),
             sourceId: $("source").value,
             file: $("file").value,
@@ -400,7 +418,7 @@ $("commit").onclick = () =>
         $("confirmation").hidden = true;
         await api(value.kind + "/commit", { confirmation: value.token });
         await jobs();
-        notice("Operation confirmed. Review status below.");
+        notice("Operation confirmed. Review status in Jobs & monitoring.");
     });
 $("dismiss").onclick = () => {
     pending = null;
@@ -689,4 +707,131 @@ $("find-reuse").onclick = () =>
                 " provider calls." +
                 (result.complete ? "" : " Search limit reached; narrow the project or inspect saved mappings."),
         );
+    });
+
+function privacyTarget() {
+    const destination = $("identity-destination").value.trim();
+    if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(destination))
+        throw new Error("Enter the stable destination identifier.");
+    return "projects/" + project() + "/destinations/" + destination + "/privacy";
+}
+function privacyDisplay(value) {
+    privacyState = { ...value, projectId: project(), destinationId: $("identity-destination").value.trim() };
+    $("pseudonymise").checked = value.pseudonymisePatientIdentifiers;
+    $("pseudonym-system").value = value.pseudonymSystem || "";
+    $("privacy-reviewed").checked = false;
+    $("privacy-status").textContent =
+        "Destination identity policy revision " + value.revision + ". Patient prerequisite remains mandatory.";
+}
+$("privacy-load").onclick = () => run(async () => privacyDisplay(await models(privacyTarget())));
+$("privacy-save").onclick = () =>
+    run(async () => {
+        if (
+            !privacyState ||
+            privacyState.projectId !== project() ||
+            privacyState.destinationId !== $("identity-destination").value.trim() ||
+            !$("privacy-reviewed").checked
+        )
+            throw new Error("Load the destination settings and acknowledge your review first.");
+        privacyDisplay(
+            await models(privacyTarget(), {
+                expectedRevision: privacyState.revision,
+                pseudonymisePatientIdentifiers: $("pseudonymise").checked,
+                pseudonymSystem: $("pseudonymise").checked ? $("pseudonym-system").value.trim() : null,
+            }),
+        );
+        notice("Destination settings saved. Apply the revision to a new mapping draft and obtain human confirmation.");
+    });
+function addReference(value = {}) {
+    const row = document.createElement("tr");
+    for (const [key, label] of [
+        ["role", "Source role"],
+        ["targetType", "Target type"],
+        ["path", "Output path"],
+    ]) {
+        const cell = document.createElement("td"),
+            input = document.createElement("input");
+        input.dataset.field = key;
+        input.setAttribute("aria-label", label);
+        input.value = value[key] || "";
+        cell.append(input);
+        row.append(cell);
+    }
+    const modeCell = document.createElement("td"),
+        mode = document.createElement("select");
+    mode.dataset.field = "mode";
+    mode.setAttribute("aria-label", "Reference mode");
+    for (const [key, label] of [
+        ["logical", "Logical identifier"],
+        ["literal", "Verified literal"],
+        ["resolve-literal", "Resolve to literal"],
+    ])
+        option(mode, key, label);
+    mode.value = value.mode || "resolve-literal";
+    modeCell.append(mode);
+    row.append(modeCell);
+    const requiredCell = document.createElement("td"),
+        required = document.createElement("input");
+    required.type = "checkbox";
+    required.dataset.field = "requireDestination";
+    required.checked = value.requireDestination !== false;
+    required.setAttribute("aria-label", "Require verified destination resource");
+    requiredCell.append(required);
+    row.append(requiredCell);
+    const action = document.createElement("td");
+    action.append(button("Remove relationship", () => row.remove()));
+    row.append(action);
+    $("identity-references").append(row);
+}
+$("reference-add").onclick = () => addReference();
+$("identity-apply").onclick = () =>
+    run(async () => {
+        if (
+            !privacyState ||
+            privacyState.projectId !== project() ||
+            privacyState.destinationId !== $("identity-destination").value.trim() ||
+            privacyState.pseudonymisePatientIdentifiers !== $("pseudonymise").checked ||
+            (privacyState.pseudonymSystem || "") !== $("pseudonym-system").value.trim()
+        )
+            throw new Error("Load and save the current destination settings before applying them.");
+        const definition = JSON.parse($("mapping-json").value),
+            source = [...document.querySelectorAll("[data-model]:checked")].filter(
+                (input) => input.dataset.standard === "source-contract",
+            );
+        if (source.length !== 1) throw new Error("Select exactly one supplied source contract in Models.");
+        const references = [...$("identity-references").children].map((row) =>
+            Object.fromEntries(
+                [...row.querySelectorAll("[data-field]")].map((input) => [
+                    input.dataset.field,
+                    input.type === "checkbox" ? input.checked : input.value.trim(),
+                ]),
+            ),
+        );
+        definition.sourceProfileKey = source[0].value;
+        definition.clinicalPolicy = {
+            schemaVersion: 1,
+            identityDomain: $("identity-domain").value.trim(),
+            destinationId: privacyState.destinationId,
+            privacyPolicyRevision: privacyState.revision,
+            pseudonymisePatientIdentifiers: privacyState.pseudonymisePatientIdentifiers,
+            pseudonymSystem: privacyState.pseudonymSystem,
+            references,
+            publications: definition.clinicalPolicy?.publications || [],
+            holdDays: Number($("identity-hold-days").value),
+        };
+        $("mapping-json").value = pretty(definition);
+        notice(
+            "Identity settings applied to the draft. Increment the mapping version, prepare and confirm its exact models and rules.",
+        );
+    });
+$("source-trust-review").onclick = () =>
+    run(async () => {
+        const result = await api("source-trust/preview", {
+            projectId: project(),
+            subject: $("mapping").value,
+            sourceId: $("source").value,
+            comment: $("source-trust-comment").value,
+        });
+        reviewOperation("source-trust", result);
+        activateTab($("tab-run"));
     });

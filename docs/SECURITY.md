@@ -75,3 +75,10 @@ Application errors exposed to clients use fixed safe codes rather than raw datab
 Run dependency audits and meaningful negative tests for authentication, replay, tenant/project boundaries, input ambiguity, source permissions and destination delivery. Maintain the tested-version/connector inventory and installation-specific acceptance evidence. Incident response, patching, rate limits, monitoring, backup restoration, high availability and jurisdiction-specific privacy obligations remain operational responsibilities.
 
 See [source connector status](SOURCE_CONNECTORS.md), [database discovery](DATABASE_DISCOVERY.md), [architecture](ARCHITECTURE.md), [identity](IDENTITY_AND_ACCESS.md), [governance](GOVERNANCE.md), [private processing](INTEGRATION_ENGINE.md) and [production delivery](FHIR_PRODUCTION_DELIVERY.md).
+
+
+## Private clinical identity state
+
+The clinical-runtime branch adds an encrypted internal identity/dependency store, a mandatory verified patient prerequisite and a destination privacy policy pinned to each confirmed mapping. This SQLite store is platform state; clinical/source databases remain strictly READ ONLY without an override. Source trust and privacy changes require fresh authenticated human review and retain actor/version evidence. General MCP tools never return patient crosswalks, held records or private job results.
+
+Back up the original operational encryption key with the encrypted store. The browser service will not create a replacement key alongside an existing identity database. A wrong key or integrity failure stops access. Do not reset this state to change a destination identity policy: after identity use, a reviewed migration is required. Pseudonymisation is not anonymisation, and output minimisation remains part of the approved mapping contract. See [HL7 and identity operations](HL7_AND_IDENTITY.md) for qualification and pending operational controls. These changes require release acceptance before being described as deployed.

@@ -99,8 +99,7 @@ Upload a private file or select a registered folder. Inspect its field schema, s
 4. **Reuse or model FHIR.** Supply the actual StructureDefinitions from the chosen
    IG, or draft and compile profiles. Preserve canonical URLs, versions,
    dependencies, terminology and the original source.
-5. **Review model selection and rules.** A route through openEHR or a reverse
-   mapping needs both standards; direct source-to-FHIR needs its actual FHIR SDs.
+5. **Review model selection and rules.** Each independent route needs its applicable input/output models: source-to-FHIR needs target SDs, source-to-openEHR needs its target template, and cross-standard mappings need both.
    Supply external models with content and provenance, then confirm the exact
    models and rules, including agent-modelled proposals. Inspect assumptions,
    missing/null behaviour and information loss. Changes to the declared schema,

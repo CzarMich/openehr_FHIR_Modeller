@@ -763,6 +763,7 @@ export function createApplication(
                                     projectId: req.headers["x-model-project"],
                                     format: req.headers["x-source-format"],
                                     name: req.headers["x-source-name"],
+                                    identityDomain: decodeURIComponent(req.headers["x-source-domain"] || ""),
                                 },
                                 Buffer.concat(pieces),
                             ),
@@ -775,8 +776,23 @@ export function createApplication(
                     return json(
                         res,
                         200,
-                        await processing.inspect(session, await body(req, ["projectId", "sourceId", "file"])),
+                        await processing.inspect(
+                            session,
+                            await body(req, ["projectId", "sourceId", "file", "sourceContractKey"]),
+                        ),
                     );
+                if (req.method === "POST" && ["source-trust/preview", "source-trust/commit"].includes(suffix)) {
+                    if (!config.allowWrites)
+                        throw Object.assign(new Error("Configuration changes are disabled."), { status: 403 });
+                    const input = await body(req, null, "Invalid source trust review.", 16384);
+                    return json(
+                        res,
+                        200,
+                        suffix.endsWith("preview")
+                            ? await processing.previewSourceTrust(session, input)
+                            : await processing.commitSourceTrust(session, input.confirmation),
+                    );
+                }
                 if (suffix === "jobs" && req.method === "GET") return json(res, 200, processing.jobs(session));
                 if (suffix === "channels" && req.method === "GET")
                     return json(res, 200, processing.listChannels(session));

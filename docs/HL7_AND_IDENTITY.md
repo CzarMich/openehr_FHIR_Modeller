@@ -1,68 +1,69 @@
-# HL7, dependency handling and patient identity
+# HL7, patient identity and out-of-order records
 
-## Current implementation status
+## Delivery status
 
-Native HL7 v2, HL7 v3 and CDA intake is under development. It is not enabled in the deployed runtime. The existing generic XML reader is not an HL7 validator. Do not route clinical HL7 traffic into that reader as a substitute for a qualified connector.
+This guide describes the clinical-runtime feature branch. The released platform must not be described as supporting these operations until its exact images have passed hosted CI, actual Dev acceptance and production promotion. The branch includes HL7 readers, source projection/profile validation, a private identity/dependency store, worker admission, destination evidence checks and channel resumption. End-to-end acceptance and operational controls are being completed.
 
-The feature branch adds deterministic route definitions and tests for source-to-openEHR and canonical-openEHR-to-FHIR alongside the existing direct-FHIR and openEHR-mediated paths. A separate private operational assembly contains a tested encrypted patient registry and durable dependency queue. These are domain components, not an enabled clinical workflow. The HL7 parsers/transports, source profiles, verified destination lookup, protected HTTP adapters, UI controls and end-to-end qualification are still being connected. The status table must be updated from real release evidence before claiming support.
+## Four independent mapping routes
 
-## Intended routes
-
-| Route | Required exact models |
+| Mapping | Models required |
 |---|---|
-| HL7 to openEHR | Reviewed source interface profile and applicable compiled openEHR template |
-| HL7 directly to FHIR | Reviewed source interface profile and target FHIR StructureDefinitions with exact release/dependencies |
-| HL7 through openEHR to FHIR | Reviewed source profile, applicable openEHR template and FHIR StructureDefinitions |
-| openEHR to FHIR | Actual source composition template and target FHIR StructureDefinitions |
+| Source data → FHIR | Supplied source contract and exact target FHIR StructureDefinitions |
+| Source data → openEHR | Supplied source contract and exact target compiled openEHR template |
+| openEHR → FHIR | Supplied source contract, exact input openEHR template and target FHIR StructureDefinitions |
+| FHIR → openEHR | Supplied source contract, exact input FHIR StructureDefinitions and target openEHR template |
 
-Agent-authored and externally supplied target models both require human confirmation for the executable mapping. User narrative, interpretations, assumptions and synthetic examples remain versioned. A parser result is not clinical approval. Deterministic processing does not call an AI model for each message.
+Each route has its own mapping rules, examples, version and human confirmation. Source-to-FHIR does not pass through openEHR. `source-direct-to-fhir` is the execution identifier for that direct route. The former combined `source-to-fhir` value is retired. Preserve its historical decision and create a new independent mapping version for review; the runtime never silently converts it.
 
-## Out-of-order arrival
+Both supplied external and agent-authored profiles/templates must be provided as actual content and confirmed by a user for this mapping. A model name, URL or successful technical check is insufficient. Original user instructions, assumptions, proposed interpretations and corrections remain versioned. Unresolved meanings block confirmation. Clinical approval is separate.
 
-A verified patient identity is a mandatory prerequisite. An Encounter can arrive before its Patient; an Observation can arrive before its Encounter. Hold the input privately until the declared dependencies are satisfied. A known identifier and an existing destination resource are separate facts.
+## Source formats and validation scope
 
-The dependency scope includes the owner/organisation boundary, project, trusted source system and destination. Identifiers retain their assigning authority and exact value, including leading zeros. Do not correlate unrelated systems by a bare number, demographic similarity or AI inference.
-
-Successful destination receipts or authenticated read results can establish resource availability. Queue acceptance is not successful clinical delivery. Required dependencies come from the confirmed mapping and interface contract; do not invent clinical requirements from generic XML shape. Restart must preserve the original input, source hash, model/rule pins, privacy-policy revision and processing state.
-
-A duplicate message with identical original content reuses its existing queue item. A reused message-control identifier with different content is a conflict. Expired inputs remain available privately for operator review. A crashed processing lease or uncertain write requires reconciliation, not an automatic repeat. Quarantine, waiting, expiry, identity conflict and delivery failure are distinct conditions.
-
-## Logical and literal FHIR references
-
-Choose the reference policy per relationship in the reviewed mapping:
-
-| Choice | Behaviour |
+| Format | Reader and validation boundary |
 |---|---|
-| Logical | Emit `Reference.identifier` with its system and value when the target profile and destination permit it |
-| Literal | Emit a verified resource address, such as `Patient/123` |
-| Resolve to literal | Resolve the scoped business identifier to one destination resource, then emit its address; zero or multiple matches hold the input |
+| HL7 v2 ER7 | Typed nHapi models for 2.1, 2.2, 2.3, 2.3.1, 2.4, 2.5, 2.5.1, 2.6, 2.7, 2.7.1, 2.8 and 2.8.1. Preserve wire fields, repetitions, empty values, explicit nulls and typed groups/components. Enforce the confirmed version/message-type scope. |
+| HL7 v2 XML | Secure XML preflight and typed v2 parsing. Require a supplied XML validation profile. ER7 also provides canonical v2 XML for profile checks and XPath projection. |
+| HL7 v3 interaction XML | Preserve the declared interaction and ordered XML content. Require a supplied exact XSD package and declared semantic assertions; generic XML parsing alone is insufficient. |
+| CDA XML | Preserve ordered narrative nodes and document structure. Require the supplied document profile. XSD and explicit boolean XPath assertions are available; full Schematron/XSLT 2 implementation-guide validation is not implemented. |
 
-A logical reference does not guarantee automatic resolution by a server. It never bypasses the mandatory verified-patient prerequisite. Whether the destination Patient must already exist is a separate declared destination/profile dependency. Never create a placeholder Patient or assume an Encounter belongs to a patient from arrival order alone.
+Private file upload and registered-folder intake are the implemented transport path in this branch. MLLP-framed file bytes and concatenated ER7 messages can be read. **A network MLLP listener, automatic ACK exchange, SOAP transport and universal v3 interaction handling are not implemented.** FHS/BHS batch-envelope handling and later v2 model releases require additional explicit support. Do not advertise file decoding as network interface qualification.
 
-See the [FHIR R4 reference specification](https://hl7.org/fhir/R4/references.html); use the exact release selected by the project for conformance work.
+V2 decoding accepts declared UTF-8, ASCII and the implemented ISO-8859 variants with strict decoding. Unsupported character-set switching is rejected. XML prohibits DTDs and external resolution. Supplied XSD imports resolve only inside the pinned in-memory package. Source validation never fetches schemas from an incoming document's URLs. Scalar XPath fields reject nested/mixed elements rather than flattening clinical narrative silently. Original bytes remain available for controlled review.
 
-## Pseudonymisation option
+Source contracts contain selectors and interface semantics, never real patient examples, credentials or arbitrary SQL. Supply them through **Models → Source contract** and select the exact version with the target models. Private inspection returns paths/types and message metadata, without patient sample values. Bounded inspection may report incomplete field coverage; it does not infer clinical meaning.
 
-The intended UI exposes **Pseudonymise patient identifiers** in destination settings. The selected policy and identifier namespace are bound to the channel's reviewed configuration. The option is not yet connected to the deployed UI.
+## Mandatory patient prerequisite and durable holds
 
-The patient prerequisite stays mandatory with the toggle on or off. Once an authoritative patient event has been verified, the private registry can allocate and reuse one stable opaque pseudonym in its configured scope. Repeated records and platform restarts must not regenerate it. Changing the privacy option or its namespace requires a new reviewed policy revision; active or uncertain processing prevents a silent policy change.
+Every private clinical run requires an exact source contract and clinical policy. The policy names the stable identity domain shared by related interfaces and the destination. Do not use a channel identifier as the patient identity domain. Identical numbers under different assigning authorities remain different identities; leading zeros and case are preserved.
 
-For a pseudonymised openEHR destination, use the pseudonym as the approved subject identity. The real-identity crosswalk stays in the restricted platform registry. OpenEHR uses an EHR subject identity rather than a FHIR Patient resource. See the [openEHR EHR information model](https://specifications.openehr.org/releases/RM/latest/ehr.html).
+Only an explicitly trusted registration source can establish a patient. An Observation containing a patient number does not create a patient automatically. Users review the exact source configuration separately from the mapping. Registration authority in the source contract and source trust must both be present.
 
-Pseudonymising one identifier does not remove identifiers elsewhere in a clinical document. The output policy must control direct identifiers in structured fields, narrative and attachments before delivery. Pseudonymised records remain linkable through the protected crosswalk and must not be treated as anonymous data.
+An Encounter waits for its required destination Patient. An Observation waits for its required Encounter, and destination evidence must bind that Encounter directly to the same patient. No demographic guessing, invented placeholder patient or cross-patient relationship is permitted. Authenticated exact-identifier searches reject ambiguity. A logical reference may be rendered without a destination address, but a configured destination prerequisite still has to be satisfied.
 
-## Privacy and operational boundaries
+Admission atomically saves encrypted original bytes and queue state before reporting a hold. Queued jobs resume from those originals even if the source file moves. Queue state, scope, source hash, mapping subject/hash and privacy revision remain pinned across restart. Channels continue admitting later files and retry held jobs fairly. A restart requires explicit channel resume. Unknown IDs, absent relationship identifiers and conflicts remain held for review.
 
-Clinical/source databases remain strictly read-only with no override. The internal operational registry is application state and is separate from all source database profiles. Destination API writes are separately authorised. Patient content, crosswalks, private queue inputs and identity-resolution results must not enter general MCP, chat, reusable AI context or model-provider training.
+Execution uses a bounded lease. A crash or uncertain destination write requires reconciliation rather than blind retry. A processing failure before writing requires review. Expiry retains the input; it does not delete clinical records. Storage quotas and checkpoint limits stop new admission explicitly. They do not authorise dropping an acknowledged item. Retention, expiry resolution, patient merges and key rotation require controlled operational procedures; the corresponding UI workflows remain incomplete.
 
-The new domain store uses authenticated encryption for record payloads and keyed identifier indexes. Its encryption key is installation state, must survive upgrades and must remain outside Git/images. Opening an existing registry with an incorrect key fails closed; it must not create a second pseudonym registry. Key rotation and restore need an explicit migration procedure before production use. Group monitoring grants must reveal operational counts rather than clinical identifiers or payloads.
+## Reference and pseudonymisation controls
 
-The current queue has bounded admission and holds original normalised input; final retention, archival, acknowledgement and reconciliation controls still need runtime/UI acceptance. No synthetic test establishes qualification against a hospital interface.
+Use **Mapping & review → Patient identity, references and pseudonymisation**. Load the destination's current identity settings. The patient prerequisite is always enabled. Review and save the pseudonymisation toggle and identifier system, then apply that exact policy revision to a new mapping draft and obtain human confirmation. Reference rows select the source relation, target resource type, output path, mode and destination-existence requirement.
 
-## Qualification and documentation
+- **Logical:** emit `Reference.identifier` with its assigning authority. This does not instruct a FHIR server to resolve it automatically.
+- **Literal:** verify the mapping's explicit local reference against destination evidence.
+- **Resolve to literal:** use the exact authenticated destination match; an absent or ambiguous match stays held.
 
-Publish a matrix of exact HL7 versions, message families, transport modes, interface profiles and CDA/v3 implementation guides. The selected nHapi dependency provides generated v2 models through 2.8.1; later versions require an explicit supported validation route before they can be advertised. Source-specific Z segments and local rules need the actual supplied interface contract.
+The exact destination profiles still validate the resulting resource. A syntactically valid reference is insufficient evidence of identity or clinical correctness.
 
-V3/CDA XML needs the applicable schemas and semantic/template rules; XML parsing and XSD alone do not establish every implementation-guide constraint. Preserve source-model licences and exact package hashes. See the [HL7 CDA specification](https://hl7.org/cda/stds/core/overview.html) and [official CDA schema source](https://github.com/HL7/CDA-core-2.0).
+Pseudonyms are stable, random and scoped to the authorised project, identity domain and destination. Every record checks the registry. The private crosswalk survives restart and is never supplied to general MCP tools or model providers. Declared direct identifiers and narrative are excluded from pseudonymised mapping input; output checks reject retained source identifiers. FHIR Patient identifiers and patient references use the configured pseudonym identity. This is **pseudonymisation, not anonymisation**: source classification, data minimisation and the reviewed output contract remain essential.
 
-Acceptance must cover Patient/Encounter/Observation arrival permutations, absent and conflicting identities, duplicate control IDs, restarts, lease expiry, pseudonym stability and isolation, policy changes, reference modes, real validation and controlled delivery. Source database write probes, vulnerability scans and attack/load testing remain deferred as requested.
+Policy changes are fenced while processing is active or uncertain. After destination identity use, changing the mode or namespace requires migration; silently generating a new identity is forbidden. Never delete the registry or replace its key to bypass this condition. Back up the encrypted store and original key together. A missing key beside an existing store, a wrong key or integrity failure stops processing.
+
+## Privacy and source databases
+
+**All clinical/source database connections are READ ONLY, without an override.** The private SQLite identity/queue store is internal application state, not a clinical source database. Authorised FHIR destination writes use a separate HTTP credential. No source connector may perform DML, DDL, migrations, permission changes or write-capable procedures.
+
+Patient records, private validation findings, crosswalks and held originals stay outside model Git, general MCP responses, reusable AI context and provider training. Team view/monitor access exposes operational summaries, not private records or permission to operate channels.
+
+## Acceptance
+
+Domain, worker and browser tests use synthetic data. Actual FHIR/openEHR engines validate their respective supplied models and output fixtures. This evidence is distinct from clinical approval and acceptance against a hospital's interface, database, Epic installation or CDR. See [testing](testing.md), [security](SECURITY.md), [read-only policy](CLINICAL_DATA_READ_ONLY.md) and [ADR-0031](decisions/0031-independent-clinical-routes-and-identity.md).

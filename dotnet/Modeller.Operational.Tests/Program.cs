@@ -30,6 +30,12 @@ try {
         Check(registry.FindPatient(scope with { DestinationId = "another-destination" }, identity) is null, "Patient identities do not leak across destinations");
         Check(registry.FindPatient(scope, identity with { System = "urn:another-assigning-authority" }) is null, "Identical numbers with different authorities are not the same patient");
         Check(registry.FindPatient(scope with { ProjectId = "another-project" }, identity) is null, "Projects remain isolated");
+        var colleagueScope = scope with { Owner = new string('f', 64) };
+        Check(registry.FindPatient(colleagueScope, identity) is null, "Another operator cannot retrieve a private patient registration");
+        var colleaguePatient = registry.RegisterVerifiedPatient(colleagueScope, identity, "independently-verified-source-anchor", new string('d', 64));
+        Check(colleaguePatient.Pseudonym == pseudonym && colleaguePatient.RegistryId != patient.RegistryId, "Independently verified registrations reuse the same opaque project/domain/destination pseudonym without sharing private registry records");
+        Check(registry.Policy(colleagueScope).Revision == policy.Revision, "Destination identity policy is consistent across authorised project operators");
+
         Check(registry.FindPatient(scope, identity with { Value = "1" }) is null, "Leading zeros are not silently normalised");
     }
     using (var reopened = new IdentityRegistry(root, key)) {

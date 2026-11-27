@@ -107,3 +107,20 @@ Acceptance includes domain/security checks, HTTP/stdio MCP contracts, OIDC/TLS a
 Mapping reuse is a `Modeller.Core` registry operation, exposed through the C# MCP and request-bound browser API. It compares a declared source identity/meaning version and purpose with exact source schema, original requirement text/basis, model keys, terminology snapshot pins and runtime fingerprint. It verifies model/definition identities and the protected current confirmation chain on every match. It does not call a model provider or cache an approval. Operational source checking, instance validation and destination authorisation still execute independently.
 
 The browser's encrypted immutable model cache and private task checkpoints are separate from that authoritative registry. They support retrieval/recovery and cannot grant execution or clinical approval. Human corrections become versioned proposals; only confirmed exact-context work is eligible for reuse. Patient records and credentials are excluded from reusable modelling memory and model-provider training. See [reuse and learning](REUSE_AND_LEARNING.md).
+
+
+## Independent clinical mapping routes
+
+A channel selects exactly one independently confirmed mapping: **source → openEHR**, **source → FHIR**, **openEHR → FHIR**, or **FHIR → openEHR**. Source-to-FHIR does not create or validate an intermediate openEHR composition. Input and output standards determine the exact templates/profiles required. No old confirmed two-stage definition is silently reinterpreted; see [ADR-0031](decisions/0031-independent-clinical-routes-and-identity.md).
+
+```mermaid
+flowchart LR
+    Source[Declared source data] -->|Independent source-to-FHIR mapping| FHIR[FHIR output]
+    Source -->|Independent source-to-openEHR mapping| EHR[openEHR composition output]
+    EHRInput[Provided openEHR composition] -->|Independent openEHR-to-FHIR mapping| FHIR
+    FHIRInput[Provided FHIR resource] -->|Independent FHIR-to-openEHR mapping| EHR
+```
+
+`Modeller.Operational` owns bounded HL7 parsing/projection, supplied source-profile checks, encrypted internal patient identities, stable pseudonyms and durable dependency state. Its SQLite store is private platform storage, never a clinical source database. Source connections remain read-only without an override. Private workers require an exact confirmed source contract and patient policy. Source registration requires separate explicit trust; a patient number in an arbitrary record is insufficient. Verified destination reads establish Patient/Encounter relationships before dependent delivery. Held channels retain their original encrypted input and continue accepting later messages. An uncertain write requires reconciliation rather than automatic repetition.
+
+The feature branch's runtime/adapter and installation acceptance must pass before these changes are described as deployed. [HL7 and identity operations](HL7_AND_IDENTITY.md) records the tested formats, profile scope and transport limitations.

@@ -85,9 +85,10 @@ function put(record, parts, value) {
   current[parts.at(-1)]=structuredClone(value);
 }
 function validateMapping(mapping) {
-  if (!plain(mapping) || mapping.schemaVersion !== 1 || typeof mapping.version !== 'string' || !mapping.version || !['source-to-fhir','fhir-to-openehr'].includes(mapping.direction)
+  if (mapping?.direction === 'source-to-fhir') fail('LEGACY_CHAINED_MAPPING_REVIEW_REQUIRED', 'Create and confirm a new independent mapping; combined routes are retired.');
+  if (!plain(mapping) || mapping.schemaVersion !== 1 || typeof mapping.version !== 'string' || !mapping.version || !['source-direct-to-fhir','source-to-openehr','openehr-to-fhir','fhir-to-openehr'].includes(mapping.direction)
     || !['lossless-within-scope','retained-context','lossy','unresolved'].includes(mapping.reversibility)) fail('MAPPING_SCHEMA','Version, direction and reversibility are required.');
-  if (!Array.isArray(mapping.stages) || mapping.stages.length !== (mapping.direction === 'source-to-fhir' ? 2 : 1)) fail('MAPPING_STAGES','Forward requires two explicit stages; reverse requires independent rules.');
+  if (!Array.isArray(mapping.stages) || mapping.stages.length !== 1) fail('MAPPING_STAGES','Each route requires one independently defined transformation stage.');
   for (const stage of mapping.stages) {
     if (!Array.isArray(stage.rules) || !stage.rules.length || stage.rules.length > 256) fail('MAPPING_RULES','Provide 1 to 256 explicit rules per stage.');
     const targets=[];
