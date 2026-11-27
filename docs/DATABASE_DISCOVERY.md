@@ -4,7 +4,7 @@ The platform discovers the schema that exists in the connected installation. It 
 
 ## What discovery provides
 
-An operator registers a SQL Server connection for an exact tenant and a set of projects. Authorised clients can search table and column names, inspect columns, nullability, primary keys and declared foreign keys, and check a proposed selection against the discovered schema fingerprint. The tools are `source_database_discover`, `source_database_table` and `source_database_plan_check`.
+An operator registers a SQL Server connection for an exact tenant and a set of projects. Clients first create an explicit [source selection/discovery job](SOURCE_CONNECTORS.md). Authorised clients can then search table and column names, inspect columns, nullability, primary keys and declared foreign keys, and check a proposed selection against the discovered schema fingerprint. The tools are `source_database_discover`, `source_database_table` and `source_database_plan_check`.
 
 Search is paged so an agent can explore a database containing hundreds of tables without placing its entire catalogue in a prompt. Table detail is paged in batches of 100 columns. Discovery reads SQL Server system catalogues; it does not return clinical rows, sample values, patient identifiers, free text, or credentials. Table and column names themselves can contain sensitive information: operators must authorise disclosure of this metadata to their chosen model provider.
 
@@ -40,13 +40,13 @@ Set `SOURCE_DATABASE_ENABLED=true` and `SOURCE_DATABASE_PROFILES_DIR` to an abso
 
 Use the actual tenant identifier when tenant isolation is enabled. Store the file with mode `0400` or `0600`, accessible only to the application identity, on a protected read-only mount. Symbolic links and files readable by group/others are rejected. If the secret manager uses projected symlinks, stage the specific file into a private volume through an operator-controlled init step with the required ownership and permissions. Do not commit profiles, paste them into chat, or include them in model artifacts. Install the organisation's SQL Server CA in the runtime trust store; disabling certificate validation is not supported.
 
-Clients supply only the project and profile ID, never credentials or a connection string:
+A planning job selects the project, connector and operator profile ID. Subsequent discovery tools require that explicit job ID, never credentials or a connection string:
 
 ```json
-{"project":"clinical-mapping","sourceProfile":"clinical-reader","query":"result","limit":25}
+{"project":"clinical-mapping","jobId":"discovery-00000000000000000000000000000000","query":"result","limit":25}
 ```
 
-Use the returned fingerprint and table IDs for subsequent inspection. Metadata changes invalidate a proposal pinned to the old fingerprint.
+Replace the example job ID with the actual ID returned when creating the job. Use the returned fingerprint and table IDs for subsequent inspection. Metadata changes invalidate a proposal pinned to the old fingerprint.
 
 ## Driver and execution status
 

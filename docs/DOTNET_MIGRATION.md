@@ -1,56 +1,37 @@
-# C#/.NET migration
+# .NET runtime and compatibility
 
-## Current boundary
+Application/domain logic is implemented in C#/.NET 10. The browser backend remains Node, and specialised Java/Node services provide openEHR and FHIR compilation/validation. The product does not require a particular language-model provider. Dependency versions and transitive packages are locked and audited.
 
-The production PHP update is maintained as the compatibility baseline. The new
-service targets .NET 10 LTS, SDK 10.0.404/runtime 10.0.15 and the official MCP
-ASP.NET Core package 2.4.0. Versions and transitive dependencies are locked and
-audited. The guide service now shares a C# core with the separately enabled modelling/integration workspace. The original `/mcp` endpoint remains a PHP compatibility surface; a full PHP removal has not occurred. New application/domain features must be C#; no new PHP features are permitted.
+This guide describes the source-tree runtime and compatibility contracts. It does not identify the image currently running in an environment. Verify the exact deployed revision/digests and acceptance evidence through the [delivery procedure](FHIR_PRODUCTION_DELIVERY.md).
 
-| Surface | .NET status | Gate |
-|---|---|---|
-| guide_get | First slice | Published input schema/annotations and original Markdown parity |
-| Guide resources/list, templates/list, read | First slice | All public guide URIs and byte-for-byte body parity |
-| HTTP and stdio | First slice | Initialization, calls, framing, auth rejection and clean stdout |
-| HTTP API key/host/origin/body limits | First slice | Positive/negative independent client probes |
-| OIDC, tenants and browser accounts | Not migrated | Existing identity/security tests must pass before cutover |
-| Search, examples, terminology and CKM | Not migrated | Preserve ranking, scope, versions, provenance and bounded results |
-| New integration projects/models/mappings | Independent C# registry | Immutable versions and hash pins; existing PHP repositories are not automatically migrated |
-| New integration model/rule confirmation | C# protected review | Purpose/request-bound human assertions, roles, project scopes, sequence checks and HMAC event chain; existing clinical governance remains separate |
-| New private source/mapping execution | C# core and worker | Bounded file adapters, deterministic rules, validation, export and conditional-create FHIR delivery; see [integration guide](INTEGRATION_ENGINE.md) |
-| Browser backend/providers | Not migrated | Preserve personal credential isolation and browser journeys |
-| Compiler/validator engines | Retained | Reuse installed Java/Node services and exact toolchain versions |
+## Application surfaces
 
-## Compatibility boundary
+| Surface | Implementation and verification boundary |
+|---|---|
+| Primary modelling MCP | `Modeller.Mcp` full-application mode adapts shared services. Captured tool/resource/prompt contracts and byte-preserved resources are checked over HTTP. Source discovery adds explicit, separately tested contracts. |
+| Human review REST API | Purpose/request-bound assertions, verified identity and role/project permissions, persistent replay nonces and exact source revisions. Ordinary MCP credentials cannot approve as humans. |
+| Source discovery | Explicit database/platform selection jobs. Native SQL Server metadata discovery is tested against an isolated SQL Server 2022; other listed connectors remain gated until implemented and qualified. |
+| Model repositories | Filesystem snapshots, native Git history/layout and SharePoint conditional immutable snapshots. Preserve revisions, original bytes and provider-specific concurrency semantics. Live provider acceptance is separate from local domain tests. |
+| Standards operations | Retained installed compilers/validators; exact source, dependency and output hashes. Unsupported/missing stages remain explicit. Technical results do not establish clinical approval. |
+| Private integration | Separate versioned registry, model/rule confirmation, file-source worker, channels, quarantine/export and controlled FHIR delivery. See [integration operations](INTEGRATION_ENGINE.md). |
+| Browser/provider connections | Existing Node workspace and human identity adapters. Patient data remains outside model-provider conversations. |
 
-The new tools are `modelling_project`, `modelling_model`, `modelling_mapping`, `source_inspect` and `modelling_engine`. The browser launches a private C# service and workers. Its authenticated public MCP adapter is `/chat/integration/mcp`; the integration page is `/chat/integration/`. The Node browser adapter is retained. This is not a Node or Java rewrite, and specialised engines are not being ported to C#.
+## Preserved data and identity
 
-The C# registry is a shared organisation workspace for the configured API-key principal. Human calls additionally enforce verified project scopes. Do not advertise API-key tenant isolation. Re-provide and confirm existing models in this registry before assigning a new integration channel; PHP confirmation identifiers are not interchangeable.
+Do not reset model, governance, browser, CDR or engine volumes during a runtime upgrade. Preserve stable human identity issuers, subject/tenant derivation, account stores, encryption/signing keys and access configuration. A local issuer string is a stable identity identifier, not an endpoint to rewrite during deployment.
 
-## Original guide slice
+Filesystem snapshots retain their project/artifact/history envelope and original bytes. Git retains native source files, metadata and commit revisions. The protected audit reader validates existing event bytes and hash chains rather than rewriting history. Original import identities and receipts retain their established serialization rules. Conditional writes must reject stale revisions.
 
-`dotnet/Modeller.Mcp` reads existing guide files directly into an immutable bounded
-index. It exposes only the implemented guide tool/resources. API-key HTTP access
-requires an explicit secret file, approved hosts and optional exact browser origins.
-Stdio is a trusted local-process transport. It has no model writes, patient-data
-operations, database connections or approval capability. Content is not rewritten.
+The private integration registry has its own model/mapping confirmation records. Other model-review or supplied-model selection identifiers do not automatically authorise private processing. Re-provide/pin and confirm exact models in the registry used by the operational channel. API-key workspaces are shared service-principal workspaces; browser sign-in alone does not establish per-user repository isolation.
 
-Tests compare every indexed guide against the repository bytes, captured tool and
-resource-template metadata, both guide addressing forms, invalid/unknown arguments,
-traversal/symlink rejection, unauthenticated requests, Host/Origin restrictions,
-request bounds and stdio framing. A private Dev endpoint uses separate credentials
-and no production/model data volumes. Production remains on the verified service.
+## Runtime boundaries
 
-## Delivery and credit discipline
+`Modeller.Core` and the file-processing worker do not depend on database drivers. Clinical-source adapters live separately from internal audit storage. SQL Server source discovery is metadata-only, uses operator-protected profiles and cannot be used to select an internal audit database for unrestricted operations.
 
-Use one tool group per change and an explicit done condition. Reuse contract tests,
-compiler engines, browser assets, fixtures and existing documents. Keep this parity
-matrix current; read only the files needed for the next slice. Run deterministic
-scripts for build/test/CI monitoring and return concise failures. Do not estimate
-credit savings as a percentage without usage evidence. A complete 174-file PHP
-rewrite is outside this increment.
+The primary application uses HTTP internally. Ingress and Kubernetes health/readiness probes must match that protocol and preserve Host allowlisting. Application images run as UID/GID 1000 for existing volume ownership. The ingress, browser, application and standards engines remain an immutable release cohort.
 
-Build application images on GitHub-hosted runners. Local Dev compilation/testing
-uses the pinned .NET SDK container. Keep the standard Dev-first approval and exact
-image digest policy for eventual production replacement. A partial .NET service
-must never silently take over the complete production MCP endpoint.
+## Verification and release gates
+
+Run application-domain, contract, authentication, source-schema, actual standards-engine and private processing/delivery acceptance checks. Source database write-denial tests run only on disposable synthetic fixtures. Use provider fixtures for external adapters; a synthetic catalogue or mocked response does not prove acceptance against a hospital installation.
+
+Build application images on hosted CI. Verify on shared Dev, promote exact successful image digests to `hygeoniq-prod`, and verify through the `amcdr-vps` HTTPS edge. Preserve persistent resource identities and secrets. A partial implementation or passing subset must not be described as full runtime parity or a completed production upgrade.

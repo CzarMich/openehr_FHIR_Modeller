@@ -1,12 +1,11 @@
 # openEHR and FHIR Modeller
 
-Build reusable clinical models and explicit mappings from source data to openEHR
-and FHIR. Use an MCP agent or the browser workspace to inspect source definitions,
+Discover clinical source structures, build reusable clinical models, and define explicit mappings from source data to openEHR and FHIR. Use an MCP agent or the browser workspace to inspect source definitions,
 reuse archetypes and profiles, author templates, compile models and review the
 rules that will transform records. FHIR is the primary exchange output; incoming
 FHIR needs its own explicit mapping to openEHR.
 
-For clinical modellers, interoperability engineers and integration teams. The
+For clinical modellers, interoperability engineers and integration teams. The long-term direction is a standards-based platform for clinical data discovery, cleansing, terminology enrichment, mapping and delivery across healthcare settings. Connector availability, clinical acceptance, terminology licensing, localisation and operational qualification must be established for each deployment; this is not a claim of universal coverage or certification. The
 modeller helps develop and validate interoperability specifications; the existing
 governance platform remains responsible for publication and distribution.
 
@@ -18,18 +17,21 @@ Independently maintained and developed by Michael Anywar. Licensed under the
 
 **Every direct clinical/source database connection is read-only.** The MCP, agents,
 workers and channels must never insert, update, delete, alter schemas, run source
-migrations or invoke write-capable procedures. Use read-only credentials and
-server-enforced read-only transactions; fail closed if enforcement is unavailable.
+migrations or invoke write-capable procedures. Use database-enforced read-only permissions and closed connector operations; fail closed when the connector cannot verify the required restrictions.
 FHIR delivery uses a separately authorised FHIR API, never its backing database.
 See [the clinical database policy](docs/CLINICAL_DATA_READ_ONLY.md).
 
-SQL extraction is not implemented yet; no driver-specific enforcement is claimed.
+SQL Server metadata discovery and structural query-plan checking use the native .NET driver with tested permission checks. Clinical-row extraction and database polling channels are not enabled by these discovery tools. See [database discovery and driver qualification](docs/DATABASE_DISCOVERY.md).
 Browser chat can send chosen conversation context to your configured AI provider.
 Keep patient records out of chat, model repositories and general MCP requests.
 Filesystem model/history data is not generally encrypted by the application;
 volume/backup encryption and retention are operator responsibilities. External
 HTTPS does not imply encryption on every private service hop. See the
 [security/privacy control matrix](docs/SECURITY.md#security-and-privacy-control-matrix).
+
+## Select a clinical source
+
+Create an explicit source-discovery job: choose the database or platform/API connector, an operator-managed profile, purpose and original narrative. The catalogue includes SQL Server, Oracle, PostgreSQL, MySQL, MariaDB and SAP HANA, plus Epic, SAP BW and configured clinical APIs. Each choice reports its own implementation and qualification status; selection alone does not make a connector operational. SQL Server currently has executable metadata discovery. See [source jobs and connector status](docs/SOURCE_CONNECTORS.md).
 
 ## What you can use it for
 
@@ -38,6 +40,8 @@ HTTPS does not imply encryption on every private service hop. See the
   engines, validate results and retain their provenance and revisions.
 - Supply existing templates and StructureDefinitions when modelling is unnecessary.
   The agent needs the actual model content and version, not just its name.
+- Discover actual SQL Server schemas, tables, columns and keys without returning patient rows to an agent. Use the installation’s dictionary and user guidance to resolve clinical meaning.
+- Use local terminology catalogues or configured FHIR terminology services to investigate codes, value sets and mapping candidates.
 - Inspect synthetic CSV/custom JSON, identify missing information and preview
   explicit source → openEHR representation → FHIR mapping rules.
 - Define a separate FHIR → openEHR mapping and check declared round-trip invariants.
@@ -113,7 +117,7 @@ Start with this request in browser chat or your connected MCP agent:
 
 For a reproducible first tool call and expected results, follow the
 [compatibility laboratory preview walkthrough](docs/workflows/source-to-fhir-laboratory.md).
-Use the [C# integration guide](docs/INTEGRATION_ENGINE.md) for new mappings, private jobs and channels; its human confirmation is independent of legacy PHP review configuration.
+Use the [C# integration guide](docs/INTEGRATION_ENGINE.md) for new mappings, private jobs and channels; its model/rule confirmation and run authorisation are separate, request-bound decisions.
 
 ## Available today and remaining work
 
@@ -130,8 +134,10 @@ The detailed [capability matrix](CAPABILITIES.md) and
 | Model review | Protected human openEHR review and exact cross-standard mapping-selection confirmation |
 | Operational runs/channels | Optional C# private file workers, checkpointing, quarantine, manual restart and confirmed mapping assignments; previews remain synthetic |
 | Export and FHIR destination push | Private NDJSON export; separately enabled HTTPS conditional create by business identifier against an operator-registered FHIR destination |
-| Other connectors | SQL, HL7 v2, CDA, message queues and specialised dataset adapters remain unsupported; generic XML does not implement these standards |
-| C#/.NET migration | New modelling/integration core and workers are C#/.NET 10; existing `/mcp` remains PHP compatibility during migration; [exact boundary](docs/DOTNET_MIGRATION.md) |
+| SQL Server discovery | Native .NET metadata search, column/key inspection and fingerprint-bound structural plans; clinical rows are excluded from MCP discovery. Private SQL extraction/polling is not yet enabled. |
+| Terminology and cleansing | Local catalogues and configured FHIR terminology operations support modelling. Per-record enrichment must be explicit, versioned, reviewed and qualified before execution; no automatic clinical inference is claimed. |
+| Other connectors | ODBC/JDBC adapters, HL7 v2, CDA, message queues and specialised dataset adapters require separate implementation/qualification; generic XML does not implement these standards. |
+| Application runtime | C#/.NET 10 application services and workers; Node browser and specialised Java/Node standards engines. See [runtime and compatibility](docs/DOTNET_MIGRATION.md). |
 
 An openEHR-shaped intermediate object is not automatically a conformant
 composition. Unavailable checks are reported as `NOT_EXECUTED`. No agent may grant
@@ -177,18 +183,17 @@ flowchart LR
   Runtime --> Validators[Installed openEHR / FHIR validators]
   Runtime --> Export[Private validated export]
   Runtime -->|Authorised HTTPS API| Destination[FHIR destination]
-  Legacy[PHP compatibility endpoint] -. retained during migration .-> Existing[Existing tools and repositories]
+  Database[Clinical database] -->|Read-only metadata| Discovery[Schema discovery]
+  Discovery --> MCP
+  Dictionary[Vendor dictionary and schema evidence] --> MCP
+  Database -. Private SQL extraction requires separate qualification .-> Runtime
 ```
 
-Solid paths describe implemented modelling/preview capabilities; dashed paths
-identify the operational processing, export and destination-delivery path still
-being implemented. Neither a diagram nor a successful preview is deployment
-or conformance evidence.
+File processing, validation, private export and authorised FHIR delivery are implemented operational paths. The dashed database path requires separate private extraction and channel qualification. A diagram or successful synthetic preview does not establish clinical acceptance or identify the image deployed in an environment.
 
 The [architecture](docs/ARCHITECTURE.md), [identity/access](docs/IDENTITY_AND_ACCESS.md)
 and [security](docs/SECURITY.md) guides describe these boundaries. The
-[.NET migration status](docs/DOTNET_MIGRATION.md) records the actual runtime
-transition; it does not change the model-confirmation or data-delivery contract.
+[runtime and compatibility guide](docs/DOTNET_MIGRATION.md) describes the runtime and preserved data formats; it does not change the model-confirmation or data-delivery contract.
 
 ## Learn more
 
@@ -203,7 +208,5 @@ transition; it does not change the model-confirmation or data-delivery contract.
   [traceability](docs/traceability.md), [.NET migration](docs/DOTNET_MIGRATION.md),
   [testing](docs/testing.md), [contribution guide](CONTRIBUTING.md).
 
-Run PHP/Composer in Docker. `make ci` checks traceability, PHPStan and PHPUnit;
-`make conformance` checks the advertised HTTP/stdio MCP profile. Build application
-images on hosted CI for managed environments. The [documentation index](docs/README.md)
+Run the .NET domain, protocol, authentication, database-safety and processing checks, together with browser and standards-engine acceptance tests. Build application images on hosted CI for managed environments. The [documentation index](docs/README.md)
 links the remaining references.

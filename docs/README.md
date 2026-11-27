@@ -11,6 +11,8 @@ material retains its respective terms; see the
 ## Setup and use
 
 - [Golden rule: clinical databases are read-only](CLINICAL_DATA_READ_ONLY.md)
+- [Explicit source-discovery jobs and connector status](SOURCE_CONNECTORS.md): database, Epic, SAP BW and other clinical API selection.
+- [SQL Server metadata discovery and safety](DATABASE_DISCOVERY.md): operator profiles, vendor-specific schemas, fingerprinted plans and synthetic permission tests.
 
 - [Product purpose and first steps](../README.md) and [laboratory source-to-FHIR walkthrough](workflows/source-to-fhir-laboratory.md)
 - [Source-driven implementation status](SOURCE_MODELLING.md), [.NET migration status](DOTNET_MIGRATION.md) and [production delivery/rollback](FHIR_PRODUCTION_DELIVERY.md)

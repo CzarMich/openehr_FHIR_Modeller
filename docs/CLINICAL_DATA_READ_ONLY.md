@@ -1,54 +1,43 @@
 # Golden rule: clinical databases are read-only
 
-**Every direct clinical/source database connection is read-only. This applies to
-the MCP server, agents, browser, processing workers, connectors and integration
-channels, in development and production. There is no write-mode override.**
+**Every direct clinical/source database connection is strictly READ ONLY. This applies to MCP, agents, the browser, workers, connectors and channels in every environment. There is no write-mode override.**
 
 ## Prohibited operations
 
-Never insert, update, delete, merge, truncate or otherwise alter clinical/source
-records. Never create/alter/drop schemas, tables, indexes, functions or triggers;
-run migrations; change database permissions; invoke write-capable procedures; or
-use side-effecting functions, writable CTEs or temporary tables as a workaround.
-Do not give agents arbitrary SQL execution or an unrestricted database connection.
+Never insert, update, delete, merge, truncate or otherwise change source records. Never create, alter or drop source schemas, tables, indexes, functions or triggers; run source migrations; change permissions; invoke write-capable procedures; or use temporary tables, side-effecting functions, writable CTEs or another interface as a workaround. Agents must not receive arbitrary SQL execution or unrestricted connections.
 
-## Adapter contract
+Narrative instructions, configuration flags, model metadata and channel policies cannot weaken this rule. The platform never attempts to repair source permissions or install a source-side helper.
 
-A database adapter must use a dedicated least-privilege read-only account and
-server-enforced read-only transactions/sessions. Verify the effective protection
-before reading. If the driver/server cannot enforce the required read-only mode,
-or the credential has forbidden privileges, reject the connection. Configuration,
-tool arguments, narrative instructions and channel policies cannot weaken this rule.
-A routing hint or a SQL keyword check alone is insufficient enforcement.
+## Enforcement and driver qualification
 
-Expose only bounded schema inspection and authorised reads through approved,
-parameterised query plans. Separate identifiers from values, constrain accessible
-schemas/tables, bound time/rows and support cancellation/checkpoints. Discovery
-must not create a table, install a helper or change the source schema. Credentials
-are operator-managed; agents do not discover them.
+Use a dedicated operator-provisioned principal restricted to approved reads. Verify effective permissions, including role-derived privileges, object/column grants and ownership. Combine this with closed parameterized connector operations, bounded time/rows, cancellation and schema/API drift checks. Fail closed when effective protection or required metadata visibility cannot be verified.
 
-Prove each advertised driver with an isolated synthetic database, including
-read/write-role rejection, writable CTE/procedure/function attacks, transaction
-settings, rollback/reconnection and privilege changes. **Never test the boundary
-by attempting a write against an actual clinical database.** No SQL driver may be
-claimed supported before its implementation and negative tests pass.
+Transaction/session read-only facilities provide additional protection where the database supports them, but capabilities differ by product. SQL Server `ApplicationIntent=ReadOnly` and ODBC access-mode flags are not write enforcement. A JDBC read-only method is not a substitute for database permissions. Each native, ODBC or JDBC adapter must have database-specific checks and independent acceptance evidence.
 
-## Data and destination boundaries
+The implemented SQL Server connector uses certificate-validated encryption and checks server, database, schema, user-object and column-level permissions. It requires metadata visibility, rejects privileges outside its read-only allowlist, and rechecks before discovery. Its current MCP operations return metadata only. They do not extract clinical rows or activate SQL polling channels. See [SQL Server discovery](DATABASE_DISCOVERY.md).
 
-Operational records stay in the private processing runtime. Source database rows
-do not enter model Git repositories, general MCP/AI conversations or ordinary logs.
-The platform may maintain its own separate model, audit, queue and checkpoint
-storage; that does not authorise writes to a clinical/source database.
+Read-only access can still create load or contention. Operators must approve the source/replica, concurrency, query limits and consistent-read policy. The platform must not enable database options, change isolation settings globally or modify schema/indexes to make extraction convenient.
 
-FHIR delivery is a distinct operation through a configured, authorised FHIR HTTP
-API. It requires its own destination credential, validation and delivery policy.
-Never connect directly to or modify the FHIR server's backing database. A source
-connection or source credential cannot be repurposed as a destination writer.
-Exporting files likewise does not grant destination-write permission.
+## Synthetic tests only for write-denial probes
 
-## Current implementation status
+Qualify connectors on isolated synthetic databases. Test valid reads, write-capable principal rejection, object/column privileges, procedures and other relevant attack surfaces, reconnect behaviour and permission drift. Verify TLS and that failed probes leave the synthetic source unchanged.
 
-The current source preview supports synthetic CSV/custom JSON; SQL extraction is
-not implemented. Existing CDR access is through bounded read-only queries. Future
-database connectors and channel execution must comply with this policy before
-being enabled or documented as supported.
+**Never attempt a write against a real clinical database to test read-only protection.** Production verification inspects approved permissions and performs bounded approved reads only. A successful test for one database or driver does not qualify another.
+
+## Source selection and clinical semantics
+
+Create an explicit [source-discovery job](SOURCE_CONNECTORS.md). Select the database or platform/API and an operator-managed connection profile, record the purpose and original user narrative, and discover the actual schema or approved API contract. Do not infer a vendor's table names. Keep credentials, clinical rows and patient-specific filter values outside model Git, ordinary MCP calls and AI conversations.
+
+Discovery is not clinical approval. Exact supplied or agent-authored FHIR StructureDefinitions and applicable openEHR templates require user confirmation for mapping use. Data dictionaries, clinical meanings, joins, terminology and unresolved assumptions require explicit review.
+
+## APIs and destinations
+
+Source APIs use only operator-approved read operations and least-privilege authentication. An HTTP GET alone does not prove absence of side effects. Stateful subscriptions, extraction queues, arbitrary RFC calls and vendor-specific operations require separate qualification. A source API must not provide a back door around the clinical database rule.
+
+The platform's own model, audit, private queue and checkpoint stores are separate from clinical/source databases. The platform may write to those stores; it must never place them inside a clinical/source database.
+
+FHIR delivery uses a distinct, configured and authorised FHIR HTTP API, with a separate credential, output validation, human run authorisation and delivery policy. It never writes directly to a destination's backing database. Source-read access and private file export do not grant destination-write permission.
+
+## Current source status
+
+SQL Server metadata discovery has native .NET implementation and isolated SQL Server 2022 TLS/permission acceptance. Oracle, PostgreSQL, MySQL, MariaDB, SAP HANA, Epic, SAP BW and other clinical APIs are explicit source-selection choices with their own implementation/qualification gates. Their selection does not claim operational connector support. Existing private file processing and authorised FHIR destination delivery are separate capabilities. See [source connector status](SOURCE_CONNECTORS.md) and [integration operations](INTEGRATION_ENGINE.md).

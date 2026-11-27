@@ -1,93 +1,77 @@
-# Security model
+# Security and privacy
 
-HTTP production startup requires API-key or native OIDC authentication. Generate a high-entropy secret of at least 32 characters, store it outside Git, configure clients through their credential store and rotate by recreating the application and updating clients. API keys represent one deployment service principal and do not provide user/tenant isolation. Native [OIDC](OIDC.md) verifies access tokens, isolates signed tenants and enforces draft-write scopes/roles; project-scoped repository access additionally requires PROJECT_RBAC_ENABLED and assigned project scopes. Stdio relies on local process permissions.
+The platform handles clinical interoperability specifications and can process clinical records inside a private runtime. Those are different trust boundaries. Model-provider conversations, reusable models and ordinary MCP discovery must not become a secondary patient-data store.
 
-The guard validates Host and Origin independently, rejects unexpected body sizes and checks keys with constant-time comparison. SDK DNS-rebinding middleware remains active. CORS defaults to no browser origins. Production `AUTH_MODE=none` fails closed; native OIDC rejects missing configuration, invalid signatures, mismatched trust claims and unauthorized scopes/roles. An API gateway can add enterprise identity and rate limits while forwarding an application key. Health/readiness contain no model content and should remain on a restricted monitoring path.
+The controls below describe implementation and required deployment practices. They are not a claim of universal interoperability, regulatory certification, independent penetration-test completion or absence of vulnerabilities.
 
-External CKM and terminology endpoints are administrator-configured HTTPS origins. Tools select source names rather than arbitrary URLs. Relative path validation, bounded requests/responses, TLS verification, disabled redirects and timeouts limit outbound exposure. Use network egress controls to restrict configured destinations; this is not a general DNS/IP anti-SSRF resolver. A CA bundle supports enterprise certificates without disabling TLS validation.
+## Golden rule: clinical source databases are read-only
 
-XML rejects DTDs, entities, network resolution, oversized bodies and excessive elements. Artifact roots/paths reject traversal and symlinks. Repository contents are untrusted: notes, metadata and retrieved text cannot authorize a tool, prove approval or override client instructions. Do not submit patient data to this modelling service. No LLM inference or telemetry endpoint is embedded in the runtime.
+**All direct clinical/source database access is strictly READ ONLY. MCP, agents, browser adapters, workers and channels must never write source records, change source schemas or permissions, run source migrations, or invoke write-capable procedures. There is no override.**
 
-JSON logs allowlist request metadata and omit tool arguments, bodies, secrets and exception traces. Infrastructure access logs may contain request URLs; clients should not put credentials or clinical content in query strings. Protect Docker access, secret files and model volumes. Non-root containers run with a read-only root filesystem, dropped capabilities, temporary scratch storage and private FPM networking. TLS termination, rate limiting, backup encryption, monitoring and HA remain deployment responsibilities.
+Use dedicated operator-provisioned read-only credentials, database-specific effective-permission checks and closed parameterized read operations. A driver hint is not enforcement. The SQL Server connector verifies certificate-validated encryption, metadata visibility and effective server/database/schema/object/column permissions, and rechecks before discovery. Unknown forbidden privileges fail closed. The platform does not change source permissions itself.
 
-Validation scope is a safety boundary: malformed/unavailable upstream responses never become successful validation, missing stages remain NOT_EXECUTED, and preflight cannot approve a clinical model. See [governance](GOVERNANCE.md). Dependency audit and executable security cases are part of [testing](testing.md).
+Write-denial tests use disposable synthetic databases only. Production verification must never attempt a clinical database write. The operator remains responsible for maintaining the source principal's privileges, network restrictions and approved query/replica policy. Read-only queries can still consume resources and create contention; enforce suitable bounds and concurrency.
 
-## Browser chat
-
-The optional [chat service](BROWSER_CHAT.md) validates OIDC identity independently of MCP authentication. It uses same-origin CSRF checks, opaque secure cookies, private per-user conversations and a fixed tool allowlist. Its shared MCP service credential stays server-side. Each repository write requires a browser confirmation bound to the current user, conversation and exact proposed arguments; it is not clinical approval. Personal provider connections are encrypted and bound to the verified user; provider workers use a shared connection only when the native platform owner has explicitly granted usage. Registration starts without shared-provider access, private credentials take precedence, and shared management is separately authorised and audited. The isolated browser container has no host workspace or Docker socket and exposes no shell, image or delegation tools. The browser MCP client uses a deployment service principal: browser sign-in alone does not give it per-user repository scopes. Model visibility follows that service identity unless a separately verified user-scoped adapter is configured. Native MCP OIDC is implemented separately and does not turn the chat client's shared service key into a user token.
-
-Hosted repository APIs derive their repository identifier from the tenant-scoped Git remote. They use pinned HTTPS origins, bounded responses, no redirects and redacted errors. Tokens remain deployment secrets, separate from SSH keys. Metadata queries cannot enumerate other repositories. Draft review requests require authorized model-write access and do not create clinical approvals. See [hosted repository security](HOSTED_REPOSITORIES.md#failure-and-security-contract).
-
-SharePoint requires a unique project index and ETag-conditional pointer updates. Snapshot digests and folder/project identity are checked before returning content. Graph bearer tokens never follow download redirects; exact download hostnames are deployment configuration. OIDC tenants require distinct lists/folders. Shared artifact metadata validation rejects excessive nesting before saving, preventing unreadable revisions. See [SharePoint security and recovery](SHAREPOINT_REPOSITORY.md).
-
-FHIR calls stay on the configured terminology endpoint. Canonical identifiers and search pagination links are never fetched as arbitrary URLs; redirects and cookies are disabled. Response bytes, JSON nesting, parameter trees and expansion traversal are bounded. Repeated singleton results, inconsistent translation results and version substitutions fail closed. Clinical mapping candidates always retain human-review requirements and never apply a binding.
-
-Binding-plan inputs are bounded and XML entity expansion is prohibited. Canonical identifiers are never fetched during local planning. Server-generated evidence cannot approve models, and source/plan revisions are separate. Ambiguous relative binding targets fail; positional locators apply only to the recorded source hash. Repository evidence is not a signed attestation.
-
-Human decisions use a separate authentication purpose: the browser backend signs short-lived method/target/body-bound assertions after verified OIDC sign-in. The core consumes each nonce once in persistent storage. The signing key stays outside browser JavaScript and model-worker environments. Native MCP bearer/API-key identities remain non-human. Role claims alone do not promote an agent into a clinical approver; the review UI requires explicit confirmation, and approval additionally requires independent identity and qualified exact-source validation. See [the governance trust boundary](GOVERNANCE.md) and [review deployment](REVIEW_DEPLOYMENT.md).
-
-Audit events reside outside model repository paths, with append-only SQL triggers, sequence compare-and-swap and verified hash chains. These controls do not protect against a privileged operator replacing the database and recalculating its entire history. Backups must preserve SQLite consistency and be retained separately from model storage. External signed attestations remain later work; project scopes are configurable and must be enabled rather than inferred from browser sign-in.
-
-Requirements graphs are bounded, typed draft records. Unknown fields, duplicate IDs/edges, incompatible links, cycles, unsafe paths and missing provenance fail validation. XML positions are not executed as XPath; JSON anchors reject duplicate-key ambiguity and invalid pointer tokens. References cannot supply network destinations. Audit lookups use the authenticated tenant/project and exact hashes, and validation/review links must identify the same model source. Graph content and declared coverage never grant authoritative validation or clinical approval. [Traceability limits and trust](REQUIREMENTS_TRACEABILITY.md#findings-and-trust) remain part of the API contract.
-
-Document QA never fetches schema hints or executes supplied XML/JSON/path content. JSON rejects duplicate keys and escaped aliases; parsing, diagnostics and graph evidence have explicit bounds. Project QA resolves validation/review events in the caller tenant and matches exact model identity, including when a graph also links another binding artifact. Recorded provenance and requirement links never manufacture clinical approval. See [Validation and QA](VALIDATION_AND_QA.md).
-
-CKM credentials are per-source deployment service identities. Secret files are deployment-selected, read-only mounts; agents cannot provide paths or arbitrary destination URLs. Authentication profiles reject unsafe headers, duplicate JSON keys and redirects. Discovery/results never contain secrets or raw upstream errors. Inbound user identity does not automatically delegate private CKM entitlements. See [CKM sources](CKM_SOURCES.md).
-
-The MCP wire gate tests allowed and forbidden origins, hosts, malformed payloads, finite bodies and terminated sessions. Only explicit nonproduction loopback HTTP browser origins are accepted; production browser origins and external service destinations require HTTPS. The private FHIR engine and explicitly allowlisted IG adapter may use HTTP on isolated container networks; the IG adapter additionally requires `FHIR_ALLOW_HTTP=true`. This exception does not permit public HTTP origins or disable external TLS verification. See [MCP protocol](MCP_PROTOCOL.md) and [FHIR connection configuration](FHIR_DEV.md#configuration).
-
-Browser chat and model governance share one verified human session. Review browsing and decision freshness have separate bounded lifetimes; the explicit platform-administrator role maps to all governance roles. See [review deployment](REVIEW_DEPLOYMENT.md#one-browser-identity-for-chat-and-governance).
-
-## PostgreSQL and optional retrieval cache
-
-See [PostgreSQL and cache deployment](POSTGRES_AND_CACHE.md) for the private service stack, restricted database role, migration preserving audit hashes, immutable-revision cache keys, outage fallback and backup/recovery procedure. `GOVERNANCE_DATABASE_PATH` is used only with the legacy SQLite driver. Authorization and clinical decisions always use authoritative state.
-
-The native openEHR engine accepts fixed authenticated content-only operations, checks Host/Origin and JSON ambiguity, and limits input/output, worker heap, concurrency and execution time. Its private service key is separate from browser/LLM credentials. Model source cannot select retrieval URLs or execute code. Compiler evidence is not human approval. [Engine deployment](OPT_COMPILATION.md).
-
-The legacy compiler treats OET and ADL 1.4 as untrusted input inside the existing disposable engine workers. XML parsing rejects DTDs, external entities and external schema resolution; the pinned SDK supplies the output schema. Ambiguous paths/slots, widening and unsupported constructs fail closed. Large escaped XML in JSON uses a bounded linear duplicate-key scan rather than a recursive regex. Compiler profile success cannot approve a model.
-
-External originals remain untrusted, even with a claimed source-tool identity. Imports perform bounded local inspection, never fetch caller URLs or extract packages, reject unsafe filenames/forged provenance fields, and preserve syntax-failing source with findings. Protected receipts bind actual transport identity to exact stored bytes. Other Git clients remain a write trust boundary; mismatched revisions/hashes fail provenance verification. API-key and shared browser MCP calls remain service identities. [Import security and limits](MODEL_IMPORTS.md).
-
-## Golden rule: clinical databases are read-only
-
-**Every direct clinical/source database connection is read-only.** The MCP, agents,
-workers and channels must never insert, update, delete, alter schemas, run source
-migrations or invoke write-capable procedures. Use read-only credentials and
-server-enforced read-only transactions; fail closed if enforcement is unavailable.
-FHIR delivery uses a separately authorised FHIR API, never its backing database.
-See [the clinical database policy](CLINICAL_DATA_READ_ONLY.md).
-
+The platform's own model, audit and private job stores are separate from clinical/source databases. Authorised FHIR destination delivery uses a distinct HTTP API credential and policy, never direct access to the destination's backing database. See [the full read-only policy](CLINICAL_DATA_READ_ONLY.md).
 
 ## Security and privacy control matrix
 
-These statements describe the current implementation and required deployment
-controls. They are not a certification or a claim of automatic regulatory compliance.
-
-| Boundary | Implemented behaviour or precise limitation |
+| Boundary | Implemented behaviour or required limitation |
 |---|---|
-| Clinical/source databases | Read-only is mandatory across MCP, agents and runtime. SQL extraction/drivers are not implemented yet; there is no claimed driver-specific read-only enforcement. Future adapters must pass the golden-rule contract before support is advertised. |
-| Existing CDR queries | Read-only query operations through configured connections; source access is not permission to write clinical records. |
-| FHIR destination delivery | A separately authorised FHIR HTTP API operation, not a direct backing-database connection. The optional C# worker supports scoped HTTPS conditional create; it is separately enabled and requires registered credentials. Synthetic MCP previews emit zero records. |
-| API keys | One deployment service principal. They do not identify individual users or establish tenant isolation. |
-| Native MCP OIDC | Verified token/tenant boundaries; project repository scopes require explicit configuration. Browser sign-in does not turn its shared MCP credential into a user token. |
-| Human decisions | Purpose-bound, short-lived assertions, consumed nonces, roles and exact revisions. Model selection is distinct from independent clinical approval/publication. |
-| AI providers | The optional browser sends selected conversation/context/tool results to the configured provider. The provider connection, terms and deployment policy determine that external processing. Do not submit patient records as chat messages or modelling attachments. |
-| Processing data | Operational records, exports, validation detail and quarantine belong in a separate private runtime. The C# file runtime stores these under owner-scoped private processing directories, outside model Git and AI context; file permissions do not provide encryption. |
-| Encryption at rest | Personal provider credentials and selected identity/session stores use application encryption. Model snapshots and conversation/history files are not generally application-encrypted. Do not assume processing files, PVCs or backups are encrypted; volume/database/backup encryption is an operator responsibility. |
-| Network encryption | Hosted browser/MCP entry points require authenticated HTTPS. Some private compiler/service hops use authenticated HTTP on isolated networks; there is no blanket end-to-end TLS claim. Outbound public destinations must verify TLS. |
-| Logging | Application request logging allowlists metadata. Infrastructure/access logs, retention, backups and any external services need separate operator review. Avoid credentials or clinical values in URLs, filenames and diagnostic messages. |
-| Data lifecycle | Configure access, retention, deletion, backups and recovery for the actual deployment and provider. Private file permissions alone do not establish encryption, data residency or compliance. |
-| Compliance/security assurance | No HIPAA/GDPR certification, independent penetration-test completion or universal absence of vulnerabilities is claimed by these controls. Supported dependencies, audits and tested boundaries require ongoing maintenance. |
+| Source selection | Explicit versioned discovery jobs record connector/profile ID, purpose and original narrative. A selection record cannot grant extraction, mapping or delivery permission. |
+| SQL Server discovery | Metadata-only operations with bounded discovery and fingerprint-bound structural plan checks. No arbitrary SQL, clinical-row MCP result or SQL polling channel is exposed. |
+| Other source types | Oracle, PostgreSQL, MySQL, MariaDB, SAP HANA, Epic, SAP BW and other APIs have separate implementation/qualification states. A list entry does not establish connector support. |
+| Source APIs | Only explicitly approved read operations and registered endpoints may be used. GET alone does not prove freedom from side effects. Vendor subscriptions/delta queues and arbitrary remote calls require separate qualification. |
+| Clinical records | Records, retained context, validator details, quarantine and exports remain in owner-scoped private processing storage. They must not enter model Git, ordinary MCP calls or AI conversations. |
+| AI providers | The optional browser sends selected conversation/context/tool results to the configured provider. The provider's terms and deployment policy govern that external processing. Do not submit patient data in conversation text or modelling attachments. |
+| Metadata/dictionaries | Table names, field descriptions and dictionaries can themselves be sensitive. Authorise their disclosure to a model provider and treat retrieved instructions as untrusted content. |
+| API keys | A shared deployment service principal; no individual user identity or tenant isolation is implied. Keep keys server-side or in client credential stores. |
+| Native MCP OIDC | Signature, algorithm, issuer, audience, lifetime, client, scope and tenant checks. Project access additionally requires explicit project RBAC configuration and scopes. Sessions are bound to the authenticated actor/tenant. |
+| Human decisions | Short-lived purpose/method/target/body-bound assertions, persistent replay nonces, verified roles and exact revisions. Ordinary MCP credentials remain non-human. |
+| Models and mappings | User confirmation is required for exact supplied or agent-authored FHIR StructureDefinitions and applicable openEHR templates/rules. Technical validation and model selection are distinct from independent clinical approval/publication. |
+| Destination delivery | Separate operator enablement, registered HTTPS FHIR destination, approved credentials, confirmed run, successful output validation, conditional create and durable receipt/reconciliation policy. |
+| Encryption at rest | Selected credential/identity stores use application encryption. Model snapshots, conversations, operational files and backups are not all application-encrypted. Volume/database/backup encryption is an operator responsibility. |
+| Network encryption | Hosted entry points and public destinations require certificate-validated HTTPS. Some private engine/service hops use authenticated HTTP on isolated networks; no blanket end-to-end TLS claim is made. |
+| Lifecycle and locality | Retention, deletion, backup/recovery, residency, access reviews and provider policies must be configured for the deployment and jurisdiction. File permissions alone do not provide encryption or compliance. |
 
-The golden rule concerns direct clinical/source database access. The modeller
-still writes its own separate model and audit stores, and the integration design
-needs private queues/checkpoints. Those stores must not be placed inside a
-clinical/source database. Keep source-read and destination-write credentials and
-permissions separate. See [the full policy](CLINICAL_DATA_READ_ONLY.md).
+## Authentication and human authority
 
+Production HTTP requires configured API-key or OIDC authentication; unauthenticated production access fails closed. API secrets need at least 32 characters and must remain outside Git and prompts. Stdio relies on the trusted local process and filesystem boundary. Configure exact allowed hosts/origins; CORS defaults to no browser origins. Public monitoring paths expose no model content and should remain restricted by infrastructure policy.
 
-## C# integration runtime
+The OIDC adapter uses the official JWT bearer stack with a pinned HTTPS JWKS endpoint, allowed RS256 keys and explicit trust claims. Duplicate/invalid token JSON, unsupported algorithms and invalid identities are rejected. JWKS requests are bounded and cached. Repository tenant namespaces derive from signed identity claims. API keys and a browser's shared MCP credential must not be described as per-user repository isolation.
 
-The optional C# runtime adds a shared organisation model registry and owner-scoped private operational files. Human mapping confirmation is request-bound with a separate assertion purpose, short lifetime, replay nonce, verified roles/project scopes and sequence checks. Ordinary MCP API-key calls cannot confirm/revoke mappings, start channels or deliver operational data. API-key access to models is shared and must not be presented as per-user tenant isolation. Existing PHP confirmation identifiers do not authorise C# processing.
+The browser backend verifies the human session and signs a purpose-specific assertion for an explicit action. The core binds it to the method, raw request target and body hash, consumes a persistent one-time nonce and checks roles/project scopes. Signing keys remain outside browser JavaScript and model-provider workers. Stable issuer identifiers and identity/encryption keys must survive upgrades. A role flag or agent statement cannot turn a service call into a human decision.
 
-Source files are opened read-only; direct SQL drivers are unavailable. No test attempts writes to clinical databases. Source records, retained context, validator findings, quarantine and exports remain private operational data and must never enter model Git or general AI context. File permissions do not constitute encryption. Operators must configure encrypted storage/backups, access, retention and deletion. Internal authenticated HTTP may carry records between worker and validators; public HTTPS alone does not encrypt those hops. See [the operational controls and limits](INTEGRATION_ENGINE.md).
+## Protected source profiles and drivers
+
+Connection profiles are operator-managed files scoped to an exact tenant and projects. Jobs and agents use opaque profile IDs, never connection strings or secret paths. SQL profiles reject unknown fields, unsafe paths/symlinks and group/other-readable files. Mount secrets read-only with the required ownership and permissions; projected symlinks need an operator-controlled private staging step. Credentials are excluded from diagnostic representations and tool results.
+
+The native SQL Server driver is pinned and audited. ODBC/JDBC and proprietary driver artifacts require separate licensing, fixed versions/checksums, protected mounts, restricted loading and synthetic permission/TLS acceptance. Agents cannot fetch, upload or execute arbitrary `.jar`, native driver or plug-in code. Driver support does not establish clinical qualification.
+
+## Outbound APIs and untrusted content
+
+CKM, terminology, repositories and destination endpoints are administrator-configured. Agents select configured source identifiers. Canonical model/terminology identifiers are not arbitrary retrieval URLs. Disable redirects, bound response bytes and time, validate pagination/origins, verify TLS, and restrict egress to approved hosts. The private CDR HTTP adapter additionally checks resolved addresses and pins socket connections. Do not infer that every outbound adapter has the same SSRF controls.
+
+An operator CA bundle can establish additional private trust without bypassing hostname, lifetime or certificate-chain checks. Do not disable TLS verification to make a connector work. Tokens and headers must not follow redirects to another origin.
+
+XML input rejects DTDs, external resolution and excessive size/complexity. Strict JSON parsing rejects duplicate-key ambiguity. Paths reject traversal/symlinks; repository writes use bounded immutable revisions and conditional updates. Documents, schemas, metadata and retrieved text remain untrusted: none can override application policy, select arbitrary destinations or establish approval.
+
+Terminology operations support modelling evidence. Preserve requested/returned versions and source provenance, and report missing, ambiguous or inexact results. Do not silently invent codes, units, time zones or clinical meaning. Per-record enrichment needs explicit reviewed rules, a qualified execution path and private provenance. External terminology requests should contain only necessary codes/identifiers, without patient free text or unrelated clinical context.
+
+## Repositories, audit and operational files
+
+Filesystem snapshots use exclusive locks, compare-and-swap revisions and atomic replacement. Original imports preserve exact bytes and separate caller-declared claims from protected storage receipts. Git changes made outside the platform remain a trust boundary; provenance verification must compare exact revisions and hashes. SharePoint uses immutable candidates and conditional index updates, with provider-specific live acceptance required before deployment use.
+
+The protected audit ledger resides outside model Git. Sequence checks, append-only controls, verified hash chains and one-time nonces guard normal application mutations. These controls do not prevent a privileged administrator replacing the database and recomputing history. Maintain consistent, separately protected backups and review operator access.
+
+Private processing separates source reads, confirmed rules, validation, quarantine, export and destination delivery. A channel pins a mapping version and does not auto-adopt new drafts. Failed validation prevents output delivery; unknown destination outcomes require reconciliation. Retain operational data only for the approved period. Do not copy record-level diagnostics into general logs or reusable modelling artifacts.
+
+## Deployment and ongoing assurance
+
+Use non-root containers, read-only application filesystems, dropped capabilities, private service networking, protected secret mounts and bounded temporary storage. Keep Docker/Kubernetes administration outside model/provider workers. Build application images on hosted CI, verify immutable revisions on Dev and promote the exact cohort to production. Preserve persistent volumes, accounts, secrets and stable identity issuers during upgrades.
+
+Application errors exposed to clients use fixed safe codes rather than raw database/upstream exception text. Infrastructure logs, URLs, filenames, tracing and external services require their own review; never place credentials or clinical values in those fields. The platform does not guarantee that every proxy or operator-added integration is configured to the same policy.
+
+Run dependency audits and meaningful negative tests for authentication, replay, tenant/project boundaries, input ambiguity, source permissions and destination delivery. Maintain the tested-version/connector inventory and installation-specific acceptance evidence. Incident response, patching, rate limits, monitoring, backup restoration, high availability and jurisdiction-specific privacy obligations remain operational responsibilities.
+
+See [source connector status](SOURCE_CONNECTORS.md), [database discovery](DATABASE_DISCOVERY.md), [architecture](ARCHITECTURE.md), [identity](IDENTITY_AND_ACCESS.md), [governance](GOVERNANCE.md), [private processing](INTEGRATION_ENGINE.md) and [production delivery](FHIR_PRODUCTION_DELIVERY.md).
