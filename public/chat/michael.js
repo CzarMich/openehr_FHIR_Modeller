@@ -1,3 +1,5 @@
+import { attachCompanionPosition } from "/chat/companion-position.js";
+
 // Local guidance only: this companion makes no network requests or model calls.
 const hiddenKey = "modeller.michael.hidden";
 const seenKey = "modeller.michael.seen";
@@ -58,16 +60,17 @@ const tips = {
 const root = document.createElement("aside");
 root.id = "michael-companion";
 root.className = "michael-companion";
-root.setAttribute("aria-label", "Michael, optional workspace guidance");
+root.setAttribute("aria-label", "Leticia, optional workspace guidance");
 root.innerHTML = `
-<section class="michael-panel" id="michael-panel" aria-label="Michael's guidance" hidden>
-  <button type="button" class="michael-close" aria-label="Close Michael's suggestion">×</button>
-  <p class="michael-kicker">MICHAEL · WORKSPACE GUIDE</p>
+<section class="michael-panel" id="michael-panel" aria-label="Leticia's guidance" hidden>
+  <button type="button" class="michael-close" aria-label="Close Leticia's suggestion">×</button>
+  <p class="michael-kicker">LETICIA · WORKSPACE GUIDE</p>
   <h2 class="michael-heading"></h2><p class="michael-copy"></p>
   <div class="michael-topics"><button type="button" data-topic="prompts">Prompt tips</button><button type="button" data-topic="tokens">Save tokens</button></div>
-  <div class="michael-panel-footer"><span>No AI tokens used</span><button type="button" class="michael-hide">Hide Michael</button></div>
+  <p class="michael-move-hint">Drag Leticia to move her. When focused, Alt + arrow keys also move her.</p>
+  <div class="michael-panel-footer"><span>No AI tokens used</span><button type="button" class="michael-reset">Reset position</button><button type="button" class="michael-hide">Hide Leticia</button></div>
 </section>
-<button type="button" class="michael-character" aria-label="Ask Michael for prompt and token tips" aria-controls="michael-panel" aria-expanded="false">
+<button type="button" class="michael-character" aria-label="Ask Leticia for prompt and token tips" aria-controls="michael-panel" aria-expanded="false">
 <svg viewBox="0 0 100 136" aria-hidden="true" focusable="false">
  <defs><linearGradient id="michael-wire" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f7fbff"/><stop offset=".48" stop-color="#8c9caf"/><stop offset=".72" stop-color="#e7eef5"/><stop offset="1" stop-color="#708296"/></linearGradient></defs>
  <ellipse cx="49" cy="128" rx="29" ry="4" fill="#18394d" opacity=".13"/>
@@ -82,12 +85,12 @@ root.innerHTML = `
  </g>
  <path class="michael-foot michael-foot-left" d="M32 115L24 123H17" fill="none" stroke="#435466" stroke-width="3" stroke-linecap="round"/>
  <path class="michael-foot michael-foot-right" d="M63 115L70 123H78" fill="none" stroke="#435466" stroke-width="3" stroke-linecap="round"/>
-</svg><span class="michael-name">Michael</span></button>`;
+</svg><span class="michael-name">Leticia</span></button>`;
 const restore = document.createElement("button");
 restore.id = "michael-restore";
 restore.className = "michael-restore";
 restore.type = "button";
-restore.textContent = "Show Michael";
+restore.textContent = "Show Leticia";
 restore.setAttribute("data-show-michael", "");
 restore.setAttribute("aria-controls", "michael-panel");
 restore.hidden = true;
@@ -100,6 +103,17 @@ let position = { x: 0, y: 0 },
     topic = "prompts";
 const next = { prompts: 0, tokens: 0 };
 const motion = () => !reduced.matches && !preference(stillKey);
+const placement = attachCompanionPosition({
+    root,
+    character,
+    panel,
+    beforeMove: () => {
+        stopArrival();
+        clearTimeout(greetingTimer);
+    },
+});
+character.setAttribute("aria-description", "Drag to move Leticia. Alt + arrow keys move her when focused.");
+root.querySelector(".michael-reset").addEventListener("click", () => placement.reset());
 function closePanel() {
     panel.hidden = true;
     character.setAttribute("aria-expanded", "false");
@@ -109,6 +123,7 @@ function openPanel(title, copy) {
     root.querySelector(".michael-heading").textContent = title;
     root.querySelector(".michael-copy").textContent = copy;
     panel.hidden = false;
+    placement.positionPanel();
     character.setAttribute("aria-expanded", "true");
     clearTimeout(greetingTimer);
 }
@@ -145,7 +160,7 @@ function greet() {
     if (root.hidden || preference(seenKey)) return;
     remember(seenKey, true);
     openPanel(
-        "Hi, I’m Michael.",
+        "Hi, I’m Leticia.",
         "I can help you write clear prompts and save AI tokens. Ask me whenever you need a tip.",
     );
     // No focus changes or repeated interruptions; the greeting quietly closes itself.
@@ -155,6 +170,7 @@ function show() {
     active?.abort();
     active = new AbortController();
     root.hidden = false;
+    placement.refresh();
     restore.hidden = true;
     remember(hiddenKey, false);
     if (motion()) {
@@ -187,6 +203,7 @@ function show() {
     }
 }
 function hide() {
+    placement.cancel();
     closePanel();
     stopArrival();
     active?.abort();
@@ -249,7 +266,7 @@ if (preference(hiddenKey)) {
     restore.hidden = false;
 } else {
     show();
-    if (!preference(seenKey) && motion() && innerWidth >= 720) {
+    if (!placement.hasSavedPosition && !preference(seenKey) && motion() && innerWidth >= 720) {
         root.classList.add("michael-arriving");
         arrivalTimer = setTimeout(() => {
             stopArrival();

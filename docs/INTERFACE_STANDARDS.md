@@ -14,10 +14,16 @@ Routine supported settings stay in their existing protected UI. A connection sho
 
 [`design-system.css`](../public/chat/design-system.css) owns the colour, font, spacing, border, radius and control tokens and the shared workspace switcher. It loads after layout-specific styles on both pages. Keep workspace layouts in their existing stylesheets; use shared `--ui-*` variables for new visuals. The browser server explicitly serves the shared asset. Do not introduce a separate component framework or build tool for these native HTML/JavaScript views.
 
-Use semantic labels, headings, links for navigation and buttons for actions. Keep form controls and standalone navigation links at least 44 pixels high, preserve visible keyboard focus and avoid conveying status solely by colour. Code/model content retains a monospace font. The main canvas, cards and editable fields have distinct backgrounds. Existing dynamic status text remains a polite live region. Respect reduced motion and keep the optional Michael guide dismissible. When Michael is hidden, a **Show Michael** button stays in the bottom-right corner on both workspaces, including after a reload. The button restores his tips and keyboard focus. Use plain sentences in interface guidance rather than dash-heavy asides.
+Use semantic labels, headings, links for navigation and buttons for actions. Keep form controls and standalone navigation links at least 44 pixels high, preserve visible keyboard focus and avoid conveying status solely by colour. Code/model content retains a monospace font. The main canvas, cards and editable fields have distinct backgrounds. Existing dynamic status text remains a polite live region. Respect reduced motion and keep the optional Leticia guide dismissible. When Leticia is hidden, a **Show Leticia** button stays in the bottom-right corner on both workspaces, including after a reload. The button restores her tips and keyboard focus. Use plain sentences in interface guidance rather than dash-heavy asides.
 
 Do not send patient data, credentials or private job results into chat to render interface guidance. Shared monitoring continues to exclude private rows and operational rights.
 
 ## Verification
 
 Run `npm --prefix chat run test:browser`. The browser suite checks desktop and phone layouts, keyboard navigation, shared control styles, real asset serving, WCAG AA automated checks and the existing exact-model confirmation and channel sharing workflows using synthetic fixtures. Automated checks supplement manual review; they are not accessibility certification. Use the [testing guide](testing.md) for release gates.
+
+## Moving Leticia
+
+Hold the mouse button on Leticia and drag her anywhere within the browser window. Touch and pen input use the same gesture. A normal click still opens or closes tips; dragging does not activate a tip. Her position is remembered locally as a relative viewport position and kept inside the window after resizing or changing workspace views. Tips reposition to stay visible. The restore button remains in its familiar bottom-right location when she is hidden.
+
+Keyboard users can focus Leticia and press Alt with an arrow key to move her; Shift increases the step. **Reset position** in her tips returns her to the default corner. Movement and saved positioning use no AI calls.

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Let users drag Leticia, retain her position and reset it with mouse or keyboard controls.
+
+- Rename the optional workspace guide to Leticia and remove the displayed personal copyright line.
+
 - Keep a visible restore button when Michael is hidden and simplify his introduction.
 
 - Standardise workspace navigation, visual styles and accessible integration workflow steps.

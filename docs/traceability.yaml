@@ -984,7 +984,10 @@
         "public/chat/design-system.css",
         "public/chat/index.html",
         "public/chat/integration.html",
-        "chat/src/server.mjs"
+        "chat/src/server.mjs",
+        "public/chat/companion-position.js",
+        "public/chat/michael.js",
+        "public/chat/michael.css"
       ],
       "tests": [
         "chat/test/browser.spec.mjs"

@@ -118,7 +118,8 @@ a shared workspace, not per-browser-user isolation.
 - **REQ-F36** — Human-managed channel groups, teams and separate view/monitor grants. View/monitor sharing only; no shared edit, operate, clinical approval or patient-result access.
 - **REQ-F37** — Deterministic mapping reuse and human-confirmed project learning. Exact-context lookup makes no provider call; current authorisation and confirmation are rechecked. Corrections require a new version and human confirmation.
 - **REQ-F38** — Routine post-install configuration through protected browser controls. Existing personal/account/group controls are delivered; general source, terminology and destination profile forms remain pending.
-- **REQ-F39** — Share visual tokens and consistent control, navigation and focus styles across modelling, FHIR, AQL and integration views. Provide keyboard-accessible integration step navigation and responsive layouts without changing protected confirmation or data-access boundaries.
+- **REQ-F39** — Share visual tokens and consistent control, navigation and focus styles across modelling, FHIR, AQL and integration views. Provide keyboard-accessible integration step navigation and responsive layouts without changing protected confirmation or data-access boundaries. Let the optional guide move by pointer or keyboard, remember its local position and remain inside the viewport with an accessible reset control.
+
 
 ## HL7 ingestion, dependencies and protected patient identity
 
@@ -127,3 +128,4 @@ a shared workspace, not per-browser-user isolation.
 - **REQ-F42** — Let an authorised user choose logical, literal or resolve-to-literal FHIR references per relationship in a confirmed mapping. Respect the supplied target profiles and destination contract. Missing or ambiguous required identities stay on hold. Logical identifiers do not imply that a destination resource exists or will be resolved automatically.
 - **REQ-F43** — Offer a protected destination pseudonymisation toggle bound to the reviewed channel configuration. Keep the patient prerequisite mandatory in both modes, retain stable scoped pseudonyms across records/restart and protect the original-identity crosswalk. Pseudonym destinations receive the approved pseudonym identifier, with direct-identifier filtering applied according to the approved output policy. Unknown, conflicting or merged identities require controlled resolution. A changed privacy policy cannot silently alter in-flight processing or repeat an uncertain write.
 - **REQ-F44** — Support explicit source-to-openEHR, source-direct-to-FHIR, source-through-openEHR-to-FHIR and canonical-openEHR-to-FHIR routes. Require the exact applicable input/output templates and profiles, protected human confirmation and real output validation. OpenEHR-only output does not require an unrelated FHIR model and is not sent to a FHIR endpoint.
+
