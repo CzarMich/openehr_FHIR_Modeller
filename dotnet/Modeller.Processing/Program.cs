@@ -156,10 +156,12 @@ try {
                         if (priorPlan.Receipts[planned] is not { } verifiedReceipt) continue;
                         var outputFile = Path.Combine(directory, "outputs", $"{index:D6}-{planned:D3}.json");
                         Data.Write(outputFile, priorPlan.Outputs[planned]); Data.Write(outputFile + ".receipt", verifiedReceipt);
+                        var patientIdentity = identities.OutboundPatientIdentity(scope, pendingItem.Input.PatientIdentity ?? throw new ProcessingException("WAITING_PATIENT_IDENTITY"), pendingItem.Input.PrivacyPolicyRevision);
+                        Data.Write(Path.Combine(directory, "evidence", $"{index:D6}-{planned:D3}-patient-index.json"), new { output = Path.GetFileName(outputFile), outputSha256 = Data.Hash(Data.Canonical(priorPlan.Outputs[planned])), patient = patientIdentity, destinationId = clinicalPolicy.DestinationId, privacyPolicyRevision = pendingItem.Input.PrivacyPolicyRevision, mappingSha256 = state.MappingSha256 });
                         if (row.Receipts.Count <= planned) { while (row.Receipts.Count < planned) row.Receipts.Add(new("", "NOT_SENT", null)); row.Receipts.Add(verifiedReceipt); } else row.Receipts[planned] = verifiedReceipt;
                     }
                 }
-                if (pendingItem.State == "DELIVERED") { row.Complete = true; row.Held = false; Data.Write(rowFile, row); Progress(); continue; }
+                if (pendingItem.State == "DELIVERED") { row.Complete = true; row.Held = false; row.Error = null; Data.Write(rowFile, row); Progress(); continue; }
                 if (destinationEvidence is not null) await destinationEvidence.Refresh(pendingItem, cancellation.Token);
                 var lease = clinical.Acquire(pendingItem.Id, request.Subject!, state.MappingSha256!, DateTimeOffset.UtcNow);
                 if (lease is null) { row.Held = true; row.Error = clinical.Inspect(pendingItem.Id, DateTimeOffset.UtcNow).State; Data.Write(rowFile, row); Progress(); continue; }

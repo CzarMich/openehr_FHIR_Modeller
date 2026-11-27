@@ -125,7 +125,7 @@ Start with this request in browser chat or your connected MCP agent:
 > send resources to a destination from this preview.
 
 For a reproducible first tool call and expected results, follow the
-[compatibility laboratory preview walkthrough](docs/workflows/source-to-fhir-laboratory.md).
+[independent laboratory mapping walkthrough](docs/workflows/source-to-fhir-laboratory.md).
 Use the [C# integration guide](docs/INTEGRATION_ENGINE.md) for new mappings, private jobs and channels; its model/rule confirmation and run authorisation are separate, request-bound decisions.
 
 ## Available today and remaining work
