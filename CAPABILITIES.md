@@ -74,7 +74,7 @@ Bounded synthetic CSV/custom JSON inspection, explicit forward/reverse mapping p
 
 ## C# modelling and integration
 
-C#/.NET provides guide parity, an independent versioned project/model/rule registry, protected human confirmation, synthetic MCP operations and optional private file jobs/channels with export or scoped conditional-create FHIR delivery. The Node browser adapter and Java/Node standards engines are retained. The PHP `/mcp` endpoint and existing repositories remain compatibility components; full migration is not complete. See [the parity matrix](docs/DOTNET_MIGRATION.md) and [operator/user guide](docs/INTEGRATION_ENGINE.md).
+C#/.NET provides guide parity, an independent versioned project/model/rule registry, protected human confirmation, synthetic MCP operations and optional private file jobs/channels with export or scoped conditional-create FHIR delivery. The Node browser adapter and Java/Node standards engines are retained. The primary HTTP/stdio application runs on C# and preserves the existing repository formats. Adapter qualification and supported integration formats have explicit limits; the deployed image revision must be checked separately. See [the parity matrix](docs/DOTNET_MIGRATION.md) and [operator/user guide](docs/INTEGRATION_ENGINE.md).
 
 
 Mapping-model selection: `fhir_mapping prepare-confirmation/confirmation` supplies

@@ -1,161 +1,109 @@
 # Architecture
 
-The openEHR and FHIR Modeller exposes deterministic modelling operations through
-MCP and separate authenticated human review APIs. Clients supply their own model
-provider and orchestration. Model creation and operational record processing are
-separate: the former produces versioned templates, profiles and mapping rules;
-the latter must validate records, reconcile failures and export or deliver FHIR
-to an authorised configured destination.
+The openEHR Modeller is a C#/.NET 10 application for clinical model development, schema discovery, reviewed mapping and controlled data delivery. MCP and versioned REST adapters call shared application services. The browser supplies human identity, explicit decisions and optional access to a model provider. External MCP clients supply their own model and orchestration. Deterministic record processing does not invoke a language model for each patient record.
 
-New modelling, mapping confirmation and private integration services run in C#/.NET 10. The Node browser adapter and specialised Java/Node standards engines are retained. Runtime changes must preserve existing contracts, identity, repositories and protected audit history. See the [runtime qualification matrix](DOTNET_MIGRATION.md) and [integration guide](INTEGRATION_ENGINE.md); verify the deployed revision independently of this design.
+The product direction is a standards-based clinical data integration platform. That direction does not establish universal connector coverage, clinical correctness, certification, high availability or suitability for every jurisdiction. Supported operations and acceptance evidence must be evaluated separately from planned capabilities and the revision actually deployed.
 
-## Product workflow and delivery boundary
-
-```mermaid
-flowchart LR
-    User[Modeller or integration engineer] --> Browser[Browser workspace]
-    Agent[MCP agent or client] --> MCP[Modelling MCP service]
-    Browser --> MCP
-    MCP --> Sources[Source structure and requirements]
-    MCP --> Models[openEHR templates and FHIR profiles]
-    Models --> Reuse[CKMs, packages and model repositories]
-    Models --> Engines[Native compilers and validators]
-    Browser --> Review[Authenticated human model confirmation]
-    Review --> Audit[Protected audit and exact model revisions]
-    Models --> Mapping[Explicit forward and reverse mapping rules]
-    Sources --> Mapping
-    Audit --> Mapping
-    Mapping --> Preview[Synthetic preview and findings]
-    Mapping --> Runtime[Optional private C# processing and validation]
-    Runtime --> Export[Private file export]
-    Runtime --> Delivery[Authorised FHIR delivery]
-    Delivery --> Destination[Configured destination FHIR server]
-    Runtime --> Reconcile[Quarantine and reconciliation]
-```
-
-The optional integration runtime processes private file batches and channels with confirmed mapping assignments. FHIR delivery requires separate operator enablement, a registered authorised destination and successful validation. A diagram or a successful synthetic preview is not deployment, clinical or conformance evidence.
-
-## Compatibility modelling and identity adapters
+## System boundaries
 
 ```mermaid
 flowchart TB
-    Browser[Unified workspace: Chat, Models and Governance] --> Chat[Chat service: sessions, history and write confirmation]
-    Chat <--> Identity[OIDC identity provider]
-    Chat <--> Codex[Personal Claude, Codex or Copilot Studio connection]
-    Chat --> MCP[MCP tools, prompts and resources]
-    AI[Codex, Copilot Studio or another MCP client] --> MCP[MCP tools, prompts and resources]
-    UI[Future visual editor / general API] -.-> Core[Modelling domain services]
-    Human[Human review workspace] --> BFF[OIDC session and explicit decision confirmation]
-    BFF <--> Identity
-    BFF -->|Request-bound interactive assertion| REST[Versioned review REST adapter]
-    REST --> Governance[ModelGovernance application service]
-    MCP -->|Prepare and request review| Governance
-    Governance --> Ledger[PostgreSQL audit ledger; SQLite compatibility]
-    Governance --> Repository
-    Governance --> Validation
-    MCP --> Auth[Transport identity: local, API key or OIDC]
-    Auth --> Scope[Signed tenant namespace and draft-write permissions]
-    Scope --> Core
-    Core --> Imports[ModelImports: type inspection and idempotent receipt workflow]
-    Imports --> Originals[OriginalRepository: create-only native source bytes]
-    Originals --> Repository
-    Imports --> Ledger
-    Core --> EnginePort[OpenEhrEngine domain port]
-    EnginePort --> Engine[Private native engine: Archie and AQL grammar]
-    Engine --> Builds[OPT 2 ADL / supported OPT 1.4 XML and exact-revision build evidence]
-    Builds --> Repository
-    Core --> Validation[Separate parse, structure and conformance stages]
-    Validation --> Quality[Exact-revision project QA and formal findings]
-    Quality --> Trace
-    Quality --> Repository
-    Core --> Repository[ModelRepository interface]
-    Core --> Trace[ProjectTraceability: typed graph and deterministic queries]
-    Trace --> Repository
-    Trace --> Anchors[Exact XML or JSON document anchors]
-    Trace -->|Validation and review event hashes| Ledger
-    Repository --> Snap[Shared snapshot revision and history semantics]
-    Repository --> Cache[Optional Valkey cache: tenant and immutable revision keys]
-    Snap --> FS[Filesystem locks and atomic snapshots]
-    Snap --> SP[SharePoint immutable files and conditional index]
-    Repository --> Git[Git adapter: native files, layout mapping and commit revisions]
-    Git --> Objects[Persistent local Git object store]
-    Git --> Remote[Optional GitHub, GitLab or other Git remote]
-    Git --> Hosting[HostedRepositoryProvider: GitHub or GitLab APIs]
-    Hosting --> Reviews[Metadata, branches, protection and draft reviews]
-    Designer[Archetype Designer: account connection required] -.-> Remote
-    Core --> Plans[Binding plan service: inspector and deterministic planner]
-    Plans --> Repository
-    Plans --> Local
-    Core --> Terms[Optional terminology checks: TerminologyProvider]
-    Terms --> Local[Project catalogue: code systems, value sets and concept maps]
-    Terms --> FHIR[Optional FHIR terminology server: CodeSystem, ValueSet and ConceptMap]
-    Core --> Federation[FederatedCkmSearch: bounded windows and source provenance]
-    Federation --> CKM[Named CKMs and per-source outbound authentication]
-    Core -.-> CDR[Optional future CDR adapter]
+    Human[Clinical modeller or integration engineer] --> Browser[Browser workspace and session backend]
+    Client[External MCP client and its model provider] --> MCP[C# modelling MCP adapter]
+    Browser --> MCP
+    Browser -->|Request-bound human assertion| Review[Human review API]
+    MCP --> App[Shared .NET application services]
+    Review --> App
+    App --> Models[Versioned models, narratives and mapping rules]
+    App --> Audit[Protected review and provenance ledger]
+    App --> Standards[Private openEHR and FHIR compilers and validators]
+    App --> Definitions[Configured CKMs, FHIR packages and repositories]
+    App --> Terminology[Configured FHIR terminology services and local catalogues]
+    DB[Clinical SQL Server] -->|Read-only metadata| Discovery[Registered source connector]
+    Discovery --> App
+    Dictionary[Vendor dictionary and user-provided semantic evidence] --> App
+    Browser -->|Explicit confirmed run or channel assignment| Runtime[Private .NET processing worker]
+    Models -->|Exact confirmed revisions| Runtime
+    Audit -->|Confirmation evidence| Runtime
+    Files[Private files or registered folder] -->|Read-only source access| Runtime
+    DB -. Private extraction and polling require separate qualification .-> Runtime
+    Runtime --> Standards
+    Runtime --> Export[Private validated export]
+    Runtime --> Quarantine[Private reconciliation and quarantine]
+    Runtime -->|Separately authorised FHIR HTTPS API| Destination[Registered destination FHIR server]
 ```
 
-Solid edges are implemented; dotted edges are extension boundaries. `src/Domain` owns modelling, terminology, traceability and repository contracts. `src/Integrations` implements filesystem, Git, SharePoint and FHIR adapters. Snapshot stores share domain revision/history rules. SharePoint uses a unique project index and ETag-conditional pointer updates; outbound Graph credentials are independent of inbound identity. The generic Git adapter supports hosted GitHub/GitLab repositories without a hosting-provider SDK. Optional hosting adapters implement `HostedRepositoryProvider`; `src/Application/RepositoryService` supplies transport-independent operations and write authorization. Hosted metadata is scoped to the configured tenant repository; draft reviews cannot approve clinical models. The dotted Designer edge represents an account-specific integration that still needs a hosted Designer round-trip acceptance test. `src/Apis` implements CKM retrieval. `src/Tools` adapts domain calls to closed MCP schemas. The MCP transport entrypoint supplies authentication, transport, discovery, sessions and redacted logging.
+Clinical records and validator findings belong in the private processing boundary. They are excluded from general MCP discovery, model Git, reusable guidance and model-provider context. The optional browser can send chosen conversation content and modelling tool results to its configured provider; users must keep patient records out of that conversation. Metadata and dictionaries can themselves be sensitive and require disclosure authorisation.
 
-The HTTP path is enterprise TLS gateway → Caddy → private modelling transport → MCP handler. stdio uses the same discovery and domain services with local process permissions. CDR credentials and terminology-server configuration are unnecessary for startup, retrieval, draft generation, persistence or local structural validation. Models need no terminology binding. An explicitly requested external terminology check returns `NOT_EXECUTED` when no server is configured; local value sets remain usable.
+## Components and responsibilities
 
-The project terminology catalogue uses the shared repository contract for conditional DRAFT saves, history, canonical/edition identity and malformed-record findings. Pure local operations require no external server. Explicit external references delegate to the domain terminology/mapping provider interfaces with their recorded edition.
+| Component | Responsibility |
+|---|---|
+| `Modeller.Core` | Shared mapping, source-file contracts, model selection, human-proof and delivery primitives. It does not reference a database driver. |
+| `Modeller.Application` | Model repositories, immutable imports, provenance, traceability, standards adapters, terminology, review, private CDR workspace and application policy. |
+| `Modeller.Database` | Native SQL Server connection and effective-permission checks, metadata catalogue and closed structural query-plan compiler. No arbitrary SQL or clinical-row MCP operation is exposed. |
+| `Modeller.Mcp` | Primary MCP/REST transport, authentication, request bounds, Host/Origin checks, session binding and purpose-bound browser assertions. Its integration workspace mode adapts the existing private model/job workflow. |
+| `Modeller.Processing` | Deterministic private file processing, validation, quarantine, export and authorised delivery. Database drivers are outside this worker's dependency graph. |
+| Node browser backend | Human sessions, private workspace, provider connections, write confirmation and request-bound calls to review/integration adapters. |
+| Java openEHR engine | Fixed private content-only inspection, supported ADL/OET compilation, OPT checks and AQL grammar operations. |
+| Node/Java FHIR engine | Pinned packages, SUSHI, FHIRPath and actual FHIR validator operations. |
+| Caddy ingress | Routes browser and HTTP application traffic on the private service network. The public HTTPS edge is a separate deployment component. |
 
-Terminology operations preserve repeated multilingual values and separate value-set, code-system and ConceptMap version evidence. Translation returns explicit candidates requiring review; canonical discovery and operation calls remain pinned to the configured FHIR endpoint. Native binding application is still an engine extension.
+New application/domain behaviour is implemented in C#. Retaining specialised standards engines does not imply that a structural check establishes clinical validity. The [runtime guide](DOTNET_MIGRATION.md) describes preserved repository, identity and audit formats.
 
-Model files, local value sets, binding records, requirements and decisions share one repository. Select `filesystem` for atomic JSON project snapshots, or `git`/`github`/`gitlab` for ordinary model files, Git commits and optional remote synchronization. Both use expected revisions to reject stale updates. Git fetches before writes and accepts a commit locally only after its remote push succeeds; a rejected push leaves the accepted local branch unchanged. Each instance needs its own Git cache. Native OIDC partitions local storage by issuer/tenant and maps separate Git remotes per tenant. API-key mode remains a shared service principal. Automatic conflict merge, distributed locking and a search index are separate work.
+## Explicit source jobs
 
-XML/JSON parsing is deterministic and separate from document structure. OET/OPT and FLAT/STRUCTURED profiles, exact-revision project QA and formal findings are implemented; ADL checks inspect its header. The optional [native engine](OPT_COMPILATION.md) adds ADL 2/AOM/RM validation, AQL syntax parsing and ADL 2-to-OPT 2 compilation. A separate [OET compatibility profile](LEGACY_OPT_COMPILATION.md) adds OPT 1.4 XML compilation and schema/RM structure checks. Complete legacy semantics remain separate work. The optional [AQL/CDR subsystem](CDR_WORKSPACE.md) adds exact-template path checks and explicit read-only remote query execution through a provider-neutral adapter. [Validation and QA](VALIDATION_AND_QA.md) records each boundary. QA records its unexecuted stages as NOT_EXECUTED and keeps release eligibility false; an independent AQL run does not qualify a model for release. The installed validation executor records authoritative evidence in the governance ledger. Its incomplete stages prevent approval/publication. An AI-supplied report or approval field cannot bypass that gate.
+A source-selection job records the database or platform/API connector, operator profile, project, purpose and original narrative. The catalogue distinguishes SQL Server, Oracle, PostgreSQL, MySQL, MariaDB and SAP HANA databases from Epic, SAP BW, FHIR and other clinical APIs. Connector selection, implemented metadata discovery, driver qualification and clinical extraction are separate states. Unqualified connectors cannot run. See [source jobs and connector status](SOURCE_CONNECTORS.md).
 
-Source selection and outbound credentials are deployment-controlled. The CKM domain port isolates shared federated aggregation from its configured integration; credentials never appear in source discovery. Each CKM tool accepts a configured source name; it cannot accept an arbitrary destination URL. See [configuration](CONFIGURATION.md), [repository](MODEL_REPOSITORY.md), [terminology](TERMINOLOGY.md), [governance](GOVERNANCE.md), and the [capability matrix](../CAPABILITIES.md).
+SAP BW discovery must retain analytic grain, dimensions, measures, units, hierarchies and filters. Epic API access requires organisation-approved endpoints, registration and read scopes. Neither platform implies a universal physical database schema.
 
-The optional [browser chat](BROWSER_CHAT.md) is a separate Node MCP client with personal Claude, Codex and [Copilot Studio](COPILOT_BROWSER.md) connections. It keeps provider/MCP credentials server-side and requires exact-change confirmation for repository writes. Browser OIDC authenticates chat users independently of native MCP bearer verification; neither boundary yet supplies project-level RBAC. Conversation storage is private to each signed-in identity, while the configured model repository may be shared.
+## Discovery and semantic decisions
 
-The [binding-plan application service](TERMINOLOGY_BINDING_PLANS.md) combines a domain inspector interface, an XML adapter and a pure membership planner. It preserves source bytes, records source/catalogue revisions, exposes unresolved choices, and recomputes evidence freshness. It never applies native bindings or approves a clinical model. Native inherited semantics remain an engine boundary.
+Table names are installation-specific. SQL Server discovery reads actual schemas, columns, primary keys and declared foreign keys, supports bounded search/detail pages and produces a deterministic schema fingerprint. Plans use discovered IDs and reject a changed fingerprint, arbitrary SQL, computed columns and unsupported relationships. A declared key is structural evidence; its clinical meaning and join cardinality still require review.
 
-The [human review adapter](GOVERNANCE.md) uses the same `ModelGovernance` application service as MCP preparation tools. Clinical decisions require a distinct interactive browser identity, configured role and explicit exact-revision confirmation. The browser backend creates a short-lived assertion bound to method, target, body and a durable single-use nonce. It uses a dedicated key that is absent from model-worker environments. Native bearer/API-key credentials never establish human identity.
+The agent combines metadata, the installation's data dictionary, supplied definitions, user narrative and synthetic examples to propose sources for a resource such as Observation or Condition. It must state unresolved meanings, missing identifiers, uncertain timestamps, terminology dependencies and information loss. It must not invent an ORBIS schema or assume that similarly named fields are clinically equivalent. See [database discovery](DATABASE_DISCOVERY.md).
 
-The authoritative lifecycle and governance validation evidence live in a separate PostgreSQL ledger (SQLite compatibility remains available), independently of editable repository metadata. Transactions enforce audit-sequence compare-and-swap; hash chains and database triggers detect changes and prohibit application-level edits/deletes. Root storage administration remains a trust boundary. Model repository and ledger writes are not a distributed transaction; every decision records its exact observed revision and never approves newer content. See [review deployment](REVIEW_DEPLOYMENT.md) for storage, roles, rotation and backup limits. The default browser image supports human review without a provider runtime; conversational chat is an explicit optional target.
+The implemented SQL tools return metadata only. Private SQL extraction, consistent snapshot policy, bounded polling, stable watermarks and source-to-channel checkpoint semantics are separate capabilities and must be qualified before a database channel is enabled. ODBC and vendor JDBC adapters require operator-controlled, licensed, checksum-pinned drivers and independent acceptance; native SQL Server discovery does not require those adapters.
 
-The [requirements graph](REQUIREMENTS_TRACEABILITY.md) stores typed requirement/decision/model links through `ModelRepository`. `Domain/Traceability/Graph` owns bounded validation and traversal; `ProjectTraceability` owns conditional persistence and queries; `TraceabilityEvidence` resolves pinned sources and exact audit events within the authenticated project/tenant. Document-anchor inspection sits behind a domain interface. XML/JSON locations resolve deterministically; native inherited paths require the engine. Graph declarations remain separate from clinical satisfaction and release qualification. Repository/ledger snapshots are observed separately, and reads recompute freshness.
+## Read-only clinical source access
 
-The [MCP adapter](MCP_PROTOCOL.md) selects supported protocol revisions and capabilities explicitly. Its wire acceptance is independent of clinical validation and repository policy.
+**All direct clinical/source database access is strictly READ ONLY. No agent, MCP call, worker or channel may perform DML, DDL, source migration, permission changes or write-capable procedure execution. There is no override.**
 
-Browser chat and model governance share one verified human session. Review browsing and decision freshness have separate bounded lifetimes; the explicit platform-administrator role maps to all governance roles. See [review deployment](REVIEW_DEPLOYMENT.md#one-browser-identity-for-chat-and-governance).
+The SQL Server connector requires certificate-validated encryption, an operator-provisioned read-only principal, sufficient metadata visibility and verified effective permissions. It checks server/database/schema/object permissions and column-level grants, fails closed on unsupported permissions and rechecks before discovery. A driver read-only hint is not enforcement. The platform never changes source permissions itself. Actual restrictions also depend on the source administrator maintaining the principal's permissions and isolation.
 
-PostgreSQL is the recommended governance backend. Optional Valkey accelerates repeated model/template reads while source revisions remain authoritative. See [storage and cache deployment](POSTGRES_AND_CACHE.md) for configuration, SQLite migration and recovery.
+The platform writes its own model, audit and private operational stores. Those stores must be separate from clinical/source databases. FHIR destination delivery is a separately authorised HTTP API operation with a distinct destination credential. It is not permission to write to the source or to a FHIR server's backing database. See [source database policy](CLINICAL_DATA_READ_ONLY.md) and [security](SECURITY.md).
 
-The main browser URL now opens one [tabbed modelling workspace](BROWSER_WORKSPACE.md). Chat, repository browsing and governance share navigation and sign-in; switching tabs preserves the conversation and selected revision.
+## Models, narrative rules and confirmation
 
-The legacy engine pairs Archie-calculated original model paths with original ADL constraint syntax. It expands supported internal references without modifying source archetypes and narrows omitted/open RM attributes using bundled RM metadata. Each transformation is recorded in build actions; cycles, type mismatches and explicit slot restrictions remain enforced. Existing-model compilation is exercised by `scripts/engine-example-smoke.py`.
+The original user narrative is retained alongside its proposed interpretation and executable rules. Model content, canonical identity, release/version, dependencies, provenance and exact hashes/revisions form the selection evidence. Supplied external StructureDefinitions/templates must be present in usable form and explicitly confirmed for mapping use. Agent-authored profiles/templates also require user confirmation. Technical validation, model selection, independent clinical approval and publication are different decisions.
 
-[Manual imports](MODEL_IMPORTS.md) separate byte-preserving originals from editable models and compiler outputs. Protected intent/receipt streams bind the transport principal to exact stored hashes and revisions. Governance filters registration streams before pagination; ordinary model writes cannot mutate the original namespace. External source claims and detected types never certify external-tool origin or clinical validity.
+Changes to a model, dependency, mapping, interpretation or selection invalidate the corresponding confirmation. A channel pins an exact confirmed mapping; it cannot silently adopt a new draft. Ambiguous rules and unsupported conversions remain findings and block the affected execution. Reverse FHIR-to-openEHR mapping is defined separately; a forward mapping does not prove reversibility.
 
-## Golden rule: clinical databases are read-only
+Human decisions use a purpose-specific API. The browser backend signs short-lived method, raw-target and body-hash assertions after verified human authentication. Persistent one-time nonces prevent replay. Ordinary MCP API keys, bearer tokens and role flags do not turn an agent into a human reviewer. The protected ledger records the exact decision subject and sequence. See [identity and access](IDENTITY_AND_ACCESS.md) and [governance](GOVERNANCE.md).
 
-**Every direct clinical/source database connection is read-only.** The MCP, agents,
-workers and channels must never insert, update, delete, alter schemas, run source
-migrations or invoke write-capable procedures. Use read-only credentials and
-database-enforced read-only permissions and closed connector operations; fail closed when the required restrictions cannot be verified.
-FHIR delivery uses a separately authorised FHIR API, never its backing database.
-See [the clinical database policy](CLINICAL_DATA_READ_ONLY.md).
+## Persistence and failure handling
+
+Filesystem repositories preserve project snapshots, artifact history and immutable original bytes using exclusive locks, compare-and-swap revisions and atomic replacement. Git stores native files and metadata with commit revisions and controlled non-force remote operations. SharePoint uses immutable candidates and a conditional project-index update. Repository content is untrusted and cannot manufacture protected provenance or approval.
+
+The protected SQLite/PostgreSQL ledger retains ordered events, sequence checks, hash-chain validation, append-only controls and replay nonces. It is separate from model Git. These controls do not protect against an administrator who can replace the database and recalculate its history; backups and external trust controls remain necessary.
+
+Private jobs retain progress, reconciliation, validation evidence and owner-scoped exports. Source files are opened read-only. Delivery uses a registered destination, explicit operator enablement and run authorisation, successful profile validation, business-identifier conditional create and durable receipts. Unknown outcomes require reconciliation. Retries must not become unconditional creates or duplicate clinical records. See [integration operations](INTEGRATION_ENGINE.md).
+
+## Terminology and clinical data quality
+
+Local versioned catalogues and configured FHIR terminology services support lookup, code validation, expansion and translation during modelling. Canonical identifiers are identifiers, not arbitrary URLs to fetch. Terminology results are evidence and mapping candidates; ambiguous or inexact translations do not automatically become approved rules.
+
+A production cleansing/enrichment rule must identify its exact inputs, normalisation, terminology system/version, concept-map relationship, provenance and failure policy. It must preserve original values privately and define quarantine or an explicitly reviewed fallback. Date formats, time zones, units and clinical codes must not be guessed. External terminology requests should contain only the necessary codes and identifiers, without patient free text. Per-record terminology enrichment and additional clinical normalisers require separate implementation and acceptance before being advertised as an executable channel capability.
+
+## Deployment and evidence
+
+Managed application images are built on hosted CI and promoted by immutable digest. Production application pods run on `hygeoniq-prod`; `amcdr-vps` supplies the public HTTPS edge. Promotion must preserve persistent volumes, secrets, human accounts and stable identity issuers, and update HTTP probes with the application image. See [production delivery](FHIR_PRODUCTION_DELIVERY.md).
+
+Acceptance includes domain/security checks, HTTP/stdio MCP contracts, OIDC/TLS and human-assertion tests, actual standards-engine fixtures, private processing/delivery tests and an isolated SQL Server permission fixture. Write-denial probes run only against a disposable synthetic SQL Server, never against clinical data. Passing synthetic tests does not establish real-installation clinical acceptance, universal interoperability, regulatory certification or absence of vulnerabilities.
 
 
-## C# modelling and integration boundary
+## Governed memory and deterministic reuse
 
-New model/rule state and private processing use `Modeller.Core`, `Modeller.Mcp` and `Modeller.Processing`. The Node browser adapter verifies identity/CSRF, binds human decisions to exact requests, and schedules bounded C# workers. The Java openEHR and Node/Java FHIR engines remain specialised validators. A full application cutover remains subject to contract, identity/storage and deployment acceptance. See [ADR-0030](decisions/0030-dotnet-modelling-and-integration-channels.md), [migration status](DOTNET_MIGRATION.md) and [integration operation](INTEGRATION_ENGINE.md).
+Mapping reuse is a `Modeller.Core` registry operation, exposed through the C# MCP and request-bound browser API. It compares a declared source identity/meaning version and purpose with exact source schema, original requirement text/basis, model keys, terminology snapshot pins and runtime fingerprint. It verifies model/definition identities and the protected current confirmation chain on every match. It does not call a model provider or cache an approval. Operational source checking, instance validation and destination authorisation still execute independently.
 
-```mermaid
-flowchart LR
-  Agent[External MCP agent] -->|API key; synthetic modelling| MCP[C# MCP service]
-  Browser[Authenticated browser] --> Node[Node session and channel adapter]
-  Node -->|Request-bound human assertion| MCP
-  MCP --> Models[Versioned C# model and rule registry]
-  Node -->|Confirmed assignment| Worker[Private C# worker]
-  Files[Read-only source files] --> Worker
-  Worker -->|Recheck exact confirmation| Models
-  Worker --> Engines[Java openEHR and FHIR validation engines]
-  Worker --> Private[Private exports, quarantine and checkpoints]
-  Worker -->|Separately authorised HTTPS conditional create| FHIR[FHIR destination API]
-```
-
-Direct source-to-FHIR requires supplied/confirmed FHIR SDs; a route through openEHR or reverse mapping also requires the exact openEHR template. User narrative and interpretations are versioned with executable rules. Clinical approval remains distinct. No clinical database driver is enabled; all future direct clinical database access must be read-only.
+The browser's encrypted immutable model cache and private task checkpoints are separate from that authoritative registry. They support retrieval/recovery and cannot grant execution or clinical approval. Human corrections become versioned proposals; only confirmed exact-context work is eligible for reuse. Patient records and credentials are excluded from reusable modelling memory and model-provider training. See [reuse and learning](REUSE_AND_LEARNING.md).

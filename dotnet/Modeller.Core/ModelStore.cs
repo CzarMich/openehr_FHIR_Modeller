@@ -23,7 +23,7 @@ public sealed record ModelActor(string Id, string Owner, bool Human, string[] Ro
 }
 
 /** Content-addressed model/rule revisions. Records and job files never belong here. */
-public sealed class ModelStore
+public sealed partial class ModelStore
 {
     private readonly string root;
     private readonly Dictionary<string, string> keys;
@@ -110,7 +110,7 @@ public sealed class ModelStore
     }
     public JsonObject Prepare(string projectId, JsonObject input, ModelActor actor) {
         var project = GetProject(projectId, actor); actor.Project(projectId, true);
-        Data.Keys(input, "modelKeys", "executionMapping");
+        Data.Keys(input, "modelKeys", "executionMapping", "reuseContext");
         var mappingText = Data.Required(input, "executionMapping"); var mapping = new Mapping(mappingText);
         var selected = input["modelKeys"] as JsonArray ?? throw new ProcessingException("MODELS_REQUIRED");
         if (selected.Count is < 1 or > 20 || selected.Any(s => s?.GetValueKind() != System.Text.Json.JsonValueKind.String)) throw new ProcessingException("MODELS_REQUIRED");
@@ -130,6 +130,8 @@ public sealed class ModelStore
             || mapping.Direction == "source-direct-to-fhir" && standards.Contains("openEHR", StringComparer.Ordinal)) throw new ProcessingException("PIPELINE_MODELS_INVALID");
         var definition = new JsonObject { ["project"] = projectId, ["projectConfiguration"] = project.DeepClone(), ["modelKeys"] = new JsonArray(modelKeys.Select(k => (JsonNode)JsonValue.Create(k)!).ToArray()), ["modelPins"] = modelPins, ["executionMapping"] = mappingText, ["mappingSha256"] = Data.Hash(mappingText), ["direction"] = mapping.Direction };
         var mappingDocument = JsonNode.Parse(mappingText) as JsonObject ?? throw new ProcessingException("MAPPING_INVALID");
+        if (input["reuseContext"] is JsonObject reuse) definition["reuseContext"] = ReuseContext(reuse,mapping.SchemaHash,mappingDocument["requirements"] as JsonArray ?? throw new ProcessingException("NARRATIVE_REQUIREMENTS_REQUIRED"));
+        else if (input.ContainsKey("reuseContext")) throw new ProcessingException("REUSE_CONTEXT_REQUIRED");
         var mappingName = Data.Required(mappingDocument, "name"); Id(mappingName); Version(Data.Required(mappingDocument, "version"));
         var versionKey = Data.Hash(projectId + "\n" + mappingName + "\n" + Data.Required(mappingDocument, "version"));
         definition["versionKey"] = versionKey;

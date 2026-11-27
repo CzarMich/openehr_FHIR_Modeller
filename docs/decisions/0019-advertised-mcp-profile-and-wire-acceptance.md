@@ -8,7 +8,7 @@ REQ-F20 requires tested protocol behaviour without adding demonstration tools or
 
 ## Decision
 
-Upgrade the official PHP SDK to the locked 0.8 series. Retain the existing HTTP/stdio architecture and explicitly advertise the product's supported handshake versions and capabilities. Keep modern stateless MCP, tasks and resource-update delivery outside the advertised profile until they have an implementation and acceptance evidence.
+Upgrade the official C# SDK to the locked 0.8 series. Retain the existing HTTP/stdio architecture and explicitly advertise the product's supported handshake versions and capabilities. Keep modern stateless MCP, tasks and resource-update delivery outside the advertised profile until they have an implementation and acceptance evidence.
 
 Use a small adapter to negotiate within the supported versions, preserve SDK session state and correct the remaining unknown-method error-code mismatch. Keep this integration outside the modelling domain. Clients verify negotiated versions and response IDs. Allow explicitly configured HTTP loopback browser origins only outside production.
 
@@ -22,5 +22,5 @@ The gate verifies actual advertised behaviour without installing fake clinical t
 
 - [MCP transports](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)
 - [MCP lifecycle](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle)
-- [Official PHP SDK releases](https://github.com/modelcontextprotocol/php-sdk/releases)
+- [Official C# SDK releases](https://github.com/modelcontextprotocol/csharp-sdk/releases)
 - [Official conformance suite](https://github.com/modelcontextprotocol/conformance)

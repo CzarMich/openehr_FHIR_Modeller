@@ -24,14 +24,14 @@ These checks use synthetic markers, never real patient records:
 | Test | Evidence |
 |---|---|
 | `chat/test/cdr.test.mjs` | Execution, history and saved-query reads are rejected before CDR or shared MCP transport calls |
-| `tests/Enterprise/CdrWorkspaceTest.php` | Direct MCP denial makes zero adapter calls; result/parameter markers never enter persisted state; two users and two tenants cannot read the same saved query; central CDR libraries and history remain environment-scoped |
+| `dotnet/Modeller.Application.Tests/Program.cs` | Direct MCP denial makes zero adapter calls; result/parameter markers never enter persisted state; two users and two tenants cannot read the same saved query; central CDR libraries and history remain environment-scoped |
 | `chat/test/aql-drafting.test.mjs` | Only two drafting tools are available; attempts to execute/read data are denied; extra query/result/history fields and patient-specific parameter values are rejected; unvalidated prose is not accepted |
 | `chat/test/security.test.mjs` | Draft endpoint rejects unauthenticated and missing-CSRF requests, keeps the signed-in identity, rejects result injection and creates no chat transcript |
 | `chat/test/browser.spec.mjs` | A synthetic existing-query literal, parameter and returned result are absent from the assistant draft request; the accepted query appears directly in the AQL editor |
 | `chat/test/codex.test.mjs` | Provider runtime tool restrictions and controlled dynamic-tool dispatch |
-| `tests/Enterprise/CdrApiTest.php`, `scripts/test-cdr-container.sh` | Signed request purpose/body/identity and replay checks; TLS, bounded execution, cancellation and redacted transport errors |
+| `dotnet/Modeller.Application.Tests/Program.cs`, `scripts/test-cdr-container.sh` | Signed request purpose/body/identity and replay checks; TLS, bounded execution, cancellation and redacted transport errors |
 
-Run `make ci`, `npm --prefix chat test`, `npm --prefix chat run test:browser`, and `scripts/test-cdr-container.sh`. CI runs these checks on pull requests. The release-specific form, cache and privacy acceptance record is in [workbench evidence](evidence/workbench-go-live.json).
+Run `make ci`, `npm --prefix chat test`, `npm --prefix chat run test:browser`, and `scripts/test-cdr-container.sh`. CI runs these checks on pull requests. The release-specific form, cache and privacy acceptance record is in [workbench evidence](https://github.com/CzarMich/openehr_FHIR_Modeller/blob/59c99e3/docs/evidence/workbench-go-live.json).
 
 ## Scope and limits
 

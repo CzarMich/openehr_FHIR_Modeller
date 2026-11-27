@@ -47,14 +47,11 @@ The adapter does not perform account-wide repository discovery, manage provider 
 
 ## Repeatable verification
 
-`tests/Enterprise/HostedRepositoryTest.php` covers both provider HTTP contracts, nested paths, read/write boundaries, duplicate requests, error redaction, redirect refusal, response bounds and tenant mappings. `tests/Tools/HostedOutputCases.php` covers the published MCP output contracts. The standard MCP smoke client exercises discovery, repository information, Git branch creation and revision diffs when writes and Git are enabled. Browser tests exercise review confirmation separately from model saving.
+`dotnet/Modeller.Application.Tests/Program.cs` covers both provider HTTP contracts, nested paths, read/write boundaries, duplicate requests, error redaction, redirect refusal, response bounds and tenant mappings. `dotnet/Modeller.Application.Tests/Program.cs` covers the published MCP output contracts. The standard MCP smoke client exercises discovery, repository information, Git branch creation and revision diffs when writes and Git are enabled. Browser tests exercise review confirmation separately from model saving.
 
-Run live acceptance inside the PHP container with provider settings supplied privately:
+Run live acceptance inside the C# container with provider settings supplied privately:
 
-```sh
-php scripts/hosted-repository-smoke.php
-php scripts/hosted-repository-smoke.php --allow-test-review --review-branch=acceptance/synthetic-model --review-target=main
-```
+Use the current [development and testing commands](https://github.com/CzarMich/openehr_FHIR_Modeller/blob/main/docs/testing.md). Live provider acceptance requires permitted configured access and exact recorded evidence; synthetic fixtures do not establish hospital acceptance.
 
 The first command is read-only. The second requires an existing disposable `acceptance/` branch containing a synthetic commit ahead of its target; it creates/reuses a draft and checks revision retrieval. Close that draft and delete only the disposable branch afterward. The harness does not edit the default branch. Keep execution results in `docs/evidence/`. [GitHub live evidence](evidence/hosted-github-acceptance.json) records successful real API checks and cleanup. Live GitLab acceptance requires deployment credentials; mocked contract verification is not a claim that a particular tenant installation has been tested.
 

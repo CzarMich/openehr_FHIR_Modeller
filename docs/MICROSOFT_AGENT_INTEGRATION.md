@@ -52,7 +52,7 @@ No code in `domain/`, CKM or terminology depends on Microsoft Graph or Azure Ope
    Retrieve a returned identifier; do not accept a plausible but unretrieved identifier.
 4. Ask for neonatal-admission modelling with birth details, gestational age, weight,
    Apgar, vital signs, examination, diagnosis, feeding and medications. Follow
-   [the workflow](../workflows/neonatal-admission.md), recording missing concepts.
+   [the workflow](workflows/neonatal-admission.md), recording missing concepts.
 5. Use `template_build_oet` with direct `entries` or an explicit parent-first `placements`
    list containing exact archetype-relative paths. Inspect its document and optional native
    compile-check reports. Do not call the draft an OPT or a deployment-ready template.

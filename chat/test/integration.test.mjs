@@ -298,3 +298,41 @@ test("revoking the selected source grant changes the active job fingerprint", ()
         f.close();
     }
 });
+
+test("mapping reuse uses ordinary session age without widening fresh-write authorisation", async () => {
+    let calls = 0;
+    const config = {
+        origin: "https://browser.example",
+        reviewKeyId: "active",
+        reviewSigningKey: "synthetic-test-key-".repeat(3),
+        sessionSeconds: 3600,
+        reviewSessionSeconds: 600,
+    };
+    const core = new IntegrationCore(config, {
+        fetcher: async () => {
+            calls++;
+            return new Response(JSON.stringify({ items: [], providerCalls: 0 }));
+        },
+    });
+    core.ready = true;
+    const session = {
+        identity: "https://identity.example\nsynthetic-human",
+        reviewIdentity: {
+            issuer: "https://identity.example",
+            subject: "synthetic-human",
+            tenant: "https://identity.example",
+            roles: ["modelling-modeller"],
+            started: Math.floor(Date.now() / 1000) - 1200,
+        },
+    };
+    assert.equal(
+        (await core.request(session, "POST", "/api/v1/integration/projects/lab/reuse", { synthetic: true }))
+            .providerCalls,
+        0,
+    );
+    await assert.rejects(
+        core.request(session, "POST", "/api/v1/integration/projects/lab/mappings", {}),
+        /Refresh sign-in/,
+    );
+    assert.equal(calls, 1);
+});

@@ -1,39 +1,18 @@
-# Model Application API and CLI
+# Model API
 
-The versioned application API exposes bounded project and artefact operations over the configured repository. It shares repository revisions, optimistic write conflicts, OIDC project scopes and deployment write policy with MCP. OpenAPI contract: [models.json](openapi/models.json).
+The primary C# application exposes MCP tools and a versioned HTTP model API over shared repository services. API-key/OIDC access remains a service/verified-token boundary; human review decisions require their separate request-bound interactive flow. Do not send clinical records through these modelling endpoints.
 
-## HTTP API
-
-Production requests must pass the normal HTTP authentication, host/origin, body-size and TLS proxy boundaries. Configure `AUTH_MODE` as documented in [OIDC](OIDC.md) or [security](SECURITY.md). The API is mounted below `/api/v1`:
-
-| Method and path | Operation |
+| Operation | HTTP route |
 |---|---|
-| `GET /api/v1/projects` | List projects visible to the caller and repository capabilities |
-| `POST /api/v1/projects` | Create a project; requires model-write permission and, with project RBAC, `projects:create` or `projects:admin` |
-| `GET /api/v1/projects/{project}` | Read a project and its artifact summaries |
-| `POST /api/v1/projects/{project}/archive` | Archive a project with its current `expectedRevision`; stale revisions return HTTP 409 |
-| `GET /api/v1/artifacts?project=...&path=...&revision=...` | Read the current or exact historical artifact |
-| `PUT /api/v1/artifacts?project=...&path=...` | Create or update a draft artifact with optional `expectedRevision` |
-| `GET /api/v1/artifact-history?project=...&path=...` | Read artifact revision history |
+| List/create projects | `GET` / `POST /api/v1/projects` |
+| Read a project and artifact list | `GET /api/v1/projects/{id}` |
+| Archive a project with its current revision | `POST /api/v1/projects/{id}/archive` |
+| Read/save a model artifact | `GET` / `PUT /api/v1/artifacts?project={id}&path={encodedPath}` |
+| Read an exact historical artifact | `GET /api/v1/artifacts?project={id}&path={encodedPath}&revision={revision}` |
+| Read artifact history | `GET /api/v1/artifact-history?project={id}&path={encodedPath}` |
 
-Example update body:
+Project creation accepts `id`, `name` and optional `description`. Saving accepts exact `content`, `metadata` and `expectedRevision`; use null for a new artifact and the actual current revision for a replacement. Archive accepts `expectedRevision`. Unknown fields/query parameters are rejected. Project write/create permissions and the configured repository write policy apply. Original imports and immutable artifacts cannot be overwritten through a generic save.
 
-```json
-{"content":"<template/>","metadata":{},"expectedRevision":"previous-revision"}
-```
+The HTTP adapter is implemented in `dotnet/Modeller.Mcp/ApplicationBrowser.cs`; repository semantics are under `dotnet/Modeller.Application`. [OpenAPI](openapi/models.json) describes the model contract; current adapter acceptance remains authoritative for the installed release. Use MCP `model_*` operations for agent orchestration rather than a removed shell wrapper. `--stdio` selects the primary application transport; it is not a model-editing command interpreter.
 
-Omit `expectedRevision` only when creating a new artifact. A stale revision returns HTTP 409 with `REVISION_CONFLICT`; the API never silently overwrites newer work. Errors have a stable `{ "error": { "code": "..." } }` envelope. Requests reject unknown fields and unsupported query parameters. Project-scoped OIDC mode filters lists and checks every project read/write at the repository boundary.
-
-## CLI
-
-The CLI runs in the app container against the same configured repository. It does not start a second storage implementation:
-
-```sh
-docker compose exec -T app composer model -- projects
-docker compose exec -T app composer model -- project neonatal
-docker compose exec -T app composer model -- artifact neonatal templates/admission.oet
-docker compose exec -T app composer model -- history neonatal templates/admission.oet
-docker compose exec -T app composer model -- save neonatal templates/admission.oet /tmp/admission.oet <expected-revision>
-```
-
-`create <id> <name> [description]` creates a project. `save` requires `MODEL_REPOSITORY_WRITE_ENABLED=true`, reads at most 2 MiB from the supplied local file, and accepts an expected revision for updates. The CLI refuses `AUTH_MODE=oidc`: a local process cannot impersonate a verified user or select an OIDC tenant. Use the HTTP API or authenticated MCP transport for OIDC-scoped access. The CLI is a trusted local operator interface, not a remote multi-user endpoint.
+Human review and the private integration registry are separate interfaces. See [governance](GOVERNANCE.md), [integration](INTEGRATION_ENGINE.md), [identity/access](IDENTITY_AND_ACCESS.md) and [reuse](REUSE_AND_LEARNING.md). Exact model/rule confirmation does not establish clinical approval or authorise delivery.

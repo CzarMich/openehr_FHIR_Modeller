@@ -4,7 +4,7 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#005eb8" />
-        <title>openEHR Modelling Assistant</title>
+        <title>openEHR Modeller</title>
         <link rel="icon" href="/chat/favicon.ico" sizes="32x32" />
         <link rel="icon" href="/chat/favicon.svg" type="image/svg+xml" sizes="any" />
         <link rel="apple-touch-icon" href="/chat/apple-touch-icon.png" sizes="180x180" />
@@ -19,12 +19,14 @@
         <link rel="stylesheet" href="/chat/aql.css" />
         <script src="/chat/fhir.js" type="module"></script>
         <link rel="stylesheet" href="/chat/fhir.css" />
+        <link rel="stylesheet" href="/chat/michael.css" />
+        <script type="module" src="/chat/michael.js"></script>
     </head>
     <body data-section="chat">
         <a class="skip-link" href="#workspace-content">Skip to workspace</a>
         <div class="workspace">
             <aside id="sidebar" class="sidebar" aria-label="Workspace navigation">
-                <a class="brand" href="/chat/" aria-label="openEHR Modelling Assistant"
+                <a class="brand" href="/chat/" aria-label="openEHR Modeller"
                     ><span class="brand-symbol" aria-hidden="true"
                         ><svg
                             viewBox="0 0 28 28"
@@ -36,10 +38,10 @@
                         >
                             <rect x="5" y="5" width="15" height="18" rx="2" />
                             <path d="M9 5V2h15v18h-4M9 11h7M9 15h7M9 19h4" /></svg></span
-                    ><span>openEHR<span class="brand-subtitle">Modelling Assistant</span></span></a
+                    ><span>openEHR<span class="brand-subtitle">Modeller</span></span></a
                 >
 
-                <div class="platform-label">MODELLING WORKSPACE</div>
+                <div class="platform-label">CLINICAL DATA WORKSPACE</div>
                 <a href="/chat/integration/" class="integration-link">Integration workspace</a>
                 <nav class="workspace-tabs" role="tablist" aria-label="Workspace">
                     <button id="tab-chat" role="tab" aria-controls="panel-chat" aria-selected="true" data-tab="chat">
@@ -873,7 +875,7 @@
                             <p>Setting up on this phone? <a id="otp-auth-link">Open authenticator app</a></p>
                             <details id="mfa-manual">
                                 <summary>Can’t scan? Enter the key manually</summary>
-                                <p>Add a time-based account named openEHR Modelling Assistant using this key:</p>
+                                <p>Add a time-based account named openEHR Modeller using this key:</p>
                                 <code id="totp-secret"></code>
                             </details>
                             <p>Enter the six-digit code shown in your authenticator app to finish setup.</p>
@@ -906,7 +908,7 @@
                 <section id="panel-chat" role="tabpanel" aria-labelledby="tab-chat">
                     <div id="notice" role="alert" class="notice" hidden></div>
                     <section id="welcome" class="welcome">
-                        <div class="eyebrow"><span class="status-dot"></span> OPENEHR MODELLING ASSISTANT</div>
+                        <div class="eyebrow"><span class="status-dot"></span> OPENEHR MODELLER</div>
                         <h1>Your clinical modelling workspace</h1>
                         <p class="intro">
                             Discover reusable archetypes, develop templates, and prepare models for review. Start with a
@@ -2154,6 +2156,7 @@ LIMIT 100</textarea
                         <a href="#help-copilot-browser">Copilot Studio in this browser</a>
                         <a href="#help-copilot">Tools inside Copilot Studio</a>
                         <a href="#help-troubleshooting">Solve a problem</a>
+                        <a href="#help-michael">Michael and local tips</a>
                         <a href="#help-about">About and licensing</a>
                     </nav>
                     <section class="help-topic" aria-labelledby="help-fhir">
@@ -2825,8 +2828,22 @@ Help the user model openEHR artefacts in the browser workspace. Use OpenEhrWorks
                             >
                         </p>
                     </section>
+                    <section class="help-topic" aria-labelledby="help-michael">
+                        <h2 id="help-michael" tabindex="-1">Michael, your optional workspace guide</h2>
+                        <p>
+                            Michael offers short prompt-writing and token-saving tips. His guidance is stored locally in
+                            the app and uses no AI tokens. He never reads your records or conversations.
+                        </p>
+                        <button type="button" data-show-michael>Show Michael</button>
+                        <label><input type="checkbox" data-michael-still /> Keep Michael still</label>
+                        <p>
+                            Close an individual suggestion or choose <strong>Hide Michael</strong> to send him away.
+                            Preferences are remembered on this browser. Your system’s reduced-motion preference is
+                            respected.
+                        </p>
+                    </section>
                     <section class="help-topic" aria-labelledby="help-about">
-                        <h2 id="help-about" tabindex="-1">About openEHR Modelling Assistant</h2>
+                        <h2 id="help-about" tabindex="-1">About openEHR Modeller</h2>
                         <p>Independently maintained and developed by Michael Anywar.</p>
                         <p>Copyright © 2026 Michael Anywar.</p>
                         <p>
@@ -2835,14 +2852,14 @@ Help the user model openEHR artefacts in the browser workspace. Use OpenEhrWorks
                         </p>
                         <p>
                             <a
-                                href="https://github.com/CzarMich/openehr-modelling-assistant/blob/main/LICENSE"
+                                href="https://github.com/CzarMich/openehr_FHIR_Modeller/blob/main/LICENSE"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 >MIT License</a
                             >
                             ·
                             <a
-                                href="https://github.com/CzarMich/openehr-modelling-assistant/blob/main/THIRD_PARTY_NOTICES.md"
+                                href="https://github.com/CzarMich/openehr_FHIR_Modeller/blob/main/THIRD_PARTY_NOTICES.md"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 >Third-party notices</a

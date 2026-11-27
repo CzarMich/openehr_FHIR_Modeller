@@ -1,7 +1,3 @@
-# Composer
-/vendor/
-# Commit your application's lock file https://getcomposer.org/doc/01-basic-usage.md#commit-your-composer-lock-file-to-version-control
-# composer.lock
 
 # Environment files
 .env
@@ -14,8 +10,6 @@
 
 # Testing
 /coverage/
-.phpunit.cache/
-phpunit.xml.bak
 /conformance/
 
 # IDE

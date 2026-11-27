@@ -46,9 +46,9 @@ Local snapshots use their explicit `code_system_version` for code-system checks,
 
 ## Repeatable verification
 
-Run PHP unit/negative/security contracts with `composer test` inside the development container. `scripts/test-terminology-container.sh` builds the production image and exercises actual MCP calls against an isolated, authenticated HTTPS FHIR fixture. The fixture checks independent editions, repeated multilingual designations, negative membership, expansion paging, resource resolution and review-only translation. CI retains the resulting protocol evidence. This is adapter contract verification, not a claim of full FHIR server conformance.
+Run the current application-domain checks and `dotnet/tests/terminology-contracts.py` against the disposable authenticated HTTPS fixture. It verifies actual MCP response/version semantics; it is not full server conformance or hospital acceptance.
 
-For read-only live acceptance, run `php scripts/terminology-smoke.php` inside the development container with the normal terminology configuration and `SMOKE_TERMINOLOGY_SYSTEM`/`SMOKE_TERMINOLOGY_CODE`. Optional `SMOKE_TERMINOLOGY_VERSION` pins the system edition. Set `SMOKE_VALUE_SET` and optional `SMOKE_VALUE_SET_VERSION` to test expansion and validate an actual returned member; the lookup code need not be a member of that set. Set `SMOKE_CONCEPT_MAP` and optional `SMOKE_CONCEPT_MAP_VERSION` to exercise an available map. No terminology content is written. The report contains outcomes, counts and version confirmation, without credentials or redistributed expansion content. Core checks are mandatory; unavailable discovery is reported separately. Run within a container with a trusted CA and privately supplied environment, never pass credentials as tool arguments.
+For permitted live read-only acceptance, call the configured terminology MCP operations with actual canonical identifiers and exact versions, retain scoped provenance and avoid patient records or redistributed restricted terminology content. Credentials remain in protected connection configuration. The old command interface is not a current test entry point.
 
 ## Migration
 
@@ -87,3 +87,12 @@ The node in this example is a placeholder and must be replaced with an actual mo
 The optional ADL 2 engine preserves component terminologies in generated OPT 2. Mechanical terminology-constraint checks are distinct from external terminology membership validation; compilation does not require a terminology server. See [compiler profiles](OPT_COMPILATION.md).
 
 The legacy OET compiler keeps original ADL 1.4 typed system/version/code bindings and multilingual component ontologies in OPT 1.4 XML. It does not use URLs inferred by ADL 2 conversion or silently invent external versions. This preservation does not apply or clinically validate new bindings. [Legacy profile](LEGACY_OPT_COMPILATION.md).
+
+
+## C# external operation verification
+
+The C# adapter uses authenticated GET operations against the configured HTTPS terminology server. Canonicals identify resources on that server and are not fetched as arbitrary URLs. FHIR R4 parameter handling follows [CodeSystem validation](https://hl7.org/fhir/R4/codesystem-operation-validate-code.html), [ValueSet expansion](https://hl7.org/fhir/R4/valueset-operation-expand.html) and [ConceptMap translation](https://hl7.org/fhir/R4/conceptmap-operation-translate.html).
+
+ValueSet, CodeSystem and ConceptMap versions have separate request/response evidence. Missing version evidence remains unconfirmed; a contradictory version fails the operation. Repeated designations/properties/matches are retained. Expansion pages, hierarchical results, size-only requests, unclosed sets and incomplete search results are not presented as complete value sets. Returned search links are not automatically followed. Translation candidates require review and are never applied by a terminology lookup.
+
+`dotnet/tests/terminology-contracts.py` verifies the actual MCP adapter against a disposable authenticated HTTPS fixture, covering lookup, positive/negative membership, independent versions, expansion paging, translation review and exact resource discovery. It can use an already compiled SDK runtime or a hosted-CI-built primary image. It creates temporary synthetic keys and certificates, requires no operator security key, and does not use a hospital server or perform attack testing. This is adapter compatibility evidence, not clinical qualification or evidence of per-record enrichment in an operational channel.

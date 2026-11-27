@@ -294,8 +294,8 @@ export class Auth {
         return { user: result.user, csrf: result.csrf, recoveryCodes: result.recoveryCodes };
     }
     otpAuthUrl(secret, username) {
-        const label = encodeURIComponent("openEHR Modelling Assistant:" + username);
-        return `otpauth://totp/${label}?secret=${secret}&issuer=openEHR%20Modelling%20Assistant&algorithm=SHA1&digits=6&period=30`;
+        const label = encodeURIComponent("openEHR Modeller:" + username);
+        return `otpauth://totp/${label}?secret=${secret}&issuer=openEHR%20Modeller&algorithm=SHA1&digits=6&period=30`;
     }
     require(req, mutation = false, allowMfaSetup = false) {
         const session = this.session(req);

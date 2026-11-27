@@ -11,6 +11,8 @@ material retains its respective terms; see the
 ## Setup and use
 
 - [Golden rule: clinical databases are read-only](CLINICAL_DATA_READ_ONLY.md)
+- [Explicit source-discovery jobs and connector status](SOURCE_CONNECTORS.md): database, Epic, SAP BW and other clinical API selection.
+- [SQL Server metadata discovery and safety](DATABASE_DISCOVERY.md): operator profiles, vendor-specific schemas, fingerprinted plans and synthetic permission tests.
 
 - [Product purpose and first steps](../README.md) and [laboratory source-to-FHIR walkthrough](workflows/source-to-fhir-laboratory.md)
 - [Source-driven implementation status](SOURCE_MODELLING.md), [.NET migration status](DOTNET_MIGRATION.md) and [production delivery/rollback](FHIR_PRODUCTION_DELIVERY.md)
@@ -18,6 +20,7 @@ material retains its respective terms; see the
 - [Installation](install.md), [deployment](DEPLOYMENT.md) and [configuration](CONFIGURATION.md)
 - [Claude, Codex and other MCP clients](MCP_CLIENTS.md); [Microsoft clients](MICROSOFT_AGENT_INTEGRATION.md)
 - [Browser chat](BROWSER_CHAT.md), [workspace](BROWSER_WORKSPACE.md) and [human review setup](REVIEW_DEPLOYMENT.md)
+- [Reuse, project learning and AI credit control](REUSE_AND_LEARNING.md): recover saved work, find exact approved mappings and retain human corrections without patient-data training.
 - [Bounded AI task execution](TASK_EXECUTION.md): context budgets, project handoffs and independent review.
 - [Copilot Studio browser setup](COPILOT_BROWSER.md): Microsoft sign-in, published agents, client tools and verification.
 - [Capabilities and limitations](../CAPABILITIES.md), [MCP tools](MCP_TOOLS.md) and [protocol support](MCP_PROTOCOL.md)

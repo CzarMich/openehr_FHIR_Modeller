@@ -8,6 +8,7 @@ body {
     max-width: 1120px;
     margin: auto;
     padding: 24px;
+    overflow-wrap: anywhere;
 }
 header {
     padding: 12px 0;

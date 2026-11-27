@@ -6,15 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Complete the primary C# runtime, retain exact repository/audit contracts and retire superseded application sources.
+- Add exact-context mapping reuse, shared channel monitoring and the optional Michael guide.
+- Preserve staged document validation, explicit XML differences and revision-bound terminology/traceability workflows in the primary runtime.
+
+### Added
+
+- Exact-context mapping reuse with browser controls and versioned human-confirmed project learning.
+
 - Add the C# modelling core and optional private integration workspace with confirmed mapping channels and authorised FHIR delivery.
 
 - Explicit read-only clinical database policy across agents, connectors and integration channels.
 
 - Exact cross-standard model selection with protected human confirmation and clearer product/workflow documentation.
-
-### Added
 - Added a read-only C# MCP migration slice with guide contract parity.
-- Updated transport, authentication and parser dependencies with a patched PHP runtime.
+- Updated transport, authentication and parser dependencies.
 - Source inspection and deterministic synthetic mapping previews with supplied model inputs and explicit confirmation blockers.
 
 - Deliver the private openEHR compiler alongside the FHIR engine with verified Dev-first promotion.
@@ -171,7 +177,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Guides: refreshed the `specs/` digests to development-branch class names and relations.
 - Prompts: aligned tool lists and workflows with current tools; added a CKM reuse-check, explain-only guardrails, and a `type_specification_explorer` coverage fix.
 - Prompts: consolidated the two CKM explorer prompts into a single `ckm_explorer`.
-- Dependencies: upgrade `mcp/sdk` to `^0.7` (eager element loading retained); refresh Guzzle, PHPUnit, PHPStan, and Symfony.
+- Dependencies: upgrade `mcp/sdk` to `^0.7` (eager element loading retained); refresh the then-current HTTP, test, analysis and framework dependencies.
 - Tools: `guide_search` scoring is case-insensitive, Unicode-aware, and drops zero-score hits; `taskType` only re-ranks.
 - Tools: stricter input/output schemas (`additionalProperties: false`, nullable optional enums, required envelopes) — **breaking** for strict MCP clients.
 - Tools: search envelopes gained a `total` companion, counted before the result cap.
@@ -252,7 +258,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Refreshed BMM JSON across AM/AM2/BASE/RM.
 - Extracted `TerminologyXmlLoader` helper.
 - Hardened guide / type-spec identifier handling (path-traversal checks).
-- Bumped Symfony + phpdocumentor dependencies.
+- Updated historical application dependencies; original details remain in Git history.
 
 ### Fixed
 
@@ -275,14 +281,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- Tools: Resolved PHPStan warnings in heading extraction.
+- Tools: Resolved static-analysis warnings in heading extraction.
 - Tests: Removed xdebug ini setting for CI compatibility. Marked policy separation test as covers-nothing.
 
 ## [0.14.0] - 2026-03-03
 
 ### Changed
 
-- Docker: Moved all Docker assets into `.docker/` (Dockerfile, docker-compose.yml, docker-compose.dev.yml, Caddyfile, php/, php-fpm.d/). Makefile, docs, and GitHub Actions updated to use `.docker/` paths.
+- Docker: Moved all Docker assets into `.docker/` (Dockerfile, docker-compose.yml, docker-compose.dev.yml, Caddyfile, runtime configuration). Makefile, docs, and GitHub Actions updated to use `.docker/` paths.
 - Docker Compose: Renamed services `mcp` → `app`, `caddy` → `ingress`; updated Caddyfile, Makefile, and docs accordingly.
 - Dependencies: Updated composer dependencies to latest versions.
 
@@ -313,7 +319,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- MCP Server: Simplified transport option parsing using `getopt` in `index.php`.
+- MCP Server: Simplified transport option parsing in the application entrypoint.
 - Guides: Updated archetype guides for anti-patterns, structural constraints, and terminology.
 - Dependencies: Updated composer dependencies to latest versions.
 
@@ -348,7 +354,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - CKM Service: Improve documentation for search and retrieval methods; add `guide_search` references.
 - Docs: Updated archetype guides (terminology, anti-patterns, structural constraints, ADL syntax, rules, principles) with AOM 1.4 constraints, specialisation rules, and improved clarity.
 - Docs: Updated `CONTRIBUTING.md` with file-based cache notes and terminology resource changes.
-- Infra: Update PHP-FPM and Caddy config for improved logging, health checks, and file handling.
+- Infra: Update the application runtime and Caddy config for improved logging, health checks, and file handling.
 
 ### Fixed
 
@@ -358,7 +364,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- Dependencies: Updated `mcp/sdk` to v0.3.0 and other developer tools (PHPUnit, PHPStan).
+- Dependencies: Updated `mcp/sdk` to v0.3.0 and other developer tools (unit tests and static analysis).
 - MCP Tools: Added `outputSchema` to all tools for better AI client integration and structured outputs.
 - CKM Service: Enhanced `ckm_archetype_search` and `ckm_template_search` with improved scoring logic and structured metadata.
 - Terminology & Type Spec: Refactored `terminology_resolve` and type specification tools to return structured objects instead of flat arrays.
@@ -396,7 +402,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- Decoupled Docker architecture: separated the MCP service into two distinct containers for PHP-FPM (`mcp`) and Caddy (`caddy`), improving security and maintainability.
+- Decoupled Docker architecture: separated the MCP service into two distinct containers for the application runtime (`mcp`) and Caddy (`caddy`), improving security and maintainability.
 
 ## [0.5.0] - 2026-01-03
 
@@ -426,7 +432,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- Using mcp/php-sdk to v0.2.2.
+- Using the then-current protocol SDK to v0.2.2.
 
 ## [0.3.0] - 2025-12-22
 
@@ -459,12 +465,12 @@ Initial public release.
 
 ### Added
 
-- PHP-based MCP server builder on top of [https://github.com/modelcontextprotocol/php-sdk](https://github.com/modelcontextprotocol/php-sdk).
+- Initial MCP server builder using the then-current upstream SDK.
 - Configuration via environment variables (APP_ENV, LOG_LEVEL, HTTP_SSL_VERIFY, HTTP_TIMEOUT).
 - Two transport protocols: stdio and streamable-http.
 - Core tools and prompts 
 - Logging via Monolog.
 - HTTP client via Guzzle.
-- PHPUnit tests and PHPStan configuration.
+- Unit tests and static-analysis configuration.
 - Makefile, Dockerfile and docker-compose setup for local development.
 - Documentation and contribution guidelines.

@@ -37,7 +37,7 @@ body:
         - Tools (CKM, Terminology, Specs)
         - Prompts (Explorers, Designers, etc.)
         - Resources (Guides, BMM, etc.)
-        - Infrastructure (Docker, PHP, Makefile)
+        - Infrastructure (Docker, .NET, Makefile)
         - Documentation
         - Other
   - type: textarea

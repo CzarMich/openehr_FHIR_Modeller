@@ -24,7 +24,6 @@ PYNOTICE
 for notice in LICENSE THIRD_PARTY_NOTICES.md; do
   "${compose[@]}" exec -T engine cat "/app/$notice" | cmp "$ENGINE_TEST_REPO/$notice" -
 done
-"${compose[@]}" exec -T app php /probe.php
 address=$("${compose[@]}" port ingress 8343)
 python3 "$ENGINE_TEST_REPO/scripts/engine-fixture-smoke.py" --url "http://$address/mcp" --writes --catalogue "$ENGINE_TEST_REPO/docs/evidence/tool-catalogue.json" \
   --evidence "${1:-$ENGINE_TEST_REPO/docs/evidence/ci-engine-smoke.json}"

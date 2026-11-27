@@ -1,6 +1,6 @@
 # Configuration reference
 
-The executable source of truth is `src/Configuration/Settings.php`. `.env.example` contains local defaults, not production credentials. Compose reads `.env`; the PHP process itself reads process environment only. Restart/recreate containers after changes. Do not commit `.env` or include secret values in logs.
+The executable source of truth is the C# application adapters under `dotnet/Modeller.Mcp` and `dotnet/Modeller.Application`. `.env.example` contains local defaults, not production credentials. Compose reads `.env`; the C# process itself reads process environment only. Restart/recreate containers after changes. Do not commit `.env` or include secret values in logs.
 
 | Variable | Code default | Meaning / requirement |
 |---|---|---|
@@ -74,7 +74,7 @@ The executable source of truth is `src/Configuration/Settings.php`. `.env.exampl
 | `MODEL_GIT_SSH_KEY_FILE` | empty | Private SSH key path inside container; configure with known-hosts path. |
 | `MODEL_GIT_KNOWN_HOSTS_FILE` | empty | Pinned SSH host identities; strict verification remains enabled. |
 
-Other supported process settings: `HTTPS_PROXY` and comma-separated `NO_PROXY` control outbound HTTPS; `XDG_DATA_HOME` changes the cache/session root (default `/tmp`, application subdirectory added). Legacy `ALLOWED_HOSTS` is accepted only when `MCP_ALLOWED_HOSTS` is absent. Composer development uses `COMPOSER_HOME`. No model-provider or CDR secret is required by the MCP core. The optional browser chat has its own identity and model-provider configuration. Private Git remotes use the optional SSH credential files above; hosted GitHub/GitLab APIs use MODEL_HOSTED_TOKEN; SharePoint Graph credentials use the dedicated settings below.
+Other supported process settings: `HTTPS_PROXY` and comma-separated `NO_PROXY` control outbound HTTPS; `XDG_DATA_HOME` changes the cache/session root (default `/tmp`, application subdirectory added). Use `MCP_ALLOWED_HOSTS` explicitly.  No model-provider or CDR secret is required by the MCP core. The optional browser chat has its own identity and model-provider configuration. Private Git remotes use the optional SSH credential files above; hosted GitHub/GitLab APIs use MODEL_HOSTED_TOKEN; SharePoint Graph credentials use the dedicated settings below.
 
 ## Multiple CKMs
 
@@ -89,7 +89,7 @@ See [deployment](DEPLOYMENT.md) for environment choices, [security](SECURITY.md)
 
 ## Browser chat settings
 
-The optional Node client reads `.env.chat` or the external `MODELLING_CHAT_ENV_FILE`. Its complete variable table is in [browser chat configuration](BROWSER_CHAT.md#configuration), with a copyable [example](../.env.chat.example). Context-budget and rotation variables are documented in [task execution](TASK_EXECUTION.md#configuration-and-telemetry). These settings do not change the PHP configuration contract.
+The optional Node client reads `.env.chat` or the external `MODELLING_CHAT_ENV_FILE`. Its complete variable table is in [browser chat configuration](BROWSER_CHAT.md#configuration), with a copyable [example](../.env.chat.example). Context-budget and rotation variables are documented in [task execution](TASK_EXECUTION.md#configuration-and-telemetry). These settings do not change the C# configuration contract.
 
 ## SharePoint repository settings
 
@@ -114,7 +114,7 @@ See [SharePoint setup, permissions, migration and acceptance](SHAREPOINT_REPOSIT
 
 Terminology operation settings apply to lookup, validation, expansion, ConceptMap translation and canonical resource discovery. No server is required. Language, count/offset and independent resource editions are tool arguments, not environment variables. Live acceptance uses the `SMOKE_*` variables documented in [Terminology](TERMINOLOGY.md#repeatable-verification); they do not change production configuration.
 
-Local terminology catalogues need only the configured ModelRepository; they add no service credentials. Catalogue saves use `MODEL_REPOSITORY_WRITE_ENABLED` and native OIDC draft-write permissions. Explicit external records use existing terminology settings. The PHP `mbstring` extension is required for Unicode case rules and is included in the supplied images. See [catalogue schema and limits](TERMINOLOGY_CATALOGUE.md).
+Local terminology catalogues need only the configured ModelRepository; they add no service credentials. Catalogue saves use `MODEL_REPOSITORY_WRITE_ENABLED` and native OIDC draft-write permissions. Explicit external records use existing terminology settings. Unicode comparisons follow the C# catalogue's explicit case policy. See [catalogue schema and limits](TERMINOLOGY_CATALOGUE.md).
 
 Binding plans need no new environment variables. They use repository and write-access settings and remain available without a terminology server. Bounds and explicit per-request aliases are documented in [binding plans](TERMINOLOGY_BINDING_PLANS.md).
 

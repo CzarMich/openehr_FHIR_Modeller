@@ -63,13 +63,12 @@
     handle / {
         reverse_proxy {$MODELLING_CHAT_UPSTREAM:chat:8350}
     }
-    @mcp path /mcp /health /ready /api/v1/reviews /api/v1/reviews/* /api/v1/projects /api/v1/projects/* /api/v1/artifacts /api/v1/artifact-history /api/v1/cdr/*
+    @mcp path /.well-known/oauth-protected-resource /.well-known/oauth-protected-resource/mcp /mcp /health /health/status /ready /api/v1/reviews /api/v1/reviews/* /api/v1/projects /api/v1/projects/* /api/v1/artifacts /api/v1/artifact-history /api/v1/cdr/*
     handle @mcp {
         reverse_proxy {$MODELLING_APP_UPSTREAM:app:9000} {
-            transport fastcgi {
-                env SCRIPT_FILENAME /app/public/index.php
-                env SCRIPT_NAME /index.php
-                env HTTP_HOST {http.request.hostport}
+            flush_interval -1
+            transport http {
+                response_header_timeout 655s
                 read_timeout 655s
             }
         }

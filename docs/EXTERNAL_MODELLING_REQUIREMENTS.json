@@ -5,7 +5,7 @@
     {
       "id": "EXCHANGE-001",
       "title": "Objective",
-      "requirement": "Expand external modelling-tool interoperability from simple file storage into a complete governed model exchange subsystem.\n\nThe openEHR Modelling Assistant must support a workflow in which:\n\nArchetype Designer / Modelling Tool\n              ↓\n         Model Export\n              ↓\nopenEHR Modelling Assistant\n              ↓\n      Identify Artefact Type\n              ↓\n      Preserve Original\n              ↓\n     Validate / Inspect\n              ↓\n       Semantic Analysis\n              ↓\n        Repository\n              ↓\n    Review / Governance\n              ↓\n      Build / Compile\n              ↓\n       Reviewed Handoff\n              ↓\nArchetype Designer / Modelling Tool\n\nDo not reduce integration to:\n\nupload file\n→\nstore file\n→\ndownload file\n\nThe modelling assistant must understand the role and provenance of each artefact while preserving the exact source representation.",
+      "requirement": "Expand external modelling-tool interoperability from simple file storage into a complete governed model exchange subsystem.\n\nThe openEHR Modelling Assistant must support a workflow in which:\n\nArchetype Designer / Modelling Tool\n              \u2193\n         Model Export\n              \u2193\nopenEHR Modelling Assistant\n              \u2193\n      Identify Artefact Type\n              \u2193\n      Preserve Original\n              \u2193\n     Validate / Inspect\n              \u2193\n       Semantic Analysis\n              \u2193\n        Repository\n              \u2193\n    Review / Governance\n              \u2193\n      Build / Compile\n              \u2193\n       Reviewed Handoff\n              \u2193\nArchetype Designer / Modelling Tool\n\nDo not reduce integration to:\n\nupload file\n\u2192\nstore file\n\u2192\ndownload file\n\nThe modelling assistant must understand the role and provenance of each artefact while preserving the exact source representation.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -34,7 +34,7 @@
     {
       "id": "EXCHANGE-005",
       "title": "Source vs Derived Artefacts",
-      "requirement": "Maintain explicit relationships:\n\nDesigner Authoring Artefact\n          │\n          ├── original source\n          │\n          └── exported openEHR artefact\n                    │\n                    ├── OET\n                    │\n                    └── OPT\n\nwhere such exports actually exist.\n\nStore relationships explicitly:\n\nSOURCE_OF\nEXPORTED_AS\nCOMPILED_FROM\nDERIVED_FROM\nREVISION_OF\n\nNever infer that two files are equivalent merely because they share a name.",
+      "requirement": "Maintain explicit relationships:\n\nDesigner Authoring Artefact\n          \u2502\n          \u251c\u2500\u2500 original source\n          \u2502\n          \u2514\u2500\u2500 exported openEHR artefact\n                    \u2502\n                    \u251c\u2500\u2500 OET\n                    \u2502\n                    \u2514\u2500\u2500 OPT\n\nwhere such exports actually exist.\n\nStore relationships explicitly:\n\nSOURCE_OF\nEXPORTED_AS\nCOMPILED_FROM\nDERIVED_FROM\nREVISION_OF\n\nNever infer that two files are equivalent merely because they share a name.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -48,7 +48,7 @@
     {
       "id": "EXCHANGE-007",
       "title": "Import Pipeline",
-      "requirement": "Implement:\n\nReceive artefact\n      ↓\nSecurity validation\n      ↓\nDetect/declare artefact type\n      ↓\nHash original\n      ↓\nStore immutable original\n      ↓\nExtract metadata\n      ↓\nParse where supported\n      ↓\nValidate where supported\n      ↓\nBuild semantic representation\n      ↓\nDetermine dependencies\n      ↓\nRecord provenance\n      ↓\nCreate repository revision\n\nFailure to parse must not destroy the original artefact.",
+      "requirement": "Implement:\n\nReceive artefact\n      \u2193\nSecurity validation\n      \u2193\nDetect/declare artefact type\n      \u2193\nHash original\n      \u2193\nStore immutable original\n      \u2193\nExtract metadata\n      \u2193\nParse where supported\n      \u2193\nValidate where supported\n      \u2193\nBuild semantic representation\n      \u2193\nDetermine dependencies\n      \u2193\nRecord provenance\n      \u2193\nCreate repository revision\n\nFailure to parse must not destroy the original artefact.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -63,7 +63,7 @@
     {
       "id": "EXCHANGE-009",
       "title": "Optimistic Concurrency",
-      "requirement": "Continue using:\n\nexpectedRevision\n\nfor model updates.\n\nWorkflow:\n\nread revision 42\n      ↓\nedit\n      ↓\nsave expectedRevision=42\n\nIf repository state is now:\n\nrevision 43\n\nreject the stale write.\n\nReturn a structured conflict.\n\nNever silently overwrite newer modelling work.",
+      "requirement": "Continue using:\n\nexpectedRevision\n\nfor model updates.\n\nWorkflow:\n\nread revision 42\n      \u2193\nedit\n      \u2193\nsave expectedRevision=42\n\nIf repository state is now:\n\nrevision 43\n\nreject the stale write.\n\nReturn a structured conflict.\n\nNever silently overwrite newer modelling work.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -95,7 +95,7 @@
     {
       "id": "EXCHANGE-013",
       "title": "Proper OPT Compilation",
-      "requirement": "After the Archie/openEHR compiler integration is complete, support:\n\nOET\n +\nArchetype dependencies\n        ↓\ndependency resolution\n        ↓\nopenEHR validation\n        ↓\ntemplate compilation\n        ↓\nOPT\n        ↓\nOPT validation\n\nTherefore the long-term documentation must no longer state simply:\n\nThe assistant cannot compile an OPT.\n\nInstead the implementation must make OPT compilation a first-class deterministic capability.",
+      "requirement": "After the Archie/openEHR compiler integration is complete, support:\n\nOET\n +\nArchetype dependencies\n        \u2193\ndependency resolution\n        \u2193\nopenEHR validation\n        \u2193\ntemplate compilation\n        \u2193\nOPT\n        \u2193\nOPT validation\n\nTherefore the long-term documentation must no longer state simply:\n\nThe assistant cannot compile an OPT.\n\nInstead the implementation must make OPT compilation a first-class deterministic capability.",
       "status": "PARTIAL",
       "evidence": [
         "docs/OPT_COMPILATION.md",
@@ -127,7 +127,7 @@
     {
       "id": "EXCHANGE-016",
       "title": "Cross-Compiler Comparison",
-      "requirement": "Implement a verification workflow:\n\nDesigner\n   ↓\nExport OPT A\nAssistant\n   ↓\nCompile same governed source\n   ↓\nOPT B\nOPT A\n   ↓\nsemantic comparison\n   ↑\nOPT B\n\nDo not require byte-for-byte identity where serialization legitimately differs.\n\nCompare model semantics.",
+      "requirement": "Implement a verification workflow:\n\nDesigner\n   \u2193\nExport OPT A\nAssistant\n   \u2193\nCompile same governed source\n   \u2193\nOPT B\nOPT A\n   \u2193\nsemantic comparison\n   \u2191\nOPT B\n\nDo not require byte-for-byte identity where serialization legitimately differs.\n\nCompare model semantics.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -142,7 +142,7 @@
     {
       "id": "EXCHANGE-018",
       "title": "Designer Round-Trip Verification",
-      "requirement": "Implement explicit round-trip testing:\n\nDesigner\n   ↓\nExport\n   ↓\nAssistant import\n   ↓\nPreserve\n   ↓\nValidate\n   ↓\nModify where supported\n   ↓\nExport\n   ↓\nDesigner import\n   ↓\nDesigner export again\n   ↓\nAssistant comparison\n\nThe objective is to establish which information survives the round trip.",
+      "requirement": "Implement explicit round-trip testing:\n\nDesigner\n   \u2193\nExport\n   \u2193\nAssistant import\n   \u2193\nPreserve\n   \u2193\nValidate\n   \u2193\nModify where supported\n   \u2193\nExport\n   \u2193\nDesigner import\n   \u2193\nDesigner export again\n   \u2193\nAssistant comparison\n\nThe objective is to establish which information survives the round trip.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -184,7 +184,7 @@
     {
       "id": "EXCHANGE-024",
       "title": "Manual Exchange Mode",
-      "requirement": "Designer integration must remain useful even without an API.\n\nSupport:\n\nDesigner\n   ↓\nManual export\n   ↓\nAssistant import\n   ↓\nModelling / validation / governance\n   ↓\nAssistant export\n   ↓\nManual Designer import\n\nThis should be a fully supported workflow.",
+      "requirement": "Designer integration must remain useful even without an API.\n\nSupport:\n\nDesigner\n   \u2193\nManual export\n   \u2193\nAssistant import\n   \u2193\nModelling / validation / governance\n   \u2193\nAssistant export\n   \u2193\nManual Designer import\n\nThis should be a fully supported workflow.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -192,7 +192,7 @@
     {
       "id": "EXCHANGE-025",
       "title": "Automated Exchange Mode",
-      "requirement": "Where verified APIs exist:\n\nAssistant\n   ↓\nauthenticated Designer adapter\n   ↓\nretrieve/push artefact\n\nImplement this through a provider adapter.\n\nDo not place Designer-specific API code in the modelling domain.",
+      "requirement": "Where verified APIs exist:\n\nAssistant\n   \u2193\nauthenticated Designer adapter\n   \u2193\nretrieve/push artefact\n\nImplement this through a provider adapter.\n\nDo not place Designer-specific API code in the modelling domain.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -213,7 +213,7 @@
     {
       "id": "EXCHANGE-028",
       "title": "Preserve Unknown Fields",
-      "requirement": "Where source-specific JSON is parsed, preserve unknown source fields.\n\nDo not implement:\n\nparse known subset\n      ↓\nsave\n      ↓\nsilently discard unknown Designer metadata\n\nPrefer preservation of the immutable original plus explicit derived representations.",
+      "requirement": "Where source-specific JSON is parsed, preserve unknown source fields.\n\nDo not implement:\n\nparse known subset\n      \u2193\nsave\n      \u2193\nsilently discard unknown Designer metadata\n\nPrefer preservation of the immutable original plus explicit derived representations.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -228,7 +228,7 @@
     {
       "id": "EXCHANGE-030",
       "title": "Do Not Hand-Build Invalid OET",
-      "requirement": "The OET generator must use the proper model/template representation and validation pipeline.\n\nDo not construct complex templates through fragile XML concatenation.\n\nTarget:\n\nCanonical Template Domain Model\n            ↓\nOET serializer\n            ↓\nOET validator\n            ↓\nCompiler\n            ↓\nOPT",
+      "requirement": "The OET generator must use the proper model/template representation and validation pipeline.\n\nDo not construct complex templates through fragile XML concatenation.\n\nTarget:\n\nCanonical Template Domain Model\n            \u2193\nOET serializer\n            \u2193\nOET validator\n            \u2193\nCompiler\n            \u2193\nOPT",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -243,7 +243,7 @@
     {
       "id": "EXCHANGE-032",
       "title": "Nested Archetype Support",
-      "requirement": "Support dependency graphs such as:\n\nCOMPOSITION\n    │\n    ├── SECTION\n    │      │\n    │      ├── OBSERVATION\n    │      │       │\n    │      │       └── CLUSTER\n    │      │\n    │      └── EVALUATION\n    │\n    └── INSTRUCTION\n           │\n           └── ACTIVITY\n\nDo not limit modelling to direct COMPOSITION → ENTRY relationships.",
+      "requirement": "Support dependency graphs such as:\n\nCOMPOSITION\n    \u2502\n    \u251c\u2500\u2500 SECTION\n    \u2502      \u2502\n    \u2502      \u251c\u2500\u2500 OBSERVATION\n    \u2502      \u2502       \u2502\n    \u2502      \u2502       \u2514\u2500\u2500 CLUSTER\n    \u2502      \u2502\n    \u2502      \u2514\u2500\u2500 EVALUATION\n    \u2502\n    \u2514\u2500\u2500 INSTRUCTION\n           \u2502\n           \u2514\u2500\u2500 ACTIVITY\n\nDo not limit modelling to direct COMPOSITION \u2192 ENTRY relationships.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -266,7 +266,7 @@
     {
       "id": "EXCHANGE-035",
       "title": "Reviewed Handoff",
-      "requirement": "model_artifact_get should support a reviewed handoff workflow.\n\nExample:\n\nExternal model\n      ↓\nAssistant\n      ↓\nrevision 15\n      ↓\nvalidation\n      ↓\nQA\n      ↓\nreview\n      ↓\nhandoff\n\nThe recipient must be able to identify:\n\nexact revision\ncontent hash\nreview state\nvalidation state\nsource provenance",
+      "requirement": "model_artifact_get should support a reviewed handoff workflow.\n\nExample:\n\nExternal model\n      \u2193\nAssistant\n      \u2193\nrevision 15\n      \u2193\nvalidation\n      \u2193\nQA\n      \u2193\nreview\n      \u2193\nhandoff\n\nThe recipient must be able to identify:\n\nexact revision\ncontent hash\nreview state\nvalidation state\nsource provenance",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -324,7 +324,7 @@
     {
       "id": "EXCHANGE-043",
       "title": "Git Repository Workflow",
-      "requirement": "Support:\n\nDesigner\n   ↓\nexport\n   ↓\nGit repository\n   ↓\nAssistant\n   ↓\nreview / validation",
+      "requirement": "Support:\n\nDesigner\n   \u2193\nexport\n   \u2193\nGit repository\n   \u2193\nAssistant\n   \u2193\nreview / validation",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -332,7 +332,7 @@
     {
       "id": "EXCHANGE-044",
       "title": "Git-Native Artefact Preservation",
-      "requirement": "Git repositories should preserve native modelling artefacts rather than converting everything into an assistant-specific representation.\n\nRecommended logical structure:\n\nmodels/\n├── archetypes/\n│   ├── openEHR-EHR-OBSERVATION.example.v1.adl\n│   └── ...\n│\n├── templates/\n│   ├── example-template.oet\n│   ├── example-template.t.json\n│   └── ...\n│\n├── opts/\n│   ├── example-template.opt\n│   └── ...\n│\n├── web-templates/\n│   └── ...\n│\n├── terminology/\n│   └── ...\n│\n└── metadata/\n    └── ...\n\nThe exact physical layout may remain configurable.\n\nPreserve native artefact filenames where appropriate.\n\nDo not rename files in ways that imply a different semantic artefact type.\n\nFor example:\n\n*.t.json\n\nmust remain identifiable as Designer authoring JSON and must never automatically become:\n\n*.opt\n\nor:\n\n*.oet",
+      "requirement": "Git repositories should preserve native modelling artefacts rather than converting everything into an assistant-specific representation.\n\nRecommended logical structure:\n\nmodels/\n\u251c\u2500\u2500 archetypes/\n\u2502   \u251c\u2500\u2500 openEHR-EHR-OBSERVATION.example.v1.adl\n\u2502   \u2514\u2500\u2500 ...\n\u2502\n\u251c\u2500\u2500 templates/\n\u2502   \u251c\u2500\u2500 example-template.oet\n\u2502   \u251c\u2500\u2500 example-template.t.json\n\u2502   \u2514\u2500\u2500 ...\n\u2502\n\u251c\u2500\u2500 opts/\n\u2502   \u251c\u2500\u2500 example-template.opt\n\u2502   \u2514\u2500\u2500 ...\n\u2502\n\u251c\u2500\u2500 web-templates/\n\u2502   \u2514\u2500\u2500 ...\n\u2502\n\u251c\u2500\u2500 terminology/\n\u2502   \u2514\u2500\u2500 ...\n\u2502\n\u2514\u2500\u2500 metadata/\n    \u2514\u2500\u2500 ...\n\nThe exact physical layout may remain configurable.\n\nPreserve native artefact filenames where appropriate.\n\nDo not rename files in ways that imply a different semantic artefact type.\n\nFor example:\n\n*.t.json\n\nmust remain identifiable as Designer authoring JSON and must never automatically become:\n\n*.opt\n\nor:\n\n*.oet",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -340,7 +340,7 @@
     {
       "id": "EXCHANGE-045",
       "title": "Do Not Pollute Native Model Files",
-      "requirement": "Assistant-specific governance metadata should not unnecessarily modify native openEHR or Designer files.\n\nPrefer:\n\nsidecar metadata\nrepository metadata\nplatform database\nrelease manifests\nprovenance manifests\n\nwhere appropriate.\n\nFor example:\n\nmodels/\n├── templates/\n│   ├── neonatal-admission.oet\n│   └── neonatal-admission.t.json\n│\n└── metadata/\n    └── neonatal-admission.metadata.json\n\nThis reduces interoperability problems and allows external modelling tools to continue consuming their native formats.",
+      "requirement": "Assistant-specific governance metadata should not unnecessarily modify native openEHR or Designer files.\n\nPrefer:\n\nsidecar metadata\nrepository metadata\nplatform database\nrelease manifests\nprovenance manifests\n\nwhere appropriate.\n\nFor example:\n\nmodels/\n\u251c\u2500\u2500 templates/\n\u2502   \u251c\u2500\u2500 neonatal-admission.oet\n\u2502   \u2514\u2500\u2500 neonatal-admission.t.json\n\u2502\n\u2514\u2500\u2500 metadata/\n    \u2514\u2500\u2500 neonatal-admission.metadata.json\n\nThis reduces interoperability problems and allows external modelling tools to continue consuming their native formats.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -348,7 +348,7 @@
     {
       "id": "EXCHANGE-046",
       "title": "Pull/Merge Request Workflow",
-      "requirement": "For GitHub/GitLab-backed modelling repositories, support:\n\nModel change\n      ↓\nWorking branch\n      ↓\nValidation\n      ↓\nOPT compilation where applicable\n      ↓\nSemantic diff\n      ↓\nTerminology validation\n      ↓\nQA\n      ↓\nTraceability\n      ↓\nPull / Merge Request\n      ↓\nHuman review\n      ↓\nMerge\n\nThe modelling assistant should be able to prepare the evidence needed for the review.\n\nWhere provider APIs are configured, support creation or inspection of pull/merge requests.\n\nDo not assume GitHub/GitLab approval automatically constitutes clinical model approval.\n\nHosted Git review and clinical governance remain separate concepts unless an organisation explicitly configures policy mapping between them.",
+      "requirement": "For GitHub/GitLab-backed modelling repositories, support:\n\nModel change\n      \u2193\nWorking branch\n      \u2193\nValidation\n      \u2193\nOPT compilation where applicable\n      \u2193\nSemantic diff\n      \u2193\nTerminology validation\n      \u2193\nQA\n      \u2193\nTraceability\n      \u2193\nPull / Merge Request\n      \u2193\nHuman review\n      \u2193\nMerge\n\nThe modelling assistant should be able to prepare the evidence needed for the review.\n\nWhere provider APIs are configured, support creation or inspection of pull/merge requests.\n\nDo not assume GitHub/GitLab approval automatically constitutes clinical model approval.\n\nHosted Git review and clinical governance remain separate concepts unless an organisation explicitly configures policy mapping between them.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -356,7 +356,7 @@
     {
       "id": "EXCHANGE-047",
       "title": "External Tool Concurrency",
-      "requirement": "Do not assume external modelling tools implement compatible locking or revision semantics.\n\nUse repository revisions and optimistic concurrency.\n\nExample:\n\nAssistant reads revision 41\n        ↓\nDesigner modifies model externally\n        ↓\nRepository becomes revision 42\n        ↓\nAssistant attempts write\nexpectedRevision=41\n        ↓\nREJECT\n\nReturn:\n\nREVISION_CONFLICT\n\nDo not silently overwrite the external modification.",
+      "requirement": "Do not assume external modelling tools implement compatible locking or revision semantics.\n\nUse repository revisions and optimistic concurrency.\n\nExample:\n\nAssistant reads revision 41\n        \u2193\nDesigner modifies model externally\n        \u2193\nRepository becomes revision 42\n        \u2193\nAssistant attempts write\nexpectedRevision=41\n        \u2193\nREJECT\n\nReturn:\n\nREVISION_CONFLICT\n\nDo not silently overwrite the external modification.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -372,7 +372,7 @@
     {
       "id": "EXCHANGE-049",
       "title": "Model Lineage",
-      "requirement": "Expose complete model lineage.\n\nExample:\n\nInternational CKM Archetype\n          ↓\nImported Baseline\n          ↓\nOrganisation Revision\n          ↓\nTemplate\n          ↓\nOET\n          ↓\nCompiled OPT\n          ↓\nWeb Template\n          ↓\nRelease\n          ↓\nopenEHR CDR Deployment\n\nWhere Designer participates:\n\nArchetype Designer\n        ↓\nDesigner Authoring Artefact\n        ↓\nDesigner Export\n        ↓\nAssistant Import\n        ↓\nGoverned Repository Revision\n        ↓\nValidation\n        ↓\nReview\n        ↓\nRelease\n\nLineage must be queryable.",
+      "requirement": "Expose complete model lineage.\n\nExample:\n\nInternational CKM Archetype\n          \u2193\nImported Baseline\n          \u2193\nOrganisation Revision\n          \u2193\nTemplate\n          \u2193\nOET\n          \u2193\nCompiled OPT\n          \u2193\nWeb Template\n          \u2193\nRelease\n          \u2193\nopenEHR CDR Deployment\n\nWhere Designer participates:\n\nArchetype Designer\n        \u2193\nDesigner Authoring Artefact\n        \u2193\nDesigner Export\n        \u2193\nAssistant Import\n        \u2193\nGoverned Repository Revision\n        \u2193\nValidation\n        \u2193\nReview\n        \u2193\nRelease\n\nLineage must be queryable.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -426,7 +426,7 @@
     {
       "id": "EXCHANGE-056",
       "title": "Side-by-Side Comparison",
-      "requirement": "Provide visual/API support for:\n\nDesigner Export\n       │\n       │ semantic comparison\n       ▼\nAssistant Revision\n\nand:\n\nAssistant Handoff\n       │\n       │ semantic comparison\n       ▼\nDesigner Re-export\n\nHighlight semantic differences rather than only text changes.",
+      "requirement": "Provide visual/API support for:\n\nDesigner Export\n       \u2502\n       \u2502 semantic comparison\n       \u25bc\nAssistant Revision\n\nand:\n\nAssistant Handoff\n       \u2502\n       \u2502 semantic comparison\n       \u25bc\nDesigner Re-export\n\nHighlight semantic differences rather than only text changes.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -440,7 +440,7 @@
     {
       "id": "EXCHANGE-058",
       "title": "Batch Import",
-      "requirement": "Support importing collections of related modelling artefacts.\n\nFor example:\n\nimport/\n├── archetypes/\n├── templates/\n├── designer/\n├── terminology/\n└── metadata/\n\nAfter import:\n\npreserve originals\n      ↓\nidentify artefacts\n      ↓\nparse\n      ↓\nresolve relationships\n      ↓\nvalidate\n      ↓\nbuild dependency graph\n      ↓\nrecord provenance\n\nA failure in one artefact must be reported explicitly.\n\nDo not silently discard it.",
+      "requirement": "Support importing collections of related modelling artefacts.\n\nFor example:\n\nimport/\n\u251c\u2500\u2500 archetypes/\n\u251c\u2500\u2500 templates/\n\u251c\u2500\u2500 designer/\n\u251c\u2500\u2500 terminology/\n\u2514\u2500\u2500 metadata/\n\nAfter import:\n\npreserve originals\n      \u2193\nidentify artefacts\n      \u2193\nparse\n      \u2193\nresolve relationships\n      \u2193\nvalidate\n      \u2193\nbuild dependency graph\n      \u2193\nrecord provenance\n\nA failure in one artefact must be reported explicitly.\n\nDo not silently discard it.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -476,7 +476,7 @@
     {
       "id": "EXCHANGE-063",
       "title": "Reviewed Handoff",
-      "requirement": "model_artifact_get or its successor should support a reviewed handoff workflow.\n\nExample:\n\nExternal model\n      ↓\nAssistant import\n      ↓\nRepository revision 15\n      ↓\nValidation\n      ↓\nCompilation where applicable\n      ↓\nQA\n      ↓\nReview\n      ↓\nReviewed handoff\n\nThe recipient must be able to determine:\n\nexact revision\ncontent hash\nreview state\nvalidation state\nsource provenance\ndependency state",
+      "requirement": "model_artifact_get or its successor should support a reviewed handoff workflow.\n\nExample:\n\nExternal model\n      \u2193\nAssistant import\n      \u2193\nRepository revision 15\n      \u2193\nValidation\n      \u2193\nCompilation where applicable\n      \u2193\nQA\n      \u2193\nReview\n      \u2193\nReviewed handoff\n\nThe recipient must be able to determine:\n\nexact revision\ncontent hash\nreview state\nvalidation state\nsource provenance\ndependency state",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -498,7 +498,7 @@
     {
       "id": "EXCHANGE-066",
       "title": "Post-Import Verification",
-      "requirement": "After external-tool import, allow the resulting model to be exported again and returned to the assistant.\n\nThen execute:\n\nRe-export\n    ↓\nImport\n    ↓\nIdentify\n    ↓\nValidate\n    ↓\nSemantic diff\n    ↓\nDependency diff\n    ↓\nTerminology diff\n    ↓\nMetadata diff\n\nagainst the expected handoff revision.",
+      "requirement": "After external-tool import, allow the resulting model to be exported again and returned to the assistant.\n\nThen execute:\n\nRe-export\n    \u2193\nImport\n    \u2193\nIdentify\n    \u2193\nValidate\n    \u2193\nSemantic diff\n    \u2193\nDependency diff\n    \u2193\nTerminology diff\n    \u2193\nMetadata diff\n\nagainst the expected handoff revision.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -549,7 +549,7 @@
     {
       "id": "EXCHANGE-073",
       "title": "Manual Exchange Mode",
-      "requirement": "Designer integration must remain fully useful without API access.\n\nSupport:\n\nDesigner\n   ↓\nManual export\n   ↓\nAssistant import\n   ↓\nValidation\n   ↓\nModelling\n   ↓\nGovernance\n   ↓\nReviewed handoff\n   ↓\nManual Designer import\n\nThis is a first-class supported workflow.\n\nDo not treat manual exchange as a temporary workaround.",
+      "requirement": "Designer integration must remain fully useful without API access.\n\nSupport:\n\nDesigner\n   \u2193\nManual export\n   \u2193\nAssistant import\n   \u2193\nValidation\n   \u2193\nModelling\n   \u2193\nGovernance\n   \u2193\nReviewed handoff\n   \u2193\nManual Designer import\n\nThis is a first-class supported workflow.\n\nDo not treat manual exchange as a temporary workaround.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -557,14 +557,14 @@
     {
       "id": "EXCHANGE-074",
       "title": "Automated Exchange Mode",
-      "requirement": "Where verified APIs exist:\n\nAssistant\n   ↓\nAuthenticated Designer Adapter\n   ↓\nRetrieve / Push Artefact\n\nImplement through:\n\nModellingToolAdapter\n\nDo not place Designer-specific networking logic in the modelling domain.",
+      "requirement": "Where verified APIs exist:\n\nAssistant\n   \u2193\nAuthenticated Designer Adapter\n   \u2193\nRetrieve / Push Artefact\n\nImplement through:\n\nModellingToolAdapter\n\nDo not place Designer-specific networking logic in the modelling domain.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-075",
       "title": "External Modelling Tool Adapter",
-      "requirement": "Create:\n\nModellingToolAdapter\n\nwith capabilities such as:\n\ncapabilities()\nlistArtifacts()\ngetArtifact()\nimportArtifact()\nexportArtifact()\ngetRevision()\ncompareRevision()\n\nExact interfaces should follow the repository’s language and architecture conventions.",
+      "requirement": "Create:\n\nModellingToolAdapter\n\nwith capabilities such as:\n\ncapabilities()\nlistArtifacts()\ngetArtifact()\nimportArtifact()\nexportArtifact()\ngetRevision()\ncompareRevision()\n\nExact interfaces should follow the repository\u2019s language and architecture conventions.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -585,7 +585,7 @@
     {
       "id": "EXCHANGE-078",
       "title": "Preserve Unknown Designer Fields",
-      "requirement": "When parsing Designer JSON, preserve unknown source fields.\n\nNever implement:\n\nparse known subset\n      ↓\nmodify\n      ↓\nserialize known subset\n      ↓\nunknown Designer information disappears\n\nKeep the immutable original regardless.\n\nWhere round-trip editing of the native format cannot safely preserve unknown fields, do not claim lossless native-format editing.",
+      "requirement": "When parsing Designer JSON, preserve unknown source fields.\n\nNever implement:\n\nparse known subset\n      \u2193\nmodify\n      \u2193\nserialize known subset\n      \u2193\nunknown Designer information disappears\n\nKeep the immutable original regardless.\n\nWhere round-trip editing of the native format cannot safely preserve unknown fields, do not claim lossless native-format editing.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -600,21 +600,21 @@
     {
       "id": "EXCHANGE-080",
       "title": "Canonical Template Domain Model",
-      "requirement": "Do not build complex OET through fragile XML string manipulation.\n\nImplement:\n\nCanonical Template Domain Model\n            ↓\nOET Serializer\n            ↓\nOET Validator\n            ↓\nopenEHR Compiler\n            ↓\nOPT\n\nThe canonical template representation must preserve the semantics necessary for correct serialization and compilation.",
+      "requirement": "Do not build complex OET through fragile XML string manipulation.\n\nImplement:\n\nCanonical Template Domain Model\n            \u2193\nOET Serializer\n            \u2193\nOET Validator\n            \u2193\nopenEHR Compiler\n            \u2193\nOPT\n\nThe canonical template representation must preserve the semantics necessary for correct serialization and compilation.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-081",
       "title": "OET Parser",
-      "requirement": "Implement the reverse path:\n\nOET\n ↓\nParser\n ↓\nCanonical Template Domain Model\n\nThis enables:\n\ninspection\nediting\nsemantic diff\nvalidation\nround-trip testing\n\nParser and serializer must have dedicated round-trip tests.",
+      "requirement": "Implement the reverse path:\n\nOET\n \u2193\nParser\n \u2193\nCanonical Template Domain Model\n\nThis enables:\n\ninspection\nediting\nsemantic diff\nvalidation\nround-trip testing\n\nParser and serializer must have dedicated round-trip tests.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-082",
       "title": "OET Round-Trip Tests",
-      "requirement": "Test:\n\nOET A\n ↓\nparse\n ↓\ncanonical model\n ↓\nserialize\n ↓\nOET B\n\nCompare semantic equivalence.\n\nDo not require byte identity when harmless serialization differences occur.\n\nDo require preservation of clinical/template semantics.",
+      "requirement": "Test:\n\nOET A\n \u2193\nparse\n \u2193\ncanonical model\n \u2193\nserialize\n \u2193\nOET B\n\nCompare semantic equivalence.\n\nDo not require byte identity when harmless serialization differences occur.\n\nDo require preservation of clinical/template semantics.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -637,7 +637,7 @@
     {
       "id": "EXCHANGE-085",
       "title": "Nested Archetype Support",
-      "requirement": "Support graphs such as:\n\nCOMPOSITION\n    │\n    ├── SECTION\n    │      │\n    │      ├── OBSERVATION\n    │      │       │\n    │      │       └── CLUSTER\n    │      │\n    │      └── EVALUATION\n    │\n    └── INSTRUCTION\n           │\n           └── nested structures\n\nDo not restrict the platform to:\n\nCOMPOSITION → ENTRY\n\nrelationships.",
+      "requirement": "Support graphs such as:\n\nCOMPOSITION\n    \u2502\n    \u251c\u2500\u2500 SECTION\n    \u2502      \u2502\n    \u2502      \u251c\u2500\u2500 OBSERVATION\n    \u2502      \u2502       \u2502\n    \u2502      \u2502       \u2514\u2500\u2500 CLUSTER\n    \u2502      \u2502\n    \u2502      \u2514\u2500\u2500 EVALUATION\n    \u2502\n    \u2514\u2500\u2500 INSTRUCTION\n           \u2502\n           \u2514\u2500\u2500 nested structures\n\nDo not restrict the platform to:\n\nCOMPOSITION \u2192 ENTRY\n\nrelationships.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -681,7 +681,7 @@
     {
       "id": "EXCHANGE-090",
       "title": "Terminology Round-Trip Verification",
-      "requirement": "Include terminology in external-tool round-trip tests.\n\nWorkflow:\n\nDesigner\n   ↓\nModel containing terminology bindings\n   ↓\nExport\n   ↓\nAssistant import\n   ↓\nInspect terminology\n   ↓\nAssistant handoff\n   ↓\nDesigner import\n   ↓\nDesigner re-export\n   ↓\nAssistant comparison\n\nVerify terminology semantics survived.\n\nDo not claim semantic round-trip compatibility if significant terminology information is lost.",
+      "requirement": "Include terminology in external-tool round-trip tests.\n\nWorkflow:\n\nDesigner\n   \u2193\nModel containing terminology bindings\n   \u2193\nExport\n   \u2193\nAssistant import\n   \u2193\nInspect terminology\n   \u2193\nAssistant handoff\n   \u2193\nDesigner import\n   \u2193\nDesigner re-export\n   \u2193\nAssistant comparison\n\nVerify terminology semantics survived.\n\nDo not claim semantic round-trip compatibility if significant terminology information is lost.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -737,7 +737,7 @@
     {
       "id": "EXCHANGE-097",
       "title": "Unsupported Constraint Handling",
-      "requirement": "If a source format contains a constraint the assistant cannot fully interpret:\n\npreserve original\n      ↓\nmark constraint as partially understood\n      ↓\nreport limitation\n\nDo not silently discard it.\n\nDo not fabricate semantic understanding.",
+      "requirement": "If a source format contains a constraint the assistant cannot fully interpret:\n\npreserve original\n      \u2193\nmark constraint as partially understood\n      \u2193\nreport limitation\n\nDo not silently discard it.\n\nDo not fabricate semantic understanding.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -752,7 +752,7 @@
     {
       "id": "EXCHANGE-099",
       "title": "Derived Artefact Tracking",
-      "requirement": "Every derived artefact must reference its source.\n\nExample:\n\nDesigner Authoring JSON\n       │\n       └── exported OET\n                │\n                └── compiled OPT\n                         │\n                         └── Web Template\n\nRecord:\n\nsource artifact ID\nsource revision\nsource hash\nderivation operation\ntool\ntool version\ntimestamp",
+      "requirement": "Every derived artefact must reference its source.\n\nExample:\n\nDesigner Authoring JSON\n       \u2502\n       \u2514\u2500\u2500 exported OET\n                \u2502\n                \u2514\u2500\u2500 compiled OPT\n                         \u2502\n                         \u2514\u2500\u2500 Web Template\n\nRecord:\n\nsource artifact ID\nsource revision\nsource hash\nderivation operation\ntool\ntool version\ntimestamp",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -760,7 +760,7 @@
     {
       "id": "EXCHANGE-100",
       "title": "Build Graph",
-      "requirement": "Represent generated modelling artefacts as a build graph.\n\nExample:\n\nArchetypes\n     │\n     ├──────────┐\n     │          │\n     ▼          │\n    OET         │\n     │          │\n     ▼          │\n    OPT ◄───────┘\n     │\n     ▼\nWeb Template\n     │\n     ▼\nSimplified Paths\n\nThe platform must be able to explain how every generated artefact was produced.",
+      "requirement": "Represent generated modelling artefacts as a build graph.\n\nExample:\n\nArchetypes\n     \u2502\n     \u251c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n     \u2502          \u2502\n     \u25bc          \u2502\n    OET         \u2502\n     \u2502          \u2502\n     \u25bc          \u2502\n    OPT \u25c4\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518\n     \u2502\n     \u25bc\nWeb Template\n     \u2502\n     \u25bc\nSimplified Paths\n\nThe platform must be able to explain how every generated artefact was produced.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -768,7 +768,7 @@
     {
       "id": "EXCHANGE-101",
       "title": "Artefact Immutability",
-      "requirement": "Published/released generated artefacts must be immutable.\n\nIf source models change:\n\ndo not mutate previous release\n\nInstead:\n\ncreate new revision\n      ↓\nrebuild\n      ↓\nvalidate\n      ↓\nreview\n      ↓\nrelease new version",
+      "requirement": "Published/released generated artefacts must be immutable.\n\nIf source models change:\n\ndo not mutate previous release\n\nInstead:\n\ncreate new revision\n      \u2193\nrebuild\n      \u2193\nvalidate\n      \u2193\nreview\n      \u2193\nrelease new version",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -776,14 +776,14 @@
     {
       "id": "EXCHANGE-102",
       "title": "External Source Baseline",
-      "requirement": "When importing an external model for the first time, create an immutable baseline.\n\nExample:\n\nDesigner Export\n      ↓\nBASELINE-001\n      ↓\nWorking Revision\n\nFuture comparisons can distinguish:\n\noriginal external model\nlocal changes\nnew upstream/external changes",
+      "requirement": "When importing an external model for the first time, create an immutable baseline.\n\nExample:\n\nDesigner Export\n      \u2193\nBASELINE-001\n      \u2193\nWorking Revision\n\nFuture comparisons can distinguish:\n\noriginal external model\nlocal changes\nnew upstream/external changes",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-103",
       "title": "Three-Way Reconciliation",
-      "requirement": "Where both the assistant and external tool modify a model, support three-way reconciliation conceptually:\n\n              BASELINE\n              /      \\\n             /        \\\n            ▼          ▼\nAssistant Revision   Designer Revision\n             \\        /\n              \\      /\n               ▼    ▼\n              RECONCILE\n\nUse semantic model information rather than text diff alone.",
+      "requirement": "Where both the assistant and external tool modify a model, support three-way reconciliation conceptually:\n\n              BASELINE\n              /      \\\n             /        \\\n            \u25bc          \u25bc\nAssistant Revision   Designer Revision\n             \\        /\n              \\      /\n               \u25bc    \u25bc\n              RECONCILE\n\nUse semantic model information rather than text diff alone.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -797,7 +797,7 @@
     {
       "id": "EXCHANGE-105",
       "title": "Reconciliation Workflow",
-      "requirement": "Provide:\n\ndetect divergence\n      ↓\ncalculate three-way semantic diff\n      ↓\nidentify conflicts\n      ↓\npresent reconciliation\n      ↓\nhuman/agent prepares resolution\n      ↓\nvalidate resolved model\n      ↓\nsave new revision\n\nThe final resolved model must pass normal validation and governance.",
+      "requirement": "Provide:\n\ndetect divergence\n      \u2193\ncalculate three-way semantic diff\n      \u2193\nidentify conflicts\n      \u2193\npresent reconciliation\n      \u2193\nhuman/agent prepares resolution\n      \u2193\nvalidate resolved model\n      \u2193\nsave new revision\n\nThe final resolved model must pass normal validation and governance.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -818,7 +818,7 @@
     {
       "id": "EXCHANGE-108",
       "title": "Manual Synchronisation",
-      "requirement": "Manual file exchange must support the same synchronisation model.\n\nExample:\n\nUser exports Designer file\n      ↓\nUploads to Assistant\n      ↓\nAssistant identifies external revision\n      ↓\nCompares with baseline\n      ↓\nReports sync state\n\nAPI access must not be required.",
+      "requirement": "Manual file exchange must support the same synchronisation model.\n\nExample:\n\nUser exports Designer file\n      \u2193\nUploads to Assistant\n      \u2193\nAssistant identifies external revision\n      \u2193\nCompares with baseline\n      \u2193\nReports sync state\n\nAPI access must not be required.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -832,14 +832,14 @@
     {
       "id": "EXCHANGE-110",
       "title": "No Blind Push",
-      "requirement": "Never:\n\nretrieve model\n      ↓\nmodify\n      ↓\nblindly overwrite external model\n\nwithout checking source revision where the external system supports revision information.\n\nUse optimistic concurrency where possible.",
+      "requirement": "Never:\n\nretrieve model\n      \u2193\nmodify\n      \u2193\nblindly overwrite external model\n\nwithout checking source revision where the external system supports revision information.\n\nUse optimistic concurrency where possible.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-111",
       "title": "External Tool Authentication",
-      "requirement": "External-tool credentials must use the platform’s secret-management mechanisms.\n\nNever store external credentials inside:\n\nmodel artefacts\nGit model repositories\nhandoff packages\nrelease packages\nlogs\ndocumentation",
+      "requirement": "External-tool credentials must use the platform\u2019s secret-management mechanisms.\n\nNever store external credentials inside:\n\nmodel artefacts\nGit model repositories\nhandoff packages\nrelease packages\nlogs\ndocumentation",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -869,14 +869,14 @@
     {
       "id": "EXCHANGE-115",
       "title": "Version-Aware Parser",
-      "requirement": "If native Designer JSON parsing is implemented, make it version-aware.\n\nArchitecture:\n\nDesignerAuthoringJsonParser\n          │\n          ├── Version A\n          ├── Version B\n          └── UnknownVersion\n\nUnknown versions must fail safely or enter preservation-only mode.",
+      "requirement": "If native Designer JSON parsing is implemented, make it version-aware.\n\nArchitecture:\n\nDesignerAuthoringJsonParser\n          \u2502\n          \u251c\u2500\u2500 Version A\n          \u251c\u2500\u2500 Version B\n          \u2514\u2500\u2500 UnknownVersion\n\nUnknown versions must fail safely or enter preservation-only mode.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-116",
       "title": "Preservation-Only Mode",
-      "requirement": "For an unsupported Designer authoring format:\n\nreceive\n ↓\nhash\n ↓\npreserve\n ↓\nrecord provenance\n ↓\nallow repository versioning\n\nbut do not claim:\n\nsemantic parsing\nsafe editing\nlossless round trip",
+      "requirement": "For an unsupported Designer authoring format:\n\nreceive\n \u2193\nhash\n \u2193\npreserve\n \u2193\nrecord provenance\n \u2193\nallow repository versioning\n\nbut do not claim:\n\nsemantic parsing\nsafe editing\nlossless round trip",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -914,7 +914,7 @@
     {
       "id": "EXCHANGE-121",
       "title": "Import Quarantine",
-      "requirement": "Consider a temporary import staging area:\n\nUpload\n  ↓\nQuarantine/Staging\n  ↓\nSecurity checks\n  ↓\nFormat identification\n  ↓\nValidation\n  ↓\nRepository import\n\nInvalid artefacts should not contaminate governed project state.",
+      "requirement": "Consider a temporary import staging area:\n\nUpload\n  \u2193\nQuarantine/Staging\n  \u2193\nSecurity checks\n  \u2193\nFormat identification\n  \u2193\nValidation\n  \u2193\nRepository import\n\nInvalid artefacts should not contaminate governed project state.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -950,7 +950,7 @@
     {
       "id": "EXCHANGE-126",
       "title": "Semantic Fingerprinting",
-      "requirement": "Where practical, generate a semantic fingerprint independent of harmless serialization differences.\n\nFor example:\n\ncanonical semantic representation\n        ↓\nstable hash\n\nUse this to distinguish:\n\nserialization-only difference\n\nfrom:\n\nactual model change\n\nDo not replace the original-file SHA-256.\n\nStore both.",
+      "requirement": "Where practical, generate a semantic fingerprint independent of harmless serialization differences.\n\nFor example:\n\ncanonical semantic representation\n        \u2193\nstable hash\n\nUse this to distinguish:\n\nserialization-only difference\n\nfrom:\n\nactual model change\n\nDo not replace the original-file SHA-256.\n\nStore both.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -971,7 +971,7 @@
     {
       "id": "EXCHANGE-129",
       "title": "Provenance Graph",
-      "requirement": "Expose a provenance graph.\n\nExample:\n\nDesigner Authoring JSON\n      │\n      ├── EXPORTED_AS → OET\n      │\n      └── EXPORTED_AS → Designer OPT\n                           │\nOET ── COMPILED_TO ───────┼── Assistant OPT\n                           │\n                           ▼\n                    Semantic Comparison\n\nThis should be queryable through the application layer.",
+      "requirement": "Expose a provenance graph.\n\nExample:\n\nDesigner Authoring JSON\n      \u2502\n      \u251c\u2500\u2500 EXPORTED_AS \u2192 OET\n      \u2502\n      \u2514\u2500\u2500 EXPORTED_AS \u2192 Designer OPT\n                           \u2502\nOET \u2500\u2500 COMPILED_TO \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u253c\u2500\u2500 Assistant OPT\n                           \u2502\n                           \u25bc\n                    Semantic Comparison\n\nThis should be queryable through the application layer.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -1001,7 +1001,7 @@
     {
       "id": "EXCHANGE-133",
       "title": "Model Selection Policy",
-      "requirement": "When an agent searches for reusable models, source policy should influence selection.\n\nExample:\n\nOrganisation-approved model\n        ↓\nNational model\n        ↓\nConfigured CKM\n        ↓\nInternational CKM\n        ↓\nUnverified external source\n\nActual precedence must be configurable.",
+      "requirement": "When an agent searches for reusable models, source policy should influence selection.\n\nExample:\n\nOrganisation-approved model\n        \u2193\nNational model\n        \u2193\nConfigured CKM\n        \u2193\nInternational CKM\n        \u2193\nUnverified external source\n\nActual precedence must be configurable.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -1039,7 +1039,7 @@
     {
       "id": "EXCHANGE-138",
       "title": "Advanced Git Workflow",
-      "requirement": "Provide an advanced workflow for modelling teams using Git.\n\nExample:\n\nArchetype Designer\n        ↓\nExport native artefacts\n        ↓\nShared Git model repository\n        ↓\nFeature branch\n        ↓\nopenEHR Modelling Assistant\n        ↓\nValidation\n        ↓\nDependency resolution\n        ↓\nOPT compilation\n        ↓\nSemantic diff\n        ↓\nTerminology validation\n        ↓\nQA\n        ↓\nRequirements traceability\n        ↓\nPull / Merge Request\n        ↓\nHuman review\n        ↓\nMerge\n        ↓\nApproved model release\n\nThe workflow must preserve native model artefacts.\n\nDo not require clinical modellers to edit Git metadata manually.",
+      "requirement": "Provide an advanced workflow for modelling teams using Git.\n\nExample:\n\nArchetype Designer\n        \u2193\nExport native artefacts\n        \u2193\nShared Git model repository\n        \u2193\nFeature branch\n        \u2193\nopenEHR Modelling Assistant\n        \u2193\nValidation\n        \u2193\nDependency resolution\n        \u2193\nOPT compilation\n        \u2193\nSemantic diff\n        \u2193\nTerminology validation\n        \u2193\nQA\n        \u2193\nRequirements traceability\n        \u2193\nPull / Merge Request\n        \u2193\nHuman review\n        \u2193\nMerge\n        \u2193\nApproved model release\n\nThe workflow must preserve native model artefacts.\n\nDo not require clinical modellers to edit Git metadata manually.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -1055,7 +1055,7 @@
     {
       "id": "EXCHANGE-140",
       "title": "Git Change Detection",
-      "requirement": "When repository contents change:\n\nGit change\n    ↓\nidentify affected artefacts\n    ↓\nreparse\n    ↓\nrevalidate\n    ↓\nupdate dependency graph\n    ↓\ncalculate semantic diff\n    ↓\ndetermine downstream impact\n\nDo not rebuild every model unnecessarily when dependency analysis can identify affected artefacts.",
+      "requirement": "When repository contents change:\n\nGit change\n    \u2193\nidentify affected artefacts\n    \u2193\nreparse\n    \u2193\nrevalidate\n    \u2193\nupdate dependency graph\n    \u2193\ncalculate semantic diff\n    \u2193\ndetermine downstream impact\n\nDo not rebuild every model unnecessarily when dependency analysis can identify affected artefacts.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -1079,7 +1079,7 @@
     {
       "id": "EXCHANGE-143",
       "title": "Git Conflict Handling",
-      "requirement": "When textual Git conflicts occur in modelling artefacts:\n\ndetect conflict\n      ↓\npreserve both revisions\n      ↓\nparse where possible\n      ↓\nperform semantic comparison\n      ↓\npresent reconciliation information\n\nDo not ask an LLM to blindly resolve clinical model conflicts.",
+      "requirement": "When textual Git conflicts occur in modelling artefacts:\n\ndetect conflict\n      \u2193\npreserve both revisions\n      \u2193\nparse where possible\n      \u2193\nperform semantic comparison\n      \u2193\npresent reconciliation information\n\nDo not ask an LLM to blindly resolve clinical model conflicts.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -1087,7 +1087,7 @@
     {
       "id": "EXCHANGE-144",
       "title": "Semantic Merge Assistance",
-      "requirement": "Provide merge assistance based on the canonical model representation.\n\nFor example:\n\nBASE\nBranch A:\nBirth weight 0..1 → 1..1\nBranch B:\nAdds annotation\nResult:\nChanges are semantically non-conflicting\n\nWhere changes conflict:\n\nBranch A:\n0..1 → 1..1\nBranch B:\n0..1 → 0..0\nResult:\nCONSTRAINT_CONFLICT\n\nRequire explicit resolution.",
+      "requirement": "Provide merge assistance based on the canonical model representation.\n\nFor example:\n\nBASE\nBranch A:\nBirth weight 0..1 \u2192 1..1\nBranch B:\nAdds annotation\nResult:\nChanges are semantically non-conflicting\n\nWhere changes conflict:\n\nBranch A:\n0..1 \u2192 1..1\nBranch B:\n0..1 \u2192 0..0\nResult:\nCONSTRAINT_CONFLICT\n\nRequire explicit resolution.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -1115,7 +1115,7 @@
     {
       "id": "EXCHANGE-148",
       "title": "Artefact Relationship View",
-      "requirement": "Provide a relationship view such as:\n\nDesigner Authoring JSON\n        │\n        ├── Designer Export → OET\n        │                      │\n        │                      └── Assistant Compilation → OPT\n        │\n        └── Designer Export → Designer OPT\n                               │\n                               │\nAssistant OPT ───── compare ───┘\n\nThis relationship must come from provenance data rather than filename inference.",
+      "requirement": "Provide a relationship view such as:\n\nDesigner Authoring JSON\n        \u2502\n        \u251c\u2500\u2500 Designer Export \u2192 OET\n        \u2502                      \u2502\n        \u2502                      \u2514\u2500\u2500 Assistant Compilation \u2192 OPT\n        \u2502\n        \u2514\u2500\u2500 Designer Export \u2192 Designer OPT\n                               \u2502\n                               \u2502\nAssistant OPT \u2500\u2500\u2500\u2500\u2500 compare \u2500\u2500\u2500\u2518\n\nThis relationship must come from provenance data rather than filename inference.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -1144,7 +1144,7 @@
     {
       "id": "EXCHANGE-152",
       "title": "Comparison Explanation",
-      "requirement": "AI may explain deterministic semantic differences in human-readable language.\n\nExample:\n\nDeterministic finding:\nBirth weight occurrence changed:\n0..1 → 1..1\nAI explanation:\nBirth weight is now mandatory in this template. Existing data or application workflows that previously omitted birth weight may no longer satisfy the new template constraint.\n\nKeep the deterministic finding distinct from AI explanation.",
+      "requirement": "AI may explain deterministic semantic differences in human-readable language.\n\nExample:\n\nDeterministic finding:\nBirth weight occurrence changed:\n0..1 \u2192 1..1\nAI explanation:\nBirth weight is now mandatory in this template. Existing data or application workflows that previously omitted birth weight may no longer satisfy the new template constraint.\n\nKeep the deterministic finding distinct from AI explanation.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -1165,7 +1165,7 @@
     {
       "id": "EXCHANGE-155",
       "title": "Model Tool Capability Registry",
-      "requirement": "Maintain a registry of external modelling-tool capabilities.\n\nExample conceptual representation:\n\nModelling Tool\n│\n├── Provider\n├── Version\n├── Import Formats\n├── Export Formats\n├── API Support\n├── Revision Support\n├── Automation Support\n└── Verified Compatibility\n\nThis registry must remain separate from the core openEHR model representation.",
+      "requirement": "Maintain a registry of external modelling-tool capabilities.\n\nExample conceptual representation:\n\nModelling Tool\n\u2502\n\u251c\u2500\u2500 Provider\n\u251c\u2500\u2500 Version\n\u251c\u2500\u2500 Import Formats\n\u251c\u2500\u2500 Export Formats\n\u251c\u2500\u2500 API Support\n\u251c\u2500\u2500 Revision Support\n\u251c\u2500\u2500 Automation Support\n\u2514\u2500\u2500 Verified Compatibility\n\nThis registry must remain separate from the core openEHR model representation.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -1173,7 +1173,7 @@
     {
       "id": "EXCHANGE-156",
       "title": "Multiple Modelling Tools",
-      "requirement": "Do not architect the platform as if Archetype Designer will always be the only external modeller.\n\nSupport:\n\nModellingToolAdapter\n        │\n        ├── ArchetypeDesignerAdapter\n        └── Future adapters\n\nDo not implement speculative adapters without an actual integration requirement.\n\nThe architecture should simply permit them.",
+      "requirement": "Do not architect the platform as if Archetype Designer will always be the only external modeller.\n\nSupport:\n\nModellingToolAdapter\n        \u2502\n        \u251c\u2500\u2500 ArchetypeDesignerAdapter\n        \u2514\u2500\u2500 Future adapters\n\nDo not implement speculative adapters without an actual integration requirement.\n\nThe architecture should simply permit them.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -1188,7 +1188,7 @@
     {
       "id": "EXCHANGE-158",
       "title": "Assistant-Native Modelling",
-      "requirement": "Continue improving native modelling capabilities.\n\nTarget:\n\nRequirement\n      ↓\nAI-assisted modelling workflow\n      ↓\nCanonical template model\n      ↓\nOET\n      ↓\nValidation\n      ↓\nOPT\n\nThis allows organisations to use:\n\nCodex\nCopilot\nother MCP agents\nreference visual workspace\n\nwithout requiring Designer for every modelling operation.",
+      "requirement": "Continue improving native modelling capabilities.\n\nTarget:\n\nRequirement\n      \u2193\nAI-assisted modelling workflow\n      \u2193\nCanonical template model\n      \u2193\nOET\n      \u2193\nValidation\n      \u2193\nOPT\n\nThis allows organisations to use:\n\nCodex\nCopilot\nother MCP agents\nreference visual workspace\n\nwithout requiring Designer for every modelling operation.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -1196,7 +1196,7 @@
     {
       "id": "EXCHANGE-159",
       "title": "Native and External Editing Equality",
-      "requirement": "Models created natively and models imported from Designer must enter the same governance pipeline:\n\nModel\n  ↓\nValidation\n  ↓\nRepository\n  ↓\nTraceability\n  ↓\nQA\n  ↓\nReview\n  ↓\nApproval\n  ↓\nRelease\n\nDo not create a lower-quality governance path for AI-generated models.",
+      "requirement": "Models created natively and models imported from Designer must enter the same governance pipeline:\n\nModel\n  \u2193\nValidation\n  \u2193\nRepository\n  \u2193\nTraceability\n  \u2193\nQA\n  \u2193\nReview\n  \u2193\nApproval\n  \u2193\nRelease\n\nDo not create a lower-quality governance path for AI-generated models.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -1212,7 +1212,7 @@
     {
       "id": "EXCHANGE-161",
       "title": "Mixed-Origin Templates",
-      "requirement": "A template may legitimately contain dependencies from several sources.\n\nExample:\n\nNeonatal Admission\n│\n├── COMPOSITION — Organisation repository\n├── Body Weight — International CKM\n├── Apgar — National CKM\n└── Local neonatal assessment — Organisation model\n\nRecord source independently for every dependency.",
+      "requirement": "A template may legitimately contain dependencies from several sources.\n\nExample:\n\nNeonatal Admission\n\u2502\n\u251c\u2500\u2500 COMPOSITION \u2014 Organisation repository\n\u251c\u2500\u2500 Body Weight \u2014 International CKM\n\u251c\u2500\u2500 Apgar \u2014 National CKM\n\u2514\u2500\u2500 Local neonatal assessment \u2014 Organisation model\n\nRecord source independently for every dependency.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -1236,7 +1236,7 @@
     {
       "id": "EXCHANGE-164",
       "title": "Model Publication Boundary",
-      "requirement": "Do not automatically publish externally imported or assistant-generated models.\n\nThe lifecycle remains:\n\nDRAFT\n ↓\nVALIDATED\n ↓\nREVIEW_REQUESTED\n ↓\nREVIEWED\n ↓\nAPPROVED\n ↓\nPUBLISHED\n\nImport is not publication.\n\nCompilation is not publication.\n\nDesigner export is not publication.",
+      "requirement": "Do not automatically publish externally imported or assistant-generated models.\n\nThe lifecycle remains:\n\nDRAFT\n \u2193\nVALIDATED\n \u2193\nREVIEW_REQUESTED\n \u2193\nREVIEWED\n \u2193\nAPPROVED\n \u2193\nPUBLISHED\n\nImport is not publication.\n\nCompilation is not publication.\n\nDesigner export is not publication.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -1267,7 +1267,7 @@
     {
       "id": "EXCHANGE-168",
       "title": "Canonical vs Source-Specific Model",
-      "requirement": "Maintain a strict distinction:\n\nImmutable Source Artefact\n          ↓\nSource Adapter\n          ↓\nCanonical Semantic Representation\n\nThe canonical representation is used for:\n\ninspection\ncomparison\ndependency analysis\ngovernance\nQA\n\nThe immutable source remains available for exact round trip and provenance.",
+      "requirement": "Maintain a strict distinction:\n\nImmutable Source Artefact\n          \u2193\nSource Adapter\n          \u2193\nCanonical Semantic Representation\n\nThe canonical representation is used for:\n\ninspection\ncomparison\ndependency analysis\ngovernance\nQA\n\nThe immutable source remains available for exact round trip and provenance.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -1348,7 +1348,7 @@
     {
       "id": "EXCHANGE-179",
       "title": "Designer Import Verification",
-      "requirement": "Where import can be tested, verify:\n\nAssistant handoff\n      ↓\nDesigner import\n      ↓\nmodel opens\n      ↓\nexpected structure present\n      ↓\nDesigner export\n      ↓\nAssistant semantic comparison\n\nThis is stronger evidence than merely receiving an HTTP success response.",
+      "requirement": "Where import can be tested, verify:\n\nAssistant handoff\n      \u2193\nDesigner import\n      \u2193\nmodel opens\n      \u2193\nexpected structure present\n      \u2193\nDesigner export\n      \u2193\nAssistant semantic comparison\n\nThis is stronger evidence than merely receiving an HTTP success response.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -1363,7 +1363,7 @@
     {
       "id": "EXCHANGE-181",
       "title": "Simple Template Fixture",
-      "requirement": "Also maintain a minimal fixture for fast tests.\n\nDo not rely only on the complex fixture for routine unit tests.\n\nUse:\n\nsimple fixture → fast deterministic tests\ncomplex fixture → integration/conformance tests",
+      "requirement": "Also maintain a minimal fixture for fast tests.\n\nDo not rely only on the complex fixture for routine unit tests.\n\nUse:\n\nsimple fixture \u2192 fast deterministic tests\ncomplex fixture \u2192 integration/conformance tests",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -1505,7 +1505,7 @@
     {
       "id": "EXCHANGE-200",
       "title": "Import Receipt",
-      "requirement": "When an external modeller confirms successful import, allow generation of an import receipt.\n\nRecord:\n\nhandoff ID\ntarget tool\ntarget version\nimported artefact hash\nimported by\ntimestamp\nexternal revision\nresult\nnotes\n\nThis creates traceable evidence connecting:\n\nAssistant Handoff\n        ↓\nExternal Tool Import",
+      "requirement": "When an external modeller confirms successful import, allow generation of an import receipt.\n\nRecord:\n\nhandoff ID\ntarget tool\ntarget version\nimported artefact hash\nimported by\ntimestamp\nexternal revision\nresult\nnotes\n\nThis creates traceable evidence connecting:\n\nAssistant Handoff\n        \u2193\nExternal Tool Import",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -1526,14 +1526,14 @@
     {
       "id": "EXCHANGE-203",
       "title": "Compatibility Evidence Promotion",
-      "requirement": "Allow compatibility evidence to be promoted only after required tests pass.\n\nExample:\n\nUNVERIFIED\n      ↓\nFILE_EXCHANGE_VERIFIED\n      ↓\nSTRUCTURAL_ROUND_TRIP_VERIFIED\n      ↓\nSEMANTIC_ROUND_TRIP_VERIFIED\n      ↓\nAUTOMATED_WORKFLOW_VERIFIED\n\nDo not skip levels without evidence satisfying the higher level.",
+      "requirement": "Allow compatibility evidence to be promoted only after required tests pass.\n\nExample:\n\nUNVERIFIED\n      \u2193\nFILE_EXCHANGE_VERIFIED\n      \u2193\nSTRUCTURAL_ROUND_TRIP_VERIFIED\n      \u2193\nSEMANTIC_ROUND_TRIP_VERIFIED\n      \u2193\nAUTOMATED_WORKFLOW_VERIFIED\n\nDo not skip levels without evidence satisfying the higher level.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-204",
       "title": "Compatibility Downgrade",
-      "requirement": "Compatibility status must also be capable of being downgraded.\n\nFor example:\n\nDesigner version changes\n        ↓\nprevious evidence no longer sufficient\n        ↓\nSEMANTIC_ROUND_TRIP_VERIFIED\n        ↓\nREVALIDATION_REQUIRED\n\nNever preserve a stale green status indefinitely.",
+      "requirement": "Compatibility status must also be capable of being downgraded.\n\nFor example:\n\nDesigner version changes\n        \u2193\nprevious evidence no longer sufficient\n        \u2193\nSEMANTIC_ROUND_TRIP_VERIFIED\n        \u2193\nREVALIDATION_REQUIRED\n\nNever preserve a stale green status indefinitely.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -1555,7 +1555,7 @@
     {
       "id": "EXCHANGE-207",
       "title": "Architecture Documentation",
-      "requirement": "Document the generic architecture:\n\n                  External Modelling Tool\n                           │\n                           │ native artefacts\n                           ▼\n                 ModellingToolAdapter\n                           │\n                           ▼\n                   Import Pipeline\n                           │\n          ┌────────────────┼────────────────┐\n          │                │                │\n    Immutable Source   Canonical Model   Provenance\n          │                │                │\n          └────────────────┼────────────────┘\n                           │\n                     Model Repository\n                           │\n          ┌────────────────┼────────────────┐\n          │                │                │\n     Validation       Compilation       Governance\n          │                │                │\n          └────────────────┼────────────────┘\n                           │\n                       Handoff\n                           │\n                           ▼\n                  External Modelling Tool",
+      "requirement": "Document the generic architecture:\n\n                  External Modelling Tool\n                           \u2502\n                           \u2502 native artefacts\n                           \u25bc\n                 ModellingToolAdapter\n                           \u2502\n                           \u25bc\n                   Import Pipeline\n                           \u2502\n          \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u253c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n          \u2502                \u2502                \u2502\n    Immutable Source   Canonical Model   Provenance\n          \u2502                \u2502                \u2502\n          \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u253c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518\n                           \u2502\n                     Model Repository\n                           \u2502\n          \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u253c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n          \u2502                \u2502                \u2502\n     Validation       Compilation       Governance\n          \u2502                \u2502                \u2502\n          \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u253c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518\n                           \u2502\n                       Handoff\n                           \u2502\n                           \u25bc\n                  External Modelling Tool",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -1563,7 +1563,7 @@
     {
       "id": "EXCHANGE-208",
       "title": "Designer Architecture Documentation",
-      "requirement": "Document the Designer-specific implementation separately:\n\nArchetype Designer\n       │\n       ├── .t.json authoring artefact\n       │\n       ├── OET where available\n       │\n       └── OPT where available\n       │\n       ▼\nArchetypeDesignerAdapter\n       │\n       ▼\nGeneric Modelling Tool Integration\n\nDo not imply all three export formats are available unless verified.",
+      "requirement": "Document the Designer-specific implementation separately:\n\nArchetype Designer\n       \u2502\n       \u251c\u2500\u2500 .t.json authoring artefact\n       \u2502\n       \u251c\u2500\u2500 OET where available\n       \u2502\n       \u2514\u2500\u2500 OPT where available\n       \u2502\n       \u25bc\nArchetypeDesignerAdapter\n       \u2502\n       \u25bc\nGeneric Modelling Tool Integration\n\nDo not imply all three export formats are available unless verified.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -1594,7 +1594,7 @@
     },
     {
       "id": "EXCHANGE-212",
-      "title": "No Permanent “Cannot Compile OPT” Disclaimer",
+      "title": "No Permanent \u201cCannot Compile OPT\u201d Disclaimer",
       "requirement": "Once deterministic OPT compilation is implemented and tested, remove:\n\nThe assistant cannot compile an OPT.\n\nReplace it with:\n\nThe platform compiles validated templates into OPTs using the configured openEHR compilation engine.\n\nDocument compiler/version evidence.",
       "status": "PARTIAL",
       "evidence": [],
@@ -1627,7 +1627,7 @@
     {
       "id": "EXCHANGE-216",
       "title": "Designer Import Claim Gate",
-      "requirement": "Do not claim:\n\nDesigner can import assistant-generated OET without loss\n\nuntil a real round-trip test demonstrates it.\n\nThe claim gate is:\n\ngenerate\n ↓\nDesigner import\n ↓\ninspect\n ↓\nDesigner export\n ↓\nassistant re-import\n ↓\nsemantic comparison\n ↓\nevidence",
+      "requirement": "Do not claim:\n\nDesigner can import assistant-generated OET without loss\n\nuntil a real round-trip test demonstrates it.\n\nThe claim gate is:\n\ngenerate\n \u2193\nDesigner import\n \u2193\ninspect\n \u2193\nDesigner export\n \u2193\nassistant re-import\n \u2193\nsemantic comparison\n \u2193\nevidence",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -1659,7 +1659,7 @@
     {
       "id": "EXCHANGE-220",
       "title": "Offline Designer Workflow",
-      "requirement": "Support:\n\nDesigner workstation\n       ↓\nexport file\n       ↓\napproved transfer mechanism\n       ↓\noffline Modelling Assistant\n       ↓\nvalidation/governance\n       ↓\nhandoff bundle\n       ↓\napproved transfer mechanism\n       ↓\nDesigner workstation\n\nNo internet access should be required for the core exchange workflow.",
+      "requirement": "Support:\n\nDesigner workstation\n       \u2193\nexport file\n       \u2193\napproved transfer mechanism\n       \u2193\noffline Modelling Assistant\n       \u2193\nvalidation/governance\n       \u2193\nhandoff bundle\n       \u2193\napproved transfer mechanism\n       \u2193\nDesigner workstation\n\nNo internet access should be required for the core exchange workflow.",
       "status": "PARTIAL",
       "evidence": [],
       "note": "Existing repository, native engine or document-profile behaviour supplies part of this requirement; full external-tool exchange acceptance is not established."
@@ -1735,21 +1735,21 @@
     {
       "id": "EXCHANGE-230",
       "title": "External Artefact Archival",
-      "requirement": "Support archival instead of destructive deletion where appropriate.\n\nExample:\n\nACTIVE\n ↓\nARCHIVED\n\nArchived artefacts remain available for provenance/history but are excluded from ordinary active modelling searches.",
+      "requirement": "Support archival instead of destructive deletion where appropriate.\n\nExample:\n\nACTIVE\n \u2193\nARCHIVED\n\nArchived artefacts remain available for provenance/history but are excluded from ordinary active modelling searches.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-231",
       "title": "Designer Project Mapping",
-      "requirement": "Where Designer exposes project/workspace concepts, support mapping them to platform projects without assuming one-to-one equivalence.\n\nRepresent:\n\nExternal Project Reference\n      ↓\nPlatform Project\n\nStore the external identifier separately.",
+      "requirement": "Where Designer exposes project/workspace concepts, support mapping them to platform projects without assuming one-to-one equivalence.\n\nRepresent:\n\nExternal Project Reference\n      \u2193\nPlatform Project\n\nStore the external identifier separately.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-232",
       "title": "Multiple Designer Sources",
-      "requirement": "Allow an organisation to configure more than one external Designer source if required.\n\nExample:\n\nDesigner — International team\nDesigner — National programme\nDesigner — Internal organisation\n\nEach receives a distinct provider/source identifier.",
+      "requirement": "Allow an organisation to configure more than one external Designer source if required.\n\nExample:\n\nDesigner \u2014 International team\nDesigner \u2014 National programme\nDesigner \u2014 Internal organisation\n\nEach receives a distinct provider/source identifier.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -1777,21 +1777,21 @@
     {
       "id": "EXCHANGE-236",
       "title": "Source Promotion",
-      "requirement": "Support an explicit process to promote an external model into the organisation’s governed repository.\n\nExample:\n\nExternal Model\n      ↓\nInspect\n      ↓\nValidate\n      ↓\nImport baseline\n      ↓\nAssign provenance\n      ↓\nOrganisation working revision\n\nDo not silently convert external models into organisation-approved models.",
+      "requirement": "Support an explicit process to promote an external model into the organisation\u2019s governed repository.\n\nExample:\n\nExternal Model\n      \u2193\nInspect\n      \u2193\nValidate\n      \u2193\nImport baseline\n      \u2193\nAssign provenance\n      \u2193\nOrganisation working revision\n\nDo not silently convert external models into organisation-approved models.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-237",
       "title": "Organisation Fork",
-      "requirement": "Allow an organisation to create a governed local fork while preserving upstream lineage.\n\nExample:\n\nCKM model\n   ↓\nOrganisation fork\n   ↓\nlocal modifications\n\nRecord:\n\nupstream identifier\nupstream version\nupstream hash\nfork timestamp\nlocal revision",
+      "requirement": "Allow an organisation to create a governed local fork while preserving upstream lineage.\n\nExample:\n\nCKM model\n   \u2193\nOrganisation fork\n   \u2193\nlocal modifications\n\nRecord:\n\nupstream identifier\nupstream version\nupstream hash\nfork timestamp\nlocal revision",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-238",
       "title": "Upstream Update Detection",
-      "requirement": "For forked/imported models, detect newer upstream revisions where possible.\n\nWorkflow:\n\nUpstream revision changes\n      ↓\ndetect\n      ↓\nsemantic diff\n      ↓\nimpact analysis\n      ↓\nnotify modeller\n\nDo not automatically overwrite the organisation fork.",
+      "requirement": "For forked/imported models, detect newer upstream revisions where possible.\n\nWorkflow:\n\nUpstream revision changes\n      \u2193\ndetect\n      \u2193\nsemantic diff\n      \u2193\nimpact analysis\n      \u2193\nnotify modeller\n\nDo not automatically overwrite the organisation fork.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -1820,7 +1820,7 @@
     {
       "id": "EXCHANGE-242",
       "title": "Release Synchronisation Evidence",
-      "requirement": "Allow administrators and authorised modellers to record and verify the relationship between an internally governed release and its corresponding external modelling-tool revision.\n\nRecord:\n\ninternal release ID\ninternal release version\nrepository revision\nGit commit where applicable\nhandoff ID\ntarget modelling tool\ntarget project/workspace\nexternal artefact identifier\nexternal revision\nexternal status\nimport timestamp\nimporting actor\nverification timestamp\nsemantic comparison result\nsynchronisation state\n\nThis provides evidence for:\n\nInternal Release\n       ↓\nHandoff\n       ↓\nExternal Tool Import\n       ↓\nExternal Revision\n\nDo not infer release synchronisation merely because filenames match.",
+      "requirement": "Allow administrators and authorised modellers to record and verify the relationship between an internally governed release and its corresponding external modelling-tool revision.\n\nRecord:\n\ninternal release ID\ninternal release version\nrepository revision\nGit commit where applicable\nhandoff ID\ntarget modelling tool\ntarget project/workspace\nexternal artefact identifier\nexternal revision\nexternal status\nimport timestamp\nimporting actor\nverification timestamp\nsemantic comparison result\nsynchronisation state\n\nThis provides evidence for:\n\nInternal Release\n       \u2193\nHandoff\n       \u2193\nExternal Tool Import\n       \u2193\nExternal Revision\n\nDo not infer release synchronisation merely because filenames match.",
       "status": "NOT IMPLEMENTED",
       "evidence": [],
       "note": "The supplied source ends mid-requirement; no additional behaviour has been inferred."
@@ -1835,21 +1835,21 @@
     {
       "id": "EXCHANGE-244",
       "title": "Verified Release Synchronisation",
-      "requirement": "A release may be marked:\n\nVERIFIED_IN_SYNC\n\nonly when sufficient evidence exists.\n\nPreferred evidence:\n\ninternal released artefact\n        ↓\nexternal import\n        ↓\nexternal re-export\n        ↓\nassistant import\n        ↓\nsemantic comparison\n        ↓\nno material semantic differences\n\nDo not use file naming alone as evidence.",
+      "requirement": "A release may be marked:\n\nVERIFIED_IN_SYNC\n\nonly when sufficient evidence exists.\n\nPreferred evidence:\n\ninternal released artefact\n        \u2193\nexternal import\n        \u2193\nexternal re-export\n        \u2193\nassistant import\n        \u2193\nsemantic comparison\n        \u2193\nno material semantic differences\n\nDo not use file naming alone as evidence.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-245",
       "title": "Release Divergence",
-      "requirement": "If an external modelling tool modifies an already synchronised released model:\n\nInternal Release 1.0\n        │\n        └──── External Revision 100\n                         ↓\n                    modified\n                         ↓\n                  Revision 101\n\ndetect:\n\nEXTERNAL_AHEAD\n\nor:\n\nDIVERGED\n\ndepending on local state.\n\nDo not silently modify the original internal release.",
+      "requirement": "If an external modelling tool modifies an already synchronised released model:\n\nInternal Release 1.0\n        \u2502\n        \u2514\u2500\u2500\u2500\u2500 External Revision 100\n                         \u2193\n                    modified\n                         \u2193\n                  Revision 101\n\ndetect:\n\nEXTERNAL_AHEAD\n\nor:\n\nDIVERGED\n\ndepending on local state.\n\nDo not silently modify the original internal release.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-246",
       "title": "Immutable Releases",
-      "requirement": "An approved/published internal release must remain immutable.\n\nIf external changes need to return to the platform:\n\nExternal revision\n      ↓\nImport\n      ↓\nNew working revision\n      ↓\nValidation\n      ↓\nReview\n      ↓\nNew release\n\nNever mutate:\n\nRelease 1.0\n\ninto new content.",
+      "requirement": "An approved/published internal release must remain immutable.\n\nIf external changes need to return to the platform:\n\nExternal revision\n      \u2193\nImport\n      \u2193\nNew working revision\n      \u2193\nValidation\n      \u2193\nReview\n      \u2193\nNew release\n\nNever mutate:\n\nRelease 1.0\n\ninto new content.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -1870,14 +1870,14 @@
     {
       "id": "EXCHANGE-249",
       "title": "Release Deployment Separation",
-      "requirement": "Keep:\n\nExternal Modelling Tool Synchronisation\n\nseparate from:\n\nopenEHR CDR Deployment\n\nThe lifecycle may be:\n\nApproved Model Release\n       │\n       ├── Handoff to Designer\n       │\n       └── Deploy OPT to openEHR CDR\n\nNeither action implies the other occurred.",
+      "requirement": "Keep:\n\nExternal Modelling Tool Synchronisation\n\nseparate from:\n\nopenEHR CDR Deployment\n\nThe lifecycle may be:\n\nApproved Model Release\n       \u2502\n       \u251c\u2500\u2500 Handoff to Designer\n       \u2502\n       \u2514\u2500\u2500 Deploy OPT to openEHR CDR\n\nNeither action implies the other occurred.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-250",
       "title": "Designer Is Not the Runtime",
-      "requirement": "Never make Archetype Designer part of the runtime clinical-data path.\n\nCorrect:\n\nDesigner\n   ↓\nAuthoring\n   ↓\nModelling Assistant\n   ↓\nGoverned Model Release\n   ↓\nopenEHR CDR\n\nIncorrect:\n\nClinical Application\n       ↓\nDesigner\n       ↓\nCDR\n\nDesigner remains an authoring/modelling integration.",
+      "requirement": "Never make Archetype Designer part of the runtime clinical-data path.\n\nCorrect:\n\nDesigner\n   \u2193\nAuthoring\n   \u2193\nModelling Assistant\n   \u2193\nGoverned Model Release\n   \u2193\nopenEHR CDR\n\nIncorrect:\n\nClinical Application\n       \u2193\nDesigner\n       \u2193\nCDR\n\nDesigner remains an authoring/modelling integration.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -1919,7 +1919,7 @@
     {
       "id": "EXCHANGE-256",
       "title": "Offline OPT Compilation",
-      "requirement": "OPT compilation must work without Designer.\n\nTarget:\n\nLocal OET\n   +\nLocal/resolved archetypes\n       ↓\nLocal openEHR compiler\n       ↓\nOPT\n\nDesigner export must not be required to obtain an OPT.",
+      "requirement": "OPT compilation must work without Designer.\n\nTarget:\n\nLocal OET\n   +\nLocal/resolved archetypes\n       \u2193\nLocal openEHR compiler\n       \u2193\nOPT\n\nDesigner export must not be required to obtain an OPT.",
       "status": "PARTIAL",
       "evidence": [
         "docs/OPT_COMPILATION.md",
@@ -1931,14 +1931,14 @@
     {
       "id": "EXCHANGE-257",
       "title": "Designer OPT as Independent Evidence",
-      "requirement": "If Designer also produces an OPT, treat it as independent output.\n\nThis allows:\n\nAssistant OPT\n      ↕\nSemantic Comparison\n      ↕\nDesigner OPT\n\nThis is useful for interoperability verification.",
+      "requirement": "If Designer also produces an OPT, treat it as independent output.\n\nThis allows:\n\nAssistant OPT\n      \u2195\nSemantic Comparison\n      \u2195\nDesigner OPT\n\nThis is useful for interoperability verification.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-258",
       "title": "Compiler Independence",
-      "requirement": "Do not configure the assistant to depend on Designer’s compiler as its only template compiler.\n\nThe platform must retain its own deterministic openEHR compilation capability through the integrated openEHR engine.",
+      "requirement": "Do not configure the assistant to depend on Designer\u2019s compiler as its only template compiler.\n\nThe platform must retain its own deterministic openEHR compilation capability through the integrated openEHR engine.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -1964,7 +1964,7 @@
     {
       "id": "EXCHANGE-261",
       "title": "Compiler Conformance Fixtures",
-      "requirement": "Maintain reference templates that compile through the assistant’s engine.\n\nWhere Designer compilation is available, use selected fixtures for cross-tool comparison.\n\nDo not make external compiler access mandatory for ordinary CI.",
+      "requirement": "Maintain reference templates that compile through the assistant\u2019s engine.\n\nWhere Designer compilation is available, use selected fixtures for cross-tool comparison.\n\nDo not make external compiler access mandatory for ordinary CI.",
       "status": "PARTIAL",
       "evidence": [
         "docs/OPT_COMPILATION.md",
@@ -1995,7 +1995,7 @@
     {
       "id": "EXCHANGE-264",
       "title": "External API Schema Changes",
-      "requirement": "If an external API response changes:\n\ndetect unsupported schema\n      ↓\nfail safely\n      ↓\npreserve received evidence where appropriate\n      ↓\nreport provider incompatibility\n\nDo not silently misinterpret fields.",
+      "requirement": "If an external API response changes:\n\ndetect unsupported schema\n      \u2193\nfail safely\n      \u2193\npreserve received evidence where appropriate\n      \u2193\nreport provider incompatibility\n\nDo not silently misinterpret fields.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2044,7 +2044,7 @@
     {
       "id": "EXCHANGE-271",
       "title": "Project Migration Between Tools",
-      "requirement": "Where feasible, allow a project to change external modelling-tool configuration without changing the project’s internal identity.\n\nFor example:\n\nDesigner Instance A\n       ↓\nproject remains same\n       ↓\nDesigner Instance B\n\nPreserve previous provenance.\n\nDo not rewrite historical source references.",
+      "requirement": "Where feasible, allow a project to change external modelling-tool configuration without changing the project\u2019s internal identity.\n\nFor example:\n\nDesigner Instance A\n       \u2193\nproject remains same\n       \u2193\nDesigner Instance B\n\nPreserve previous provenance.\n\nDo not rewrite historical source references.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2149,7 +2149,7 @@
     {
       "id": "EXCHANGE-286",
       "title": "Example External Tool Policy",
-      "requirement": "Example:\n\nexternal_modelling_tools:\n  archetype_designer:\n    enabled: true\n    export:\n      minimum_model_status: REVIEWED\n    publication:\n      minimum_model_status: APPROVED\n      human_confirmation: true\n    compatibility:\n      minimum_level: SEMANTIC_ROUND_TRIP_VERIFIED\n\nThis is illustrative.\n\nImplement policy using the platform’s policy architecture.",
+      "requirement": "Example:\n\nexternal_modelling_tools:\n  archetype_designer:\n    enabled: true\n    export:\n      minimum_model_status: REVIEWED\n    publication:\n      minimum_model_status: APPROVED\n      human_confirmation: true\n    compatibility:\n      minimum_level: SEMANTIC_ROUND_TRIP_VERIFIED\n\nThis is illustrative.\n\nImplement policy using the platform\u2019s policy architecture.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2226,7 +2226,7 @@
     {
       "id": "EXCHANGE-297",
       "title": "Data Classification",
-      "requirement": "Support organisational classification metadata where useful:\n\nPUBLIC\nINTERNAL\nCONFIDENTIAL\nRESTRICTED\n\nDo not hard-code a specific organisation’s classification terminology into the core; make it configurable.",
+      "requirement": "Support organisational classification metadata where useful:\n\nPUBLIC\nINTERNAL\nCONFIDENTIAL\nRESTRICTED\n\nDo not hard-code a specific organisation\u2019s classification terminology into the core; make it configurable.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2261,7 +2261,7 @@
     {
       "id": "EXCHANGE-302",
       "title": "Trust Boundary",
-      "requirement": "Treat every external modelling tool as a separate trust boundary.\n\nArchitecture:\n\nExternal Modelling Tool\n        │\n        │ untrusted / externally controlled boundary\n        ▼\nModellingToolAdapter\n        │\n        ▼\nSecurity Validation\n        │\n        ├── Authentication verification\n        ├── Transport security\n        ├── Input-size limits\n        ├── Format validation\n        ├── XML/JSON security\n        ├── Revision verification\n        └── Provenance capture\n        │\n        ▼\nImport Staging\n        │\n        ▼\nopenEHR Validation\n        │\n        ▼\nCanonical Model Representation\n        │\n        ▼\nGoverned Model Repository\n\nNever assume that an artefact is trustworthy merely because it originated from:\n\nArchetype Designer\nCKM\nGitHub\nGitLab\nSharePoint\nanother modelling tool\n\nOrigin and validation are separate concepts.",
+      "requirement": "Treat every external modelling tool as a separate trust boundary.\n\nArchitecture:\n\nExternal Modelling Tool\n        \u2502\n        \u2502 untrusted / externally controlled boundary\n        \u25bc\nModellingToolAdapter\n        \u2502\n        \u25bc\nSecurity Validation\n        \u2502\n        \u251c\u2500\u2500 Authentication verification\n        \u251c\u2500\u2500 Transport security\n        \u251c\u2500\u2500 Input-size limits\n        \u251c\u2500\u2500 Format validation\n        \u251c\u2500\u2500 XML/JSON security\n        \u251c\u2500\u2500 Revision verification\n        \u2514\u2500\u2500 Provenance capture\n        \u2502\n        \u25bc\nImport Staging\n        \u2502\n        \u25bc\nopenEHR Validation\n        \u2502\n        \u25bc\nCanonical Model Representation\n        \u2502\n        \u25bc\nGoverned Model Repository\n\nNever assume that an artefact is trustworthy merely because it originated from:\n\nArchetype Designer\nCKM\nGitHub\nGitLab\nSharePoint\nanother modelling tool\n\nOrigin and validation are separate concepts.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2275,7 +2275,7 @@
     {
       "id": "EXCHANGE-304",
       "title": "External Endpoint Configuration",
-      "requirement": "External endpoints must be configured administratively.\n\nNormal users and AI agents must not be able to supply arbitrary provider base URLs during ordinary modelling operations.\n\nUse:\n\nConfigured Provider ID\n        ↓\nValidated Provider Configuration\n        ↓\nExternal Endpoint\n\nrather than:\n\nAgent supplied URL\n        ↓\nServer fetches arbitrary location",
+      "requirement": "External endpoints must be configured administratively.\n\nNormal users and AI agents must not be able to supply arbitrary provider base URLs during ordinary modelling operations.\n\nUse:\n\nConfigured Provider ID\n        \u2193\nValidated Provider Configuration\n        \u2193\nExternal Endpoint\n\nrather than:\n\nAgent supplied URL\n        \u2193\nServer fetches arbitrary location",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2338,7 +2338,7 @@
     {
       "id": "EXCHANGE-313",
       "title": "Provider Capability Negotiation",
-      "requirement": "At connection/configuration time:\n\nconnect\n ↓\nauthenticate\n ↓\ndiscover/verify capabilities\n ↓\nstore capability snapshot\n ↓\nenable supported operations\n\nDo not expose unsupported MCP/UI operations as though they work.",
+      "requirement": "At connection/configuration time:\n\nconnect\n \u2193\nauthenticate\n \u2193\ndiscover/verify capabilities\n \u2193\nstore capability snapshot\n \u2193\nenable supported operations\n\nDo not expose unsupported MCP/UI operations as though they work.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2352,7 +2352,7 @@
     {
       "id": "EXCHANGE-315",
       "title": "Capability Change Detection",
-      "requirement": "If a provider’s capabilities change:\n\nprevious capability snapshot\n        ↓\nrevalidate\n        ↓\ndifference detected\n        ↓\nupdate capability state\n        ↓\nwarn affected projects\n\nDo not silently continue using an operation that is no longer available.",
+      "requirement": "If a provider\u2019s capabilities change:\n\nprevious capability snapshot\n        \u2193\nrevalidate\n        \u2193\ndifference detected\n        \u2193\nupdate capability state\n        \u2193\nwarn affected projects\n\nDo not silently continue using an operation that is no longer available.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2366,14 +2366,14 @@
     {
       "id": "EXCHANGE-317",
       "title": "Format Transformation Registry",
-      "requirement": "Represent supported transformations explicitly.\n\nExample:\n\nOET\n  ↓\nOPT\n\nmay be:\n\nSUPPORTED\n\nthrough the openEHR compiler.\n\nBut:\n\nDESIGNER_AUTHORING_JSON\n  ↓\nOPT\n\nmust not automatically be marked supported unless an explicit verified conversion exists.",
+      "requirement": "Represent supported transformations explicitly.\n\nExample:\n\nOET\n  \u2193\nOPT\n\nmay be:\n\nSUPPORTED\n\nthrough the openEHR compiler.\n\nBut:\n\nDESIGNER_AUTHORING_JSON\n  \u2193\nOPT\n\nmust not automatically be marked supported unless an explicit verified conversion exists.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-318",
       "title": "No Implicit Conversion",
-      "requirement": "Never infer:\n\nFile A looks similar to File B\n        ↓\ntherefore formats are interchangeable\n\nEvery conversion must have:\n\ndefined source format\ndefined target format\nimplementation\ntests\nprovenance\nknown limitations",
+      "requirement": "Never infer:\n\nFile A looks similar to File B\n        \u2193\ntherefore formats are interchangeable\n\nEvery conversion must have:\n\ndefined source format\ndefined target format\nimplementation\ntests\nprovenance\nknown limitations",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2422,7 +2422,7 @@
     {
       "id": "EXCHANGE-325",
       "title": "Canonical Model Round-Trip",
-      "requirement": "For supported standard artefacts test:\n\nSource\n ↓\nParser\n ↓\nCanonical Model\n ↓\nSerializer\n ↓\nOutput\n ↓\nParser\n ↓\nCanonical Model\n\nCompare semantic equivalence.",
+      "requirement": "For supported standard artefacts test:\n\nSource\n \u2193\nParser\n \u2193\nCanonical Model\n \u2193\nSerializer\n \u2193\nOutput\n \u2193\nParser\n \u2193\nCanonical Model\n\nCompare semantic equivalence.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2471,14 +2471,14 @@
     {
       "id": "EXCHANGE-332",
       "title": "External Write Verification",
-      "requirement": "After a successful external write:\n\nwrite\n ↓\nretrieve resulting revision\n ↓\nverify\n ↓\nrecord external revision\n\nDo not rely only on an HTTP success status.",
+      "requirement": "After a successful external write:\n\nwrite\n \u2193\nretrieve resulting revision\n \u2193\nverify\n \u2193\nrecord external revision\n\nDo not rely only on an HTTP success status.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-333",
       "title": "External Write Semantic Verification",
-      "requirement": "Where feasible:\n\nAssistant handoff\n      ↓\nExternal write/import\n      ↓\nExternal retrieval/export\n      ↓\nAssistant import\n      ↓\nSemantic comparison\n\nThis provides stronger evidence of successful exchange.",
+      "requirement": "Where feasible:\n\nAssistant handoff\n      \u2193\nExternal write/import\n      \u2193\nExternal retrieval/export\n      \u2193\nAssistant import\n      \u2193\nSemantic comparison\n\nThis provides stronger evidence of successful exchange.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2492,14 +2492,14 @@
     {
       "id": "EXCHANGE-335",
       "title": "External Transaction Uncertainty",
-      "requirement": "Handle situations where:\n\nrequest sent\n ↓\nconnection lost\n ↓\nunknown whether external write occurred\n\nDo not blindly repeat the write.\n\nFirst inspect external state where possible.",
+      "requirement": "Handle situations where:\n\nrequest sent\n \u2193\nconnection lost\n \u2193\nunknown whether external write occurred\n\nDo not blindly repeat the write.\n\nFirst inspect external state where possible.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-336",
       "title": "External Revision Conflict",
-      "requirement": "If the provider reports revision conflict:\n\nretrieve current external revision\n ↓\ncompare against baseline\n ↓\nmark DIVERGED\n ↓\nprepare reconciliation\n\nDo not force overwrite by default.",
+      "requirement": "If the provider reports revision conflict:\n\nretrieve current external revision\n \u2193\ncompare against baseline\n \u2193\nmark DIVERGED\n \u2193\nprepare reconciliation\n\nDo not force overwrite by default.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2611,7 +2611,7 @@
     {
       "id": "EXCHANGE-352",
       "title": "Missing Dependency Workflow",
-      "requirement": "If an imported model references unavailable dependencies:\n\ndetect\n ↓\nidentify missing dependency\n ↓\nsearch configured repositories/CKMs\n ↓\npresent candidates\n ↓\nresolve according to policy\n\nDo not silently ignore missing dependencies.",
+      "requirement": "If an imported model references unavailable dependencies:\n\ndetect\n \u2193\nidentify missing dependency\n \u2193\nsearch configured repositories/CKMs\n \u2193\npresent candidates\n \u2193\nresolve according to policy\n\nDo not silently ignore missing dependencies.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2646,7 +2646,7 @@
     {
       "id": "EXCHANGE-357",
       "title": "Dependency Update Preview",
-      "requirement": "Before updating:\n\ncurrent dependency\n      ↓\ncandidate newer dependency\n      ↓\nsemantic diff\n      ↓\nimpact analysis\n      ↓\nupdate preview",
+      "requirement": "Before updating:\n\ncurrent dependency\n      \u2193\ncandidate newer dependency\n      \u2193\nsemantic diff\n      \u2193\nimpact analysis\n      \u2193\nupdate preview",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2681,7 +2681,7 @@
     {
       "id": "EXCHANGE-362",
       "title": "Provider-Specific Handoff Instructions",
-      "requirement": "Allow each adapter to generate provider-specific instructions without modifying the generic handoff domain.\n\nExample:\n\nArchetypeDesignerAdapter\n        ↓\nHandoff Instructions",
+      "requirement": "Allow each adapter to generate provider-specific instructions without modifying the generic handoff domain.\n\nExample:\n\nArchetypeDesignerAdapter\n        \u2193\nHandoff Instructions",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2730,7 +2730,7 @@
     {
       "id": "EXCHANGE-369",
       "title": "Agent Revision Safety",
-      "requirement": "Every agent write must use current revision information.\n\nAgents should:\n\nread\n ↓\nreceive revision\n ↓\nprepare change\n ↓\nwrite expectedRevision\n\nIf stale:\n\nretrieve latest\n ↓\nsemantic diff\n ↓\nreconcile",
+      "requirement": "Every agent write must use current revision information.\n\nAgents should:\n\nread\n \u2193\nreceive revision\n \u2193\nprepare change\n \u2193\nwrite expectedRevision\n\nIf stale:\n\nretrieve latest\n \u2193\nsemantic diff\n \u2193\nreconcile",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2765,21 +2765,21 @@
     {
       "id": "EXCHANGE-374",
       "title": "Agent Must Preserve Source Artefacts",
-      "requirement": "When modifying a model imported from an external tool:\n\nImmutable source\n      ↓\nWorking revision\n\nThe agent modifies the working representation/revision.\n\nIt must not overwrite the immutable imported baseline.",
+      "requirement": "When modifying a model imported from an external tool:\n\nImmutable source\n      \u2193\nWorking revision\n\nThe agent modifies the working representation/revision.\n\nIt must not overwrite the immutable imported baseline.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-375",
       "title": "Agent Must Use Deterministic Validation",
-      "requirement": "After a model modification:\n\nAgent change\n      ↓\nopenEHR validation\n      ↓\nsemantic diff\n      ↓\nQA\n\nDo not rely on:\n\n\"The generated XML looks correct.\"",
+      "requirement": "After a model modification:\n\nAgent change\n      \u2193\nopenEHR validation\n      \u2193\nsemantic diff\n      \u2193\nQA\n\nDo not rely on:\n\n\"The generated XML looks correct.\"",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-376",
       "title": "Agent Must Compile Rather Than Assume",
-      "requirement": "For template changes:\n\nOET\n ↓\nvalidate\n ↓\nresolve dependencies\n ↓\ncompile\n ↓\nvalidate OPT\n\nA successful OET serialization is not proof of successful template compilation.",
+      "requirement": "For template changes:\n\nOET\n \u2193\nvalidate\n \u2193\nresolve dependencies\n \u2193\ncompile\n \u2193\nvalidate OPT\n\nA successful OET serialization is not proof of successful template compilation.",
       "status": "PARTIAL",
       "evidence": [
         "docs/OPT_COMPILATION.md",
@@ -2791,7 +2791,7 @@
     {
       "id": "EXCHANGE-377",
       "title": "Agent Must Inspect Compilation Errors",
-      "requirement": "If compilation fails:\n\ninspect structured compiler errors\n      ↓\nidentify source problem\n      ↓\ncorrect model\n      ↓\nvalidate\n      ↓\ncompile again\n\nDo not suppress compiler failures.",
+      "requirement": "If compilation fails:\n\ninspect structured compiler errors\n      \u2193\nidentify source problem\n      \u2193\ncorrect model\n      \u2193\nvalidate\n      \u2193\ncompile again\n\nDo not suppress compiler failures.",
       "status": "PARTIAL",
       "evidence": [
         "docs/OPT_COMPILATION.md",
@@ -2831,7 +2831,7 @@
     {
       "id": "EXCHANGE-382",
       "title": "Agent Must Search Before Creating",
-      "requirement": "Before creating a new archetype or major template component:\n\nsearch project repository\n      ↓\nsearch organisation repository\n      ↓\nsearch configured CKMs\n      ↓\ninspect candidates\n      ↓\nreuse where appropriate\n      ↓\ncreate only when justified\n\nThis is particularly important for avoiding unnecessary duplicate clinical models.",
+      "requirement": "Before creating a new archetype or major template component:\n\nsearch project repository\n      \u2193\nsearch organisation repository\n      \u2193\nsearch configured CKMs\n      \u2193\ninspect candidates\n      \u2193\nreuse where appropriate\n      \u2193\ncreate only when justified\n\nThis is particularly important for avoiding unnecessary duplicate clinical models.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2845,7 +2845,7 @@
     {
       "id": "EXCHANGE-384",
       "title": "Agent Must Not Modify Upstream Source Directly",
-      "requirement": "When an upstream CKM/Designer artefact needs local changes:\n\nimport baseline\n      ↓\ncreate governed local revision/fork\n\nDo not rewrite the upstream provenance.",
+      "requirement": "When an upstream CKM/Designer artefact needs local changes:\n\nimport baseline\n      \u2193\ncreate governed local revision/fork\n\nDo not rewrite the upstream provenance.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2859,28 +2859,28 @@
     {
       "id": "EXCHANGE-386",
       "title": "Agent Handoff Behaviour",
-      "requirement": "When asked:\n\n\"Give this back to Designer\"\n\nthe agent should:\n\nidentify target provider\n      ↓\ninspect provider capabilities\n      ↓\nvalidate current revision\n      ↓\nrun required QA\n      ↓\ncheck governance policy\n      ↓\ngenerate handoff\n      ↓\nidentify exact import artefact\n      ↓\nprovide checksum\n\nIf automated export is verified and authorised, the appropriate adapter may perform it.\n\nOtherwise produce the manual handoff.",
+      "requirement": "When asked:\n\n\"Give this back to Designer\"\n\nthe agent should:\n\nidentify target provider\n      \u2193\ninspect provider capabilities\n      \u2193\nvalidate current revision\n      \u2193\nrun required QA\n      \u2193\ncheck governance policy\n      \u2193\ngenerate handoff\n      \u2193\nidentify exact import artefact\n      \u2193\nprovide checksum\n\nIf automated export is verified and authorised, the appropriate adapter may perform it.\n\nOtherwise produce the manual handoff.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-387",
       "title": "Agent External Import Behaviour",
-      "requirement": "When asked:\n\n\"Import this Designer model\"\n\nthe workflow should be:\n\nidentify artefact\n      ↓\nsecurity checks\n      ↓\npreserve immutable original\n      ↓\nextract provenance\n      ↓\nparse\n      ↓\nvalidate\n      ↓\nresolve dependencies\n      ↓\npreview changes\n      ↓\nimport governed revision\n\nDo not immediately overwrite an existing project model.",
+      "requirement": "When asked:\n\n\"Import this Designer model\"\n\nthe workflow should be:\n\nidentify artefact\n      \u2193\nsecurity checks\n      \u2193\npreserve immutable original\n      \u2193\nextract provenance\n      \u2193\nparse\n      \u2193\nvalidate\n      \u2193\nresolve dependencies\n      \u2193\npreview changes\n      \u2193\nimport governed revision\n\nDo not immediately overwrite an existing project model.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-388",
       "title": "Agent Conflict Behaviour",
-      "requirement": "If:\n\nREVISION_CONFLICT\n\nor:\n\nDIVERGED\n\noccurs, the agent should:\n\nretrieve current revisions\n      ↓\nrun semantic comparison\n      ↓\nidentify conflicting changes\n      ↓\nprepare reconciliation\n\nDo not retry the same stale write.",
+      "requirement": "If:\n\nREVISION_CONFLICT\n\nor:\n\nDIVERGED\n\noccurs, the agent should:\n\nretrieve current revisions\n      \u2193\nrun semantic comparison\n      \u2193\nidentify conflicting changes\n      \u2193\nprepare reconciliation\n\nDo not retry the same stale write.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-389",
       "title": "Agent Round-Trip Verification",
-      "requirement": "When asked whether a handoff survived Designer import:\n\nretrieve/upload Designer re-export\n      ↓\nidentify\n      ↓\nvalidate\n      ↓\nsemantic comparison\n      ↓\nreport preservation/loss\n      ↓\nstore verification evidence",
+      "requirement": "When asked whether a handoff survived Designer import:\n\nretrieve/upload Designer re-export\n      \u2193\nidentify\n      \u2193\nvalidate\n      \u2193\nsemantic comparison\n      \u2193\nreport preservation/loss\n      \u2193\nstore verification evidence",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2900,7 +2900,7 @@
     },
     {
       "id": "EXCHANGE-392",
-      "title": "Phase — Final External Modelling Tool Test Suite",
+      "title": "Phase \u2014 Final External Modelling Tool Test Suite",
       "requirement": "Create a comprehensive automated test suite covering the entire integration subsystem.\n\nAt minimum include:\n\nartefact identification\nsource preservation\nprovenance\nrevision handling\noptimistic concurrency\nparsing\nserialization\nsemantic representation\nsemantic hashing\nsemantic diff\ndependency resolution\nterminology preservation\nlanguage preservation\nannotation preservation\nOET generation\nOET parsing\nOPT compilation\nhandoff generation\nhandoff verification\nround-trip comparison\nprovider capability handling\nsecurity",
       "status": "NOT IMPLEMENTED",
       "evidence": []
@@ -2908,7 +2908,7 @@
     {
       "id": "EXCHANGE-393",
       "title": "Source Preservation Tests",
-      "requirement": "For every supported import type:\n\nread source bytes\n      ↓\nimport\n      ↓\nretrieve immutable source\n      ↓\ncompare bytes\n\nVerify exact preservation.",
+      "requirement": "For every supported import type:\n\nread source bytes\n      \u2193\nimport\n      \u2193\nretrieve immutable source\n      \u2193\ncompare bytes\n\nVerify exact preservation.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2936,7 +2936,7 @@
     {
       "id": "EXCHANGE-397",
       "title": "Revision Conflict Tests",
-      "requirement": "Test:\n\nread revision 10\n      ↓\nanother write creates 11\n      ↓\nwrite expectedRevision=10\n      ↓\nREJECT\n\nVerify no data loss.",
+      "requirement": "Test:\n\nread revision 10\n      \u2193\nanother write creates 11\n      \u2193\nwrite expectedRevision=10\n      \u2193\nREJECT\n\nVerify no data loss.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2957,7 +2957,7 @@
     {
       "id": "EXCHANGE-400",
       "title": "OET Parser/Serializer Tests",
-      "requirement": "Test:\n\nOET\n ↓\nparse\n ↓\ncanonical model\n ↓\nserialize\n ↓\nOET\n ↓\nparse\n ↓\nsemantic compare",
+      "requirement": "Test:\n\nOET\n \u2193\nparse\n \u2193\ncanonical model\n \u2193\nserialize\n \u2193\nOET\n \u2193\nparse\n \u2193\nsemantic compare",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -2971,7 +2971,7 @@
     {
       "id": "EXCHANGE-402",
       "title": "OPT Compilation Tests",
-      "requirement": "Verify:\n\nvalid OET + dependencies → valid OPT\ninvalid OET → compilation failure\nmissing dependency → compilation failure\ninvalid archetype → compilation failure",
+      "requirement": "Verify:\n\nvalid OET + dependencies \u2192 valid OPT\ninvalid OET \u2192 compilation failure\nmissing dependency \u2192 compilation failure\ninvalid archetype \u2192 compilation failure",
       "status": "PARTIAL",
       "evidence": [
         "docs/OPT_COMPILATION.md",
@@ -2983,7 +2983,7 @@
     {
       "id": "EXCHANGE-403",
       "title": "Cross-Compiler Tests",
-      "requirement": "Where Designer-generated OPT fixtures are legally/testably available:\n\nDesigner OPT\n      ↕\nsemantic comparison\n      ↕\nAssistant OPT\n\nRecord expected semantic equivalence/differences.",
+      "requirement": "Where Designer-generated OPT fixtures are legally/testably available:\n\nDesigner OPT\n      \u2195\nsemantic comparison\n      \u2195\nAssistant OPT\n\nRecord expected semantic equivalence/differences.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -3122,7 +3122,7 @@
     },
     {
       "id": "EXCHANGE-423",
-      "title": "Phase — Final Documentation",
+      "title": "Phase \u2014 Final Documentation",
       "requirement": "Update all relevant documentation.\n\nAt minimum:\n\nREADME.md\nCAPABILITIES.md\ndocs/ARCHITECTURE.md\ndocs/MODEL_REPOSITORY.md\ndocs/ARCHETYPE_DESIGNER_INTEGRATION.md\ndocs/ARCHETYPE_DESIGNER_COMPATIBILITY.md\ndocs/MODELLING_TOOL_INTEGRATION.md\ndocs/SECURITY.md\ndocs/GOVERNANCE.md\ndocs/MCP_TOOLS.md\ndocs/workflows/archetype-designer.md",
       "status": "NOT IMPLEMENTED",
       "evidence": []
@@ -3207,7 +3207,7 @@
     {
       "id": "EXCHANGE-435",
       "title": "Existing Artefact Migration",
-      "requirement": "For artefacts already stored before provenance enhancements:\n\nidentify\n      ↓\npreserve exact existing content\n      ↓\ncalculate source hash\n      ↓\ndetect/classify format\n      ↓\nextract deterministically available metadata\n      ↓\ncreate migration provenance\n      ↓\nretain original repository revision\n      ↓\nbuild canonical representation where supported\n      ↓\nvalidate where supported\n      ↓\nindex for search\n\nDo not invent unknown source information.\n\nIf the original external source is unknown, record:\n\nsource:\nUNKNOWN\n\nDo not infer:\n\nArchetype Designer\n\nmerely from filename or repository location unless deterministic evidence supports that conclusion.\n\nPreserve historical timestamps and revision information where available.",
+      "requirement": "For artefacts already stored before provenance enhancements:\n\nidentify\n      \u2193\npreserve exact existing content\n      \u2193\ncalculate source hash\n      \u2193\ndetect/classify format\n      \u2193\nextract deterministically available metadata\n      \u2193\ncreate migration provenance\n      \u2193\nretain original repository revision\n      \u2193\nbuild canonical representation where supported\n      \u2193\nvalidate where supported\n      \u2193\nindex for search\n\nDo not invent unknown source information.\n\nIf the original external source is unknown, record:\n\nsource:\nUNKNOWN\n\nDo not infer:\n\nArchetype Designer\n\nmerely from filename or repository location unless deterministic evidence supports that conclusion.\n\nPreserve historical timestamps and revision information where available.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -3255,7 +3255,7 @@
     },
     {
       "id": "EXCHANGE-442",
-      "title": "Phase — Final Repository-Wide Audit",
+      "title": "Phase \u2014 Final Repository-Wide Audit",
       "requirement": "After implementing the complete external-modelling-tool subsystem, perform a new repository-wide audit.\n\nSearch for:\n\nTODO\nFIXME\nstub\nplaceholder\nnot implemented\npartial\nreserved\nfuture\ntemporary\nmock only\nunsupported\nDesigner limitation\ncannot compile\nstructural only\ndirect ENTRY\n\nReview every occurrence in context.\n\nDo not automatically remove legitimate statements describing actual remaining limitations.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
@@ -3312,7 +3312,7 @@
     {
       "id": "EXCHANGE-450",
       "title": "Final Compilation Gate",
-      "requirement": "Run:\n\ncomplex OET\n      ↓\ndependency resolution\n      ↓\nopenEHR validation\n      ↓\nOPT compilation\n      ↓\nOPT validation\n\nVerify the resulting OPT can be inspected deterministically.",
+      "requirement": "Run:\n\ncomplex OET\n      \u2193\ndependency resolution\n      \u2193\nopenEHR validation\n      \u2193\nOPT compilation\n      \u2193\nOPT validation\n\nVerify the resulting OPT can be inspected deterministically.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -3347,7 +3347,7 @@
     {
       "id": "EXCHANGE-455",
       "title": "Final Revision-Safety Gate",
-      "requirement": "Simulate concurrent editing.\n\nWorkflow:\n\nClient A reads revision 50\nClient B reads revision 50\nClient A writes expectedRevision=50\n        ↓\nrevision 51\nClient B writes expectedRevision=50\n        ↓\nREJECT\n\nVerify Client A’s work is not overwritten.",
+      "requirement": "Simulate concurrent editing.\n\nWorkflow:\n\nClient A reads revision 50\nClient B reads revision 50\nClient A writes expectedRevision=50\n        \u2193\nrevision 51\nClient B writes expectedRevision=50\n        \u2193\nREJECT\n\nVerify Client A\u2019s work is not overwritten.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -3361,7 +3361,7 @@
     {
       "id": "EXCHANGE-457",
       "title": "Final Source-Preservation Gate",
-      "requirement": "For each supported source format:\n\nimport original\n      ↓\nstore\n      ↓\nretrieve immutable source\n      ↓\nbyte comparison\n\nThe bytes must match exactly unless the source-storage contract explicitly defines another preservation mechanism.",
+      "requirement": "For each supported source format:\n\nimport original\n      \u2193\nstore\n      \u2193\nretrieve immutable source\n      \u2193\nbyte comparison\n\nThe bytes must match exactly unless the source-storage contract explicitly defines another preservation mechanism.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -3389,7 +3389,7 @@
     {
       "id": "EXCHANGE-461",
       "title": "Final Round-Trip Gate",
-      "requirement": "Where live Designer access is available:\n\nAssistant handoff\n      ↓\nDesigner import\n      ↓\nDesigner re-export\n      ↓\nAssistant import\n      ↓\nsemantic comparison\n\nPersist the evidence.\n\nWhere live access is unavailable, leave only this live step as:\n\nEXTERNAL_ACCEPTANCE_REQUIRED",
+      "requirement": "Where live Designer access is available:\n\nAssistant handoff\n      \u2193\nDesigner import\n      \u2193\nDesigner re-export\n      \u2193\nAssistant import\n      \u2193\nsemantic comparison\n\nPersist the evidence.\n\nWhere live access is unavailable, leave only this live step as:\n\nEXTERNAL_ACCEPTANCE_REQUIRED",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -3501,7 +3501,7 @@
     {
       "id": "EXCHANGE-477",
       "title": "Final Architecture",
-      "requirement": "The completed architecture should resemble:\n\n                HUMAN / AI MODELLERS\n                         │\n                         ▼\n              openEHR Modelling Assistant\n                         │\n        ┌────────────────┼────────────────┐\n        │                │                │\n     Modelling       Validation       Governance\n        │                │                │\n        └────────────────┼────────────────┘\n                         │\n                Canonical Model Layer\n                         │\n        ┌────────────────┼────────────────┐\n        │                │                │\n    Provenance       Repository       Compilation\n        │                │                │\n        └────────────────┼────────────────┘\n                         │\n                Artefact Lifecycle\n                         │\n           ┌─────────────┴─────────────┐\n           │                           │\n           ▼                           ▼\n External Modelling Tools        Model Releases\n           │                           │\n    ┌──────┴──────┐                    ▼\n    │             │               openEHR CDR\nArchetype      Future\nDesigner       Adapters",
+      "requirement": "The completed architecture should resemble:\n\n                HUMAN / AI MODELLERS\n                         \u2502\n                         \u25bc\n              openEHR Modelling Assistant\n                         \u2502\n        \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u253c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n        \u2502                \u2502                \u2502\n     Modelling       Validation       Governance\n        \u2502                \u2502                \u2502\n        \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u253c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518\n                         \u2502\n                Canonical Model Layer\n                         \u2502\n        \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u253c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n        \u2502                \u2502                \u2502\n    Provenance       Repository       Compilation\n        \u2502                \u2502                \u2502\n        \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u253c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518\n                         \u2502\n                Artefact Lifecycle\n                         \u2502\n           \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n           \u2502                           \u2502\n           \u25bc                           \u25bc\n External Modelling Tools        Model Releases\n           \u2502                           \u2502\n    \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2500\u2510                    \u25bc\n    \u2502             \u2502               openEHR CDR\nArchetype      Future\nDesigner       Adapters",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -3515,7 +3515,7 @@
     {
       "id": "EXCHANGE-479",
       "title": "Source of Truth",
-      "requirement": "Define sources of truth explicitly.\n\nFor example:\n\nExact imported bytes\n→ Immutable Source Artefact\nCurrent governed working model\n→ Model Repository Revision\nCompiled runtime model\n→ Generated OPT Build Artefact\nApproved model set\n→ Release\nExternal authoring state\n→ External Tool Revision\n\nDo not collapse these concepts.",
+      "requirement": "Define sources of truth explicitly.\n\nFor example:\n\nExact imported bytes\n\u2192 Immutable Source Artefact\nCurrent governed working model\n\u2192 Model Repository Revision\nCompiled runtime model\n\u2192 Generated OPT Build Artefact\nApproved model set\n\u2192 Release\nExternal authoring state\n\u2192 External Tool Revision\n\nDo not collapse these concepts.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
@@ -3529,21 +3529,21 @@
     {
       "id": "EXCHANGE-481",
       "title": "Git as Shared Authoring Backbone",
-      "requirement": "Where Git is selected:\n\nDesigner / External Tool\n          ↕\n         Git\n          ↕\nModelling Assistant\n\ncan form the shared model workflow.\n\nHowever, verify actual Designer Git capabilities before claiming direct synchronization.\n\nManual export/import through Git remains acceptable.",
+      "requirement": "Where Git is selected:\n\nDesigner / External Tool\n          \u2195\n         Git\n          \u2195\nModelling Assistant\n\ncan form the shared model workflow.\n\nHowever, verify actual Designer Git capabilities before claiming direct synchronization.\n\nManual export/import through Git remains acceptable.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-482",
       "title": "SharePoint as Organisational Repository",
-      "requirement": "Where SharePoint is selected:\n\nDesigner\n   ↓\nexport\n   ↓\nSharePoint\n   ↕\nModelling Assistant\n\nmay be supported through the repository adapter.\n\nDo not require SharePoint for other deployments.",
+      "requirement": "Where SharePoint is selected:\n\nDesigner\n   \u2193\nexport\n   \u2193\nSharePoint\n   \u2195\nModelling Assistant\n\nmay be supported through the repository adapter.\n\nDo not require SharePoint for other deployments.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },
     {
       "id": "EXCHANGE-483",
       "title": "Filesystem Deployment",
-      "requirement": "For small/offline installations:\n\nDesigner\n   ↓\nexport\n   ↓\nFilesystem Model Repository\n   ↕\nModelling Assistant\n\nmust remain fully supported.",
+      "requirement": "For small/offline installations:\n\nDesigner\n   \u2193\nexport\n   \u2193\nFilesystem Model Repository\n   \u2195\nModelling Assistant\n\nmust remain fully supported.",
       "status": "NOT IMPLEMENTED",
       "evidence": []
     },

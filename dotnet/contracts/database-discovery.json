@@ -1,0 +1,380 @@
+[
+  {
+    "name": "source_database_discover",
+    "description": "Search real vendor table and column metadata using an operator-registered SQL Server read-only connection. No clinical rows or inferred clinical meanings are returned.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "query": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "afterTableId": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        },
+        "jobId": {
+          "type": "string",
+          "pattern": "^discovery-[a-f0-9]{32}$"
+        }
+      },
+      "required": [
+        "project",
+        "jobId"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "source_database_table",
+    "description": "Inspect columns and declared foreign keys from a pinned discovered schema. Keys do not establish clinical meaning. No clinical rows are returned.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "schemaFingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "tableId": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "afterColumnId": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "jobId": {
+          "type": "string",
+          "pattern": "^discovery-[a-f0-9]{32}$"
+        }
+      },
+      "required": [
+        "project",
+        "jobId",
+        "schemaFingerprint",
+        "tableId"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "source_database_plan_check",
+    "description": "Check a bounded SELECT plan against the exact discovered schema. Does not extract data, activate a mapping or approve models. Patient-specific filter values belong only in the private workspace.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "schemaFingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "plan": {
+          "type": "object",
+          "properties": {
+            "schemaFingerprint": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "root": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            },
+            "fields": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 128,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "table": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2147483647
+                  },
+                  "column": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2147483647
+                  },
+                  "field": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$"
+                  }
+                },
+                "required": [
+                  "table",
+                  "column",
+                  "field"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "joins": {
+              "type": "array",
+              "maxItems": 8,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2147483647
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "inner",
+                      "left"
+                    ]
+                  }
+                },
+                "required": [
+                  "key",
+                  "kind"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "filters": {
+              "type": "array",
+              "maxItems": 0,
+              "items": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            }
+          },
+          "required": [
+            "schemaFingerprint",
+            "root",
+            "fields",
+            "joins",
+            "filters",
+            "limit"
+          ],
+          "additionalProperties": false
+        },
+        "jobId": {
+          "type": "string",
+          "pattern": "^discovery-[a-f0-9]{32}$"
+        }
+      },
+      "required": [
+        "project",
+        "jobId",
+        "schemaFingerprint",
+        "plan"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "source_connectors",
+    "description": "List explicit database and platform/API source choices with per-connector implementation and qualification status. Selection does not grant patient-data access or establish connector support.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "source_discovery_job_create",
+    "description": "Create a versioned source-selection and discovery job. Retains the exact user narrative and selected connector/profile. No clinical rows, credentials or patient-specific filter values belong in this job.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "connector": {
+          "type": "string",
+          "enum": [
+            "sqlserver",
+            "oracle",
+            "postgresql",
+            "mysql",
+            "mariadb",
+            "sap-hana",
+            "epic-fhir",
+            "sap-bw",
+            "fhir-api",
+            "clinical-rest-api"
+          ]
+        },
+        "sourceProfile": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,63}$"
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "userNarrative": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 16000
+        }
+      },
+      "required": [
+        "project",
+        "connector",
+        "sourceProfile",
+        "purpose",
+        "userNarrative"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "source_discovery_jobs",
+    "description": "List up to 100 versioned source-selection jobs in an authorised modelling project.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "project"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "source_discovery_job_get",
+    "description": "Read a versioned source-selection job and its connector qualification status. Job fields cannot authorise extraction or clinical mapping.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "jobId": {
+          "type": "string",
+          "pattern": "^discovery-[a-f0-9]{32}$"
+        }
+      },
+      "required": [
+        "project",
+        "jobId"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "source_discovery_job_run",
+    "description": "Perform qualified metadata-only discovery for the explicitly selected source job. Requires a current revision and an operator-registered read-only connection. Unqualified connector types fail closed.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "jobId": {
+          "type": "string",
+          "pattern": "^discovery-[a-f0-9]{32}$"
+        },
+        "expectedRevision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "project",
+        "jobId",
+        "expectedRevision"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  }
+]

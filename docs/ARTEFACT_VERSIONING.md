@@ -52,7 +52,7 @@ File history is separate from [openEHR archetype/template identification](https:
 - `chat/test/repository-models.test.mjs`: profile access, immutable references, hash checks, missing/tampered inputs and bounded caches.
 - `chat/test/personal-workspace.test.mjs`: standalone artefact updates and unchanged-content writes; complete browser change previews and receipts.
 - `chat/test/browser.spec.mjs`: current-file, saved-version and version-history links.
-- `tests/Enterprise/TemplateBuildsTest.php`: changed builds retain their output path, previous content and evidence for both repository providers and both native output formats.
-- `tests/Enterprise/GitRepositoryTest.php`, `tests/Enterprise/RepositoryAndGovernanceTest.php`: durable revisions, unchanged saves, concurrency and historical reads.
+- `dotnet/Modeller.Application.Tests/Program.cs`: changed builds retain their output path, previous content and evidence for both repository providers and both native output formats.
+- `dotnet/Modeller.Application.Tests/Program.cs`, `dotnet/Modeller.Application.Tests/Program.cs`: durable revisions, unchanged saves, concurrency and historical reads.
 
 These checks use synthetic model artefacts and make no patient-data queries.

@@ -7,6 +7,8 @@ import {
 import { FHIR_REQUEST_TIMEOUT_MS, FHIR_ACTIONS, isFhirTool, isFhirWrite, validateFhirCall } from "./fhir-workspace.mjs";
 
 export const WRITE_TOOLS = new Set([
+    "source_discovery_job_create",
+    "source_discovery_job_run",
     ...Object.keys(INTEGRATION_ACTIONS).filter(
         (name) => INTEGRATION_ACTIONS[name].write.length || name === "modelling_engine",
     ),
@@ -26,6 +28,12 @@ export const WRITE_TOOLS = new Set([
     ...Object.keys(FHIR_ACTIONS).filter((name) => FHIR_ACTIONS[name].write.length),
 ]);
 export const READ_TOOLS = new Set([
+    "source_connectors",
+    "source_discovery_jobs",
+    "source_discovery_job_get",
+    "source_database_discover",
+    "source_database_table",
+    "source_database_plan_check",
     ...Object.keys(INTEGRATION_ACTIONS),
     ...Object.keys(FHIR_ACTIONS),
     "model_traceability_get",

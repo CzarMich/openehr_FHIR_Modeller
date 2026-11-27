@@ -3,13 +3,16 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
-        <title>Integration workspace · openEHR and FHIR Modeller</title>
+        <title>Integration workspace · openEHR Modeller</title>
         <link rel="stylesheet" href="/chat/integration.css" />
         <script type="module" src="/chat/integration.js"></script>
+        <link rel="stylesheet" href="/chat/michael.css" />
+        <script type="module" src="/chat/michael.js"></script>
     </head>
     <body>
         <header>
             <a href="/chat/">← Modelling workspace</a>
+            <button type="button" data-show-michael>Show Michael</button>
             <h1>Integration workspace</h1>
             <p>Prepare and confirm versioned mappings, process private files and assign mappings to channels.</p>
         </header>
@@ -81,6 +84,59 @@
                     Changing the model selection, instructions or rules requires a new mapping version and a new
                     confirmation.
                 </p>
+                <details>
+                    <summary>Reuse verified work and save AI calls</summary>
+                    <p>
+                        Look for existing work before generating a new mapping. Select the actual supplied target models
+                        above. Matching checks the source schema, declared source meaning/version, purpose, original
+                        user requirements, terminology snapshots and current runtime. Names and column types alone do
+                        not establish clinical meaning.
+                    </p>
+                    <label
+                        >Stable source system / profile identifier <input id="reuse-source-system" maxlength="100"
+                    /></label>
+                    <label
+                        >Verified source dictionary / meaning version <input id="reuse-semantics" maxlength="100"
+                    /></label>
+                    <label>Intended use / purpose <input id="reuse-purpose" maxlength="500" /></label>
+                    <label>Current source schema SHA-256 <input id="reuse-schema" maxlength="64" /></label>
+                    <label
+                        >Mapping direction
+                        <select id="reuse-direction">
+                            <option value="source-direct-to-fhir">Source directly to FHIR</option>
+                            <option value="source-to-fhir">Source through openEHR to FHIR</option>
+                            <option value="fhir-to-openehr">FHIR to openEHR</option>
+                        </select></label
+                    >
+                    <label
+                        >Original user instructions (one requirement per blank-line-separated paragraph)<textarea
+                            id="reuse-narrative"
+                            rows="4"
+                        ></textarea>
+                    </label>
+                    <details>
+                        <summary>Exact terminology snapshots</summary>
+                        <label
+                            >Terminology pins JSON
+                            <textarea id="reuse-terminology" rows="3" spellcheck="false">[]</textarea>
+                        </label>
+                        <p>
+                            Each pin requires canonical, exact version and SHA-256. Use an empty list only when no
+                            external terminology snapshots are dependencies; embedded rule dictionaries are already
+                            pinned in the mapping. Do not invent versions or hashes.
+                        </p>
+                    </details>
+                    <button id="find-reuse">Find existing work without AI</button>
+                    <div id="reuse-results" aria-live="polite"></div>
+                    <label
+                        ><input id="save-for-reuse" type="checkbox" /> Include this source/purpose/terminology context
+                        when preparing the next mapping, so it can be reused after human confirmation.</label
+                    >
+                    <p>
+                        Corrections create a new version for human confirmation. Reuse does not train a model, create
+                        clinical approval, or start a delivery. No patient records belong in this form.
+                    </p>
+                </details>
                 <label
                     >Mapping definition JSON
                     <textarea
@@ -174,6 +230,66 @@
                 <div id="channels"></div>
                 <h3>Selected job report</h3>
                 <pre id="report"></pre>
+            </section>
+            <section>
+                <h2>Shared channel groups</h2>
+                <p>
+                    Share operational channel metadata with people or reusable teams in your organisation. Monitor
+                    access adds status and counts. It does not grant editing, start/pause, clinical approval, connection
+                    credentials, private files or patient results. Use group and channel names without patient
+                    information.
+                </p>
+                <button id="groups-refresh">Load / refresh groups</button>
+                <label
+                    >Channel group
+                    <select id="channel-group"></select
+                ></label>
+                <div id="group-monitor" aria-live="polite"></div>
+                <details id="group-management" hidden>
+                    <summary>Manage this group's access and channels</summary>
+                    <label>New group name <input id="group-name" maxlength="100" /></label>
+                    <button id="group-create">Create group</button>
+                    <div id="group-owner-controls" hidden>
+                        <label
+                            >Owned channel
+                            <select id="group-owned-channel"></select
+                        ></label>
+                        <button id="group-attach">Attach channel to group</button>
+                        <p>
+                            Choose each person's or team's access, then save. Team access follows current team
+                            membership. Saving replaces the group's current grants.
+                        </p>
+                        <div id="group-grants"></div>
+                        <button id="group-save-grants">Save access grants</button>
+                        <label
+                            >Transfer group ownership to
+                            <select id="group-next-owner"></select
+                        ></label>
+                        <button id="group-transfer">Transfer ownership</button>
+                        <p>
+                            Detach channel assignments before transferring group ownership. Transfer removes your
+                            management access immediately; private channel ownership and records remain unchanged.
+                        </p>
+                        <button id="group-audit">Show access history</button>
+                    </div>
+                </details>
+                <details id="team-management" hidden>
+                    <summary>Manage reusable teams</summary>
+                    <label>New team name <input id="team-name" maxlength="100" /></label>
+                    <button id="team-create">Create team</button>
+                    <label
+                        >Team
+                        <select id="channel-team"></select
+                    ></label>
+                    <div id="team-members"></div>
+                    <button id="team-save-members">Save team membership</button>
+                    <label
+                        >Transfer team ownership to
+                        <select id="team-next-owner"></select
+                    ></label>
+                    <button id="team-transfer">Transfer team ownership</button>
+                </details>
+                <pre id="group-access-history"></pre>
             </section>
         </main>
     </body>

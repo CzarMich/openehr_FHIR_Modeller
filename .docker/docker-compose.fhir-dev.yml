@@ -3,9 +3,6 @@ services:
   app:
     environment:
       MODEL_REPOSITORY_PATH: /data/models/openehr
-    volumes:
-      - ./:/app
-      - ./.docker/php/zz-fhir-runtime.ini:/usr/local/etc/php/conf.d/zz-fhir-runtime.ini:ro
   chat:
     volumes:
       - ./chat/src:/app/chat/src:ro

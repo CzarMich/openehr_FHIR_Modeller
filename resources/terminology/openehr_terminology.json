@@ -1,0 +1,400 @@
+{
+    "codesets": [
+        {
+            "name": "compression algorithms",
+            "issuer": "openehr",
+            "openehr_id": "compression_algorithms",
+            "external_id": "openehr_compression_algorithms",
+            "codeset": [
+                "compress",
+                "deflate",
+                "gzip",
+                "zlib",
+                "other"
+            ]
+        },
+        {
+            "name": "integrity check algorithms",
+            "issuer": "openehr",
+            "openehr_id": "integrity_check_algorithms",
+            "external_id": "openehr_integrity_check_algorithms",
+            "codeset": [
+                "SHA-1",
+                "SHA-224",
+                "SHA-256",
+                "SHA-384",
+                "SHA-512",
+                "SHA-512\/224",
+                "SHA-512\/256"
+            ]
+        },
+        {
+            "name": "normal statuses",
+            "issuer": "openehr",
+            "openehr_id": "normal_statuses",
+            "external_id": "openehr_normal_statuses",
+            "codeset": [
+                "HHH",
+                "HH",
+                "H",
+                "N",
+                "L",
+                "LL",
+                "LLL"
+            ]
+        }
+    ],
+    "groups": [
+        {
+            "name": "attestation reason",
+            "openehr_id": "attestation_reason",
+            "group": {
+                "240": "signed",
+                "648": "witnessed"
+            }
+        },
+        {
+            "name": "audit change type",
+            "openehr_id": "audit_change_type",
+            "group": {
+                "249": "creation",
+                "250": "amendment",
+                "251": "modification",
+                "252": "synthesis",
+                "523": "deleted",
+                "666": "attestation",
+                "816": "restoration",
+                "817": "format conversion",
+                "253": "unknown"
+            }
+        },
+        {
+            "name": "composition category",
+            "openehr_id": "composition_category",
+            "group": {
+                "431": "persistent",
+                "451": "episodic",
+                "433": "event",
+                "815": "report"
+            }
+        },
+        {
+            "name": "property",
+            "openehr_id": "property",
+            "group": {
+                "339": "Acceleration",
+                "342": "Acceleration, angular",
+                "381": "Amount (Eq)",
+                "384": "Amount (mole)",
+                "497": "Angle, plane",
+                "500": "Angle, solid",
+                "335": "Area",
+                "119": "Concentration",
+                "350": "Density",
+                "362": "Diffusion coefficient",
+                "501": "Electric capacitance",
+                "498": "Electric charge",
+                "502": "Electric conductance",
+                "334": "Electric current",
+                "377": "Electric field strength",
+                "655": "Electric potential time",
+                "121": "Energy",
+                "366": "Energy density",
+                "508": "Energy dose",
+                "365": "Energy per area",
+                "364": "Energy, linear",
+                "347": "Flow rate, mass",
+                "352": "Flow rate, mass\/force",
+                "351": "Flow rate, mass\/volume",
+                "126": "Flow rate, volume",
+                "348": "Flux, mass",
+                "355": "Force",
+                "358": "Force per mass",
+                "357": "Force, body",
+                "382": "Frequency",
+                "586": "Glomerular filtration rate",
+                "373": "Heat transfer coefficient",
+                "505": "Illuminance",
+                "379": "Inductance",
+                "122": "Length",
+                "499": "Light intensity",
+                "123": "Loudness",
+                "504": "Luminous flux",
+                "378": "Magnetic flux",
+                "503": "Magnetic flux density",
+                "124": "Mass",
+                "385": "Mass (IU)",
+                "445": "Mass (Units)",
+                "349": "Mass per area",
+                "344": "Moment inertia, area",
+                "345": "Moment inertia, mass",
+                "340": "Momentum",
+                "346": "Momentum flow rate",
+                "343": "Momentum, angular",
+                "363": "Power",
+                "369": "Power density",
+                "368": "Power flux",
+                "367": "Power, linear",
+                "125": "Pressure",
+                "507": "Proportion",
+                "380": "Qualified real",
+                "506": "Radioactivity",
+                "375": "Resistance",
+                "370": "Specific energy",
+                "371": "Specific heat, gas constant",
+                "337": "Specific surface",
+                "336": "Specific volume",
+                "354": "Specific weight",
+                "356": "Surface tension",
+                "127": "Temperature",
+                "372": "Thermal conductivity",
+                "128": "Time",
+                "359": "Torque",
+                "338": "Velocity",
+                "341": "Velocity, angular",
+                "360": "Viscosity, dynamic",
+                "361": "Viscosity, kinematic",
+                "374": "Electric potential",
+                "129": "Volume",
+                "130": "Work",
+                "685": "Refractive power",
+                "118": "<not set>",
+                "709": "Time fraction",
+                "708": "Rate of change, pressure",
+                "754": "Rate of change, frequency",
+                "755": "Arbitrary",
+                "756": "Medication dose rate",
+                "757": "Spectral power",
+                "758": "Spectral power density",
+                "759": "Pace",
+                "760": "Enzyme activity"
+            }
+        },
+        {
+            "name": "version lifecycle state",
+            "openehr_id": "version_lifecycle_state",
+            "group": {
+                "532": "complete",
+                "553": "incomplete",
+                "523": "deleted",
+                "800": "inactive",
+                "801": "abandoned"
+            }
+        },
+        {
+            "name": "participation function",
+            "openehr_id": "participation_function",
+            "group": {
+                "253": "unknown"
+            }
+        },
+        {
+            "name": "null flavours",
+            "openehr_id": "null_flavours",
+            "group": {
+                "271": "no information",
+                "253": "unknown",
+                "272": "masked",
+                "273": "not applicable"
+            }
+        },
+        {
+            "name": "participation mode",
+            "openehr_id": "participation_mode",
+            "group": {
+                "193": "not specified",
+                "216": "face-to-face communication",
+                "223": "interpreted face-to-face communication",
+                "217": "signing (face-to-face)",
+                "195": "live audiovisual; videoconference; videophone",
+                "198": "videoconferencing",
+                "197": "videophone",
+                "218": "signing over video",
+                "224": "interpreted video communication",
+                "194": "asynchronous audiovisual; recorded video",
+                "196": "recorded video",
+                "202": "live audio-only; telephone; internet phone; teleconference",
+                "204": "telephone",
+                "203": "teleconference",
+                "205": "internet telephone",
+                "222": "interpreted audio-only",
+                "199": "asynchronous audio-only; dictated; voice mail",
+                "200": "dictated",
+                "201": "voice-mail",
+                "212": "live text-only; internet chat; SMS chat; interactive written note",
+                "213": "internet chat",
+                "214": "SMS chat",
+                "215": "interactive written note",
+                "206": "asynchronous text; email; fax; letter; handwritten note; SMS message",
+                "211": "handwritten note",
+                "210": "printed\/typed letter",
+                "207": "email",
+                "208": "facsimile\/telefax",
+                "221": "translated text",
+                "209": "SMS message",
+                "219": "physically present",
+                "220": "physically remote"
+            }
+        },
+        {
+            "name": "instruction states",
+            "openehr_id": "instruction_states",
+            "group": {
+                "524": "initial",
+                "526": "planned",
+                "527": "postponed",
+                "528": "cancelled",
+                "529": "scheduled",
+                "245": "active",
+                "530": "suspended",
+                "531": "aborted",
+                "532": "completed",
+                "533": "expired"
+            }
+        },
+        {
+            "name": "instruction transitions",
+            "openehr_id": "instruction_transitions",
+            "group": {
+                "535": "initiate",
+                "536": "plan step",
+                "537": "postpone",
+                "538": "restore",
+                "166": "cancel",
+                "542": "postponed step",
+                "539": "schedule",
+                "534": "scheduled step",
+                "540": "start",
+                "541": "do",
+                "543": "active step",
+                "544": "suspend",
+                "545": "suspended step",
+                "546": "resume",
+                "547": "abort",
+                "548": "finish",
+                "549": "time out",
+                "550": "notify aborted",
+                "551": "notify completed",
+                "552": "notify cancelled"
+            }
+        },
+        {
+            "name": "subject relationship",
+            "openehr_id": "subject_relationship",
+            "group": {
+                "0": "self",
+                "3": "foetus",
+                "10": "mother",
+                "9": "father",
+                "6": "donor",
+                "253": "unknown",
+                "261": "adopted daughter",
+                "260": "adopted son",
+                "259": "adoptive father",
+                "258": "adoptive mother",
+                "256": "biological father",
+                "255": "biological mother",
+                "23": "brother",
+                "28": "child",
+                "265": "cohabitee",
+                "257": "cousin",
+                "29": "daughter",
+                "264": "guardian",
+                "39": "maternal aunt",
+                "8": "maternal grandfather",
+                "7": "maternal grandmother",
+                "38": "maternal uncle",
+                "189": "neonate",
+                "254": "parent",
+                "22": "partner\/spouse",
+                "41": "paternal aunt",
+                "36": "paternal grandfather",
+                "37": "paternal grandmother",
+                "40": "paternal uncle",
+                "27": "sibling",
+                "24": "sister",
+                "31": "son",
+                "263": "step father",
+                "262": "step mother",
+                "25": "step or half brother",
+                "26": "step or half sister"
+            }
+        },
+        {
+            "name": "term mapping purpose",
+            "openehr_id": "term_mapping_purpose",
+            "group": {
+                "669": "public health",
+                "670": "reimbursement",
+                "671": "research study"
+            }
+        },
+        {
+            "name": "event math function",
+            "openehr_id": "event_math_function",
+            "group": {
+                "145": "minimum",
+                "144": "maximum",
+                "267": "mode",
+                "268": "median",
+                "146": "mean",
+                "147": "change",
+                "148": "total",
+                "149": "variation",
+                "521": "decrease",
+                "522": "increase",
+                "640": "actual"
+            }
+        },
+        {
+            "name": "setting",
+            "openehr_id": "setting",
+            "group": {
+                "225": "home",
+                "227": "emergency care",
+                "228": "primary medical care",
+                "229": "primary nursing care",
+                "230": "primary allied health care",
+                "231": "midwifery care",
+                "232": "secondary medical care",
+                "233": "secondary nursing care",
+                "234": "secondary allied health care",
+                "235": "complementary health care",
+                "236": "dental care",
+                "237": "nursing home care",
+                "802": "mental healthcare",
+                "238": "other care"
+            }
+        },
+        {
+            "name": "extract content type",
+            "openehr_id": "extract_content_type",
+            "group": {
+                "803": "openEHR EHR",
+                "804": "openEHR Demographic",
+                "805": "openEHR synchronisation",
+                "806": "openEHR generic",
+                "807": "generic EMR",
+                "808": "other"
+            }
+        },
+        {
+            "name": "extract action type",
+            "openehr_id": "extract_action_type",
+            "group": {
+                "809": "cancel",
+                "810": "resend",
+                "811": "send new"
+            }
+        },
+        {
+            "name": "extract update trigger event type",
+            "openehr_id": "extract_update_trigger_event_type",
+            "group": {
+                "812": "any change",
+                "813": "correction",
+                "814": "update"
+            }
+        }
+    ]
+}

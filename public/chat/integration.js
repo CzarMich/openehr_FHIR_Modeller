@@ -75,6 +75,7 @@ function showReview(view) {
         state: view.state,
         sequence: view.sequence,
         mapping: JSON.parse(view.executionMapping),
+        reuseContext: view.reuseContext || null,
         clinicalApproval: view.clinicalApproval,
     });
     $("review").append(rules);
@@ -277,6 +278,7 @@ $("prepare").onclick = () =>
         const view = await models("projects/" + project() + "/mappings", {
             modelKeys: [...document.querySelectorAll("[data-model]:checked")].map((e) => e.value),
             executionMapping: JSON.stringify(JSON.parse($("mapping-json").value)),
+            ...($("save-for-reuse").checked ? { reuseContext: reuseContext() } : {}),
         });
         await load();
         $("mapping").value = view.subject;
@@ -327,9 +329,13 @@ $("files").onclick = () => run(files);
 $("source").onchange = () => run(files);
 $("inspect").onclick = () =>
     run(async () => {
-        $("inspection").textContent = pretty(
-            await api("sources/inspect", { projectId: project(), sourceId: $("source").value, file: $("file").value }),
-        );
+        const inspection = await api("sources/inspect", {
+            projectId: project(),
+            sourceId: $("source").value,
+            file: $("file").value,
+        });
+        $("inspection").textContent = pretty(inspection);
+        if (typeof inspection.schemaSha256 === "string") $("reuse-schema").value = inspection.schemaSha256;
     });
 $("run-preview").onclick = () => run(async () => reviewOperation("jobs", await api("jobs/preview", input())));
 $("channel-preview").onclick = () =>
@@ -368,3 +374,279 @@ run(async () => {
     if (!session.integrationReady) throw new Error("The C# integration service is not enabled or ready.");
     await refresh();
 });
+
+let groupState,
+    groupDirectory = [],
+    groupChannels = [];
+const currentGroup = () => groupState?.groups.find((item) => item.id === $("channel-group").value);
+const currentTeam = () => groupState?.teams.find((item) => item.id === $("channel-team").value);
+async function refreshGroups() {
+    groupState = await api("channel-groups");
+    const manages =
+        groupState.canCreate ||
+        [...groupState.groups, ...groupState.teams].some((item) => item.owner === groupState.self);
+    groupDirectory = manages ? (await api("channel-groups/directory")).items : [];
+    groupChannels = manages ? (await api("channels")).items : [];
+    options(
+        $("channel-group"),
+        groupState.groups,
+        (g) => g.id,
+        (g) => g.name,
+    );
+    options(
+        $("channel-team"),
+        groupState.teams.filter((t) => t.owner === groupState.self),
+        (t) => t.id,
+        (t) => t.name,
+    );
+    options(
+        $("group-owned-channel"),
+        groupChannels,
+        (c) => c.id,
+        (c) => c.name,
+    );
+    for (const id of ["group-next-owner", "team-next-owner"])
+        options(
+            $(id),
+            groupDirectory.filter((p) => p.id !== groupState.self),
+            (p) => p.id,
+            (p) => p.label,
+        );
+    $("group-management").hidden = !manages;
+    $("team-management").hidden = !manages;
+    $("group-create").hidden = !groupState.canCreate;
+    $("team-create").hidden = !groupState.canCreate;
+    $("group-name").disabled = !groupState.canCreate;
+    $("team-name").disabled = !groupState.canCreate;
+    $("group-access-history").textContent = "";
+    renderGroup();
+    renderTeam();
+    notice("Groups refreshed. Membership changes take effect on the next request. Private results remain private.");
+}
+function renderGroup() {
+    const group = currentGroup(),
+        owner = group?.owner === groupState?.self;
+    $("group-owner-controls").hidden = !owner;
+    $("group-monitor").replaceChildren();
+    $("group-grants").replaceChildren();
+    if (!group) {
+        $("group-monitor").textContent = "No shared channel groups are available to your account.";
+        return;
+    }
+    for (const channel of group.channels) {
+        const row = document.createElement("div"),
+            detail = document.createElement("pre");
+        row.className = "item";
+        detail.textContent = pretty(channel);
+        row.append(detail);
+        if (owner)
+            row.append(
+                button("Remove from group", async () => {
+                    await api("channel-groups", {
+                        kind: "group",
+                        action: "detach",
+                        id: group.id,
+                        expectedRevision: group.revision,
+                        reference: channel.reference,
+                    });
+                    await refreshGroups();
+                }),
+            );
+        $("group-monitor").append(row);
+    }
+    if (!owner) return;
+    const candidates = [
+        ...groupDirectory.map((p) => ({ ...p, kind: "user" })),
+        ...groupState.teams
+            .filter((t) => t.owner === groupState.self || group.grants?.some((g) => g.kind === "team" && g.id === t.id))
+            .map((t) => ({ id: t.id, label: "Team: " + t.name, kind: "team" })),
+    ];
+    for (const candidate of candidates) {
+        const label = document.createElement("label"),
+            select = document.createElement("select");
+        label.append(document.createTextNode(candidate.label + " "));
+        option(select, "", "No access");
+        option(select, "view", "View");
+        option(select, "monitor", "View and monitor");
+        const previous = group.grants?.find((g) => g.kind === candidate.kind && g.id === candidate.id);
+        select.value = previous?.permissions.includes("monitor") ? "monitor" : previous ? "view" : "";
+        select.dataset.principal = candidate.id;
+        select.dataset.kind = candidate.kind;
+        label.append(select);
+        $("group-grants").append(label);
+    }
+}
+function renderTeam() {
+    $("team-members").replaceChildren();
+    const team = currentTeam();
+    $("team-save-members").disabled = !team;
+    $("team-transfer").disabled = !team;
+    if (!team) return;
+    for (const person of groupDirectory) {
+        const label = document.createElement("label"),
+            check = document.createElement("input");
+        check.type = "checkbox";
+        check.value = person.id;
+        check.checked = team.members.includes(person.id);
+        label.append(check, document.createTextNode(person.label));
+        $("team-members").append(label);
+    }
+}
+$("groups-refresh").onclick = () => run(refreshGroups);
+$("channel-group").onchange = renderGroup;
+$("channel-team").onchange = renderTeam;
+for (const kind of ["group", "team"]) {
+    $(kind + "-create").onclick = () =>
+        run(async () => {
+            await api("channel-groups", { kind, action: "create", name: $(kind + "-name").value });
+            $(kind + "-name").value = "";
+            await refreshGroups();
+        });
+    $(kind + "-transfer").onclick = () =>
+        run(async () => {
+            const item = kind === "group" ? currentGroup() : currentTeam();
+            if (!item) throw new Error("Choose a group or team first.");
+            const newOwner = $(kind + "-next-owner").value;
+            if (!newOwner) throw new Error("Choose the new owner first.");
+            if (!window.confirm("Transfer ownership? Your management access will end immediately.")) return;
+            await api("channel-groups", {
+                kind,
+                action: "transfer",
+                id: item.id,
+                expectedRevision: item.revision,
+                newOwner,
+            });
+            await refreshGroups();
+        });
+}
+$("group-attach").onclick = () =>
+    run(async () => {
+        const group = currentGroup();
+        if (!group) throw new Error("Choose a group first.");
+        if (
+            !window.confirm(
+                "Share this channel's operational metadata with the selected group's members? Private records and results remain private.",
+            )
+        )
+            return;
+        await api("channel-groups", {
+            kind: "group",
+            action: "attach",
+            id: group.id,
+            expectedRevision: group.revision,
+            channelId: $("group-owned-channel").value,
+        });
+        await refreshGroups();
+    });
+$("group-save-grants").onclick = () =>
+    run(async () => {
+        const group = currentGroup();
+        if (!group) throw new Error("Choose a group first.");
+        const grants = [...$("group-grants").querySelectorAll("select")]
+            .filter((select) => select.value)
+            .map((select) => ({
+                kind: select.dataset.kind,
+                id: select.dataset.principal,
+                permissions: [select.value],
+            }));
+        await api("channel-groups", {
+            kind: "group",
+            action: "grants",
+            id: group.id,
+            expectedRevision: group.revision,
+            grants,
+        });
+        await refreshGroups();
+    });
+$("team-save-members").onclick = () =>
+    run(async () => {
+        const team = currentTeam();
+        if (!team) throw new Error("Choose a team first.");
+        const members = [...$("team-members").querySelectorAll("input:checked")].map((check) => check.value);
+        await api("channel-groups", {
+            kind: "team",
+            action: "members",
+            id: team.id,
+            expectedRevision: team.revision,
+            members,
+        });
+        await refreshGroups();
+    });
+$("group-audit").onclick = () =>
+    run(async () => {
+        const group = currentGroup();
+        if (!group) throw new Error("Choose a group first.");
+        $("group-access-history").textContent = pretty(await api("channel-groups/" + group.id + "/audit"));
+    });
+
+function reuseContext() {
+    const context = {
+        sourceSystem: $("reuse-source-system").value.trim(),
+        sourceSemanticsVersion: $("reuse-semantics").value.trim(),
+        purpose: $("reuse-purpose").value.trim(),
+        terminologyPins: JSON.parse($("reuse-terminology").value),
+    };
+    if (
+        !context.sourceSystem ||
+        !context.sourceSemanticsVersion ||
+        !context.purpose ||
+        !Array.isArray(context.terminologyPins)
+    )
+        throw new Error("Provide the verified source identity, meaning version, intended use and terminology pins.");
+    return context;
+}
+$("find-reuse").onclick = () =>
+    run(async () => {
+        const requirements = $("reuse-narrative")
+            .value.trim()
+            .split(/\n\s*\n/)
+            .filter(Boolean)
+            .map((text, index) => ({ id: "USER-" + (index + 1), originalText: text, basis: "user-instruction" }));
+        if (!requirements.length) throw new Error("Provide the original user instructions for the work to reuse.");
+        const result = await api("mapping-reuse", {
+            projectId: project(),
+            query: {
+                context: reuseContext(),
+                sourceSchemaSha256: $("reuse-schema").value.trim(),
+                requirements,
+                modelKeys: [...document.querySelectorAll("[data-model]:checked")].map((check) => check.value),
+                direction: $("reuse-direction").value,
+            },
+        });
+        $("reuse-results").replaceChildren();
+        for (const item of result.items) {
+            const row = document.createElement("div"),
+                label = document.createElement("p");
+            row.className = "item";
+            label.textContent =
+                item.name +
+                " " +
+                item.version +
+                " · " +
+                (item.eligibleForReuse
+                    ? "Exact context; currently confirmed"
+                    : "Existing draft requires human confirmation");
+            row.append(
+                label,
+                button("Inspect saved mapping", async () => {
+                    const view = await models("mappings/" + item.subject);
+                    $("mapping-json").value = view.executionMapping;
+                    $("mapping").value = item.subject;
+                    showReview(view);
+                    notice(
+                        "Loaded saved work without AI generation. Processing still checks confirmation, source, validation and destination permissions.",
+                    );
+                }),
+            );
+            $("reuse-results").append(row);
+        }
+        if (!result.items.length)
+            $("reuse-results").textContent =
+                "No exact context match. Existing mappings without a confirmed reuse context remain available in the mapping list for manual inspection; no new AI request was made.";
+        notice(
+            "Reuse lookup made " +
+                result.providerCalls +
+                " provider calls." +
+                (result.complete ? "" : " Search limit reached; narrow the project or inspect saved mappings."),
+        );
+    });

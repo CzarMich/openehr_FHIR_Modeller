@@ -24,7 +24,7 @@ Two lesser problems came with it. A GitHub Pages project site serves at
 `https://<org>.github.io/<repo>/`, so the published URL would have carried this
 repository's name, `openehr-assistant-mcp`, and could not be shortened without
 renaming the repository. And every change of site copy would have queued behind
-this repository's PR validation — PHPStan, PHPUnit, conformance — for no benefit.
+this repository's PR validation — compiler checks, application-domain tests, conformance — for no benefit.
 
 ## Decision
 
@@ -52,7 +52,7 @@ That is the irreversible part. Two things follow from it:
   its hosted-endpoint section without breaking a published page. The consuming
   site cannot be relied on to notice — it frames the fetched document with prose
   of its own, so its checks can pass while the fetched content is impoverished.
-  `tests/Content/InstallDocContractTest.php` therefore enforces REQ-N10 *here*,
+  `dotnet/Modeller.Application.Tests/Program.cs` therefore enforces REQ-N10 *here*,
   where the edit happens. Cross-repository changes now need two pull requests.
 - **Neutral:** the website's own build, theme and publishing pipeline are that
   repository's concern and are documented in its `AGENTS.md`.

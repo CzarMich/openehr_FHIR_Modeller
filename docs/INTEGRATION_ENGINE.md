@@ -2,7 +2,7 @@
 
 The optional integration workspace executes confirmed, deterministic mappings on private files. Use it to generate validated FHIR exports, push FHIR to an authorised HTTP destination, or poll a folder continuously with a mapping assigned to a channel. It does not require an LLM for each record. It is not a claim of feature or throughput parity with a mature integration-engine product.
 
-New application/domain services and workers are C#/.NET 10. The browser/session adapter remains Node, and the existing Java/openEHR and Node/Java FHIR compiler services remain specialised engines. The original `/mcp` remains a PHP compatibility endpoint during migration. See [the exact migration boundary](DOTNET_MIGRATION.md).
+New application/domain services and workers are C#/.NET 10. The browser/session adapter remains Node, and the existing Java/openEHR and Node/Java FHIR compiler services remain specialised engines. The primary `/mcp` is the full C# application; the browser integration registry is a separate C# modelling/confirmation surface. Verify deployed image revisions before assuming a source-tree capability is live. See [the exact migration boundary](DOTNET_MIGRATION.md).
 
 ## Start with a modelling project
 
@@ -13,7 +13,7 @@ New application/domain services and workers are C#/.NET 10. The browser/session 
 5. Select the models and prepare the mapping. Inspect their exact bytes/hashes, original instructions, interpretations, assumptions, rules and examples. Tick the acknowledgement and record a human confirmation comment. A direct source-to-FHIR mapping requires its FHIR SDs; a route through openEHR or a reverse mapping also requires the exact openEHR template. Agent-modelled and externally provided inputs both require this exact-selection confirmation.
 6. A changed model, narrative or rule requires a new mapping version and confirmation. Agents cannot confirm/revoke. Technical validation, mapping selection, clinical approval and publication remain separate. Neither a synthetic example nor human mapping selection establishes clinical correctness.
 
-Existing PHP projects/approval identifiers are not automatically imported into the independent C# registry. Re-provide the models and confirm a new C# mapping before assigning a channel.
+Primary repository/governance approval identifiers are not automatically imported into the independent integration registry. Re-provide the models and confirm a new C# mapping before assigning a channel.
 
 ## Process a private file
 
