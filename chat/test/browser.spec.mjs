@@ -2549,7 +2549,7 @@ test("integration landmarks and shared controls pass automated WCAG AA checks", 
     expect(result.violations).toEqual([]);
 });
 
-test("Michael can be restored after hiding and reloading in either workspace", async ({ page }) => {
+test("Leticia can be restored after hiding and reloading in either workspace", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.addInitScript(() => {
         if (localStorage.getItem("modeller.michael.hidden") === null)
@@ -2564,14 +2564,14 @@ test("Michael can be restored after hiding and reloading in either workspace", a
         for (const path of ["/chat/", "/chat/integration/"]) {
             await page.goto(path);
             const restore = page.locator("#michael-restore");
-            const character = page.getByRole("button", { name: "Ask Michael for prompt and token tips", exact: true });
+            const character = page.getByRole("button", { name: "Ask Leticia for prompt and token tips", exact: true });
             await expect(restore).toBeVisible();
             await expect(character).toBeHidden();
             await restore.click();
             await expect(restore).toBeHidden();
             await expect(character).toBeFocused();
-            await expect(page.getByRole("region", { name: "Michael's guidance", exact: true })).toBeVisible();
-            await page.getByRole("button", { name: "Hide Michael", exact: true }).click();
+            await expect(page.getByRole("region", { name: "Leticia's guidance", exact: true })).toBeVisible();
+            await page.getByRole("button", { name: "Hide Leticia", exact: true }).click();
             await expect(character).toBeHidden();
             await expect(restore).toBeFocused();
             expect(await restore.evaluate((button) => button.getBoundingClientRect().height)).toBeGreaterThanOrEqual(
@@ -2583,7 +2583,22 @@ test("Michael can be restored after hiding and reloading in either workspace", a
             await restore.click();
             await expect(character).toBeVisible();
             expect(await page.evaluate(() => localStorage.getItem("modeller.michael.hidden"))).toBe("false");
-            await page.getByRole("button", { name: "Hide Michael", exact: true }).click();
+            await page.getByRole("button", { name: "Hide Leticia", exact: true }).click();
         }
     }
+});
+
+test("Help names Leticia and omits the personal copyright line", async ({ page }) => {
+    await page.goto("/chat/#help");
+    await expect(
+        page.getByRole("heading", { name: "Leticia, your optional workspace guide", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Show Leticia", exact: true })).toBeVisible();
+    await expect(page.getByLabel("Keep Leticia still", { exact: true })).toBeVisible();
+    await expect(page.locator("#panel-help")).not.toContainText("Michael");
+    await expect(page.locator("#panel-help")).not.toContainText("Copyright");
+    await page.getByRole("button", { name: "Show Leticia", exact: true }).click();
+    await expect(
+        page.getByRole("button", { name: "Ask Leticia for prompt and token tips", exact: true }),
+    ).toBeVisible();
 });
