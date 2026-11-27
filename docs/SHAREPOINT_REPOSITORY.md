@@ -86,7 +86,7 @@ The stateful contract fixture checks actual Graph request shapes, unique creatio
 Run the production-container integration test without a Microsoft account:
 
 ```sh
-scripts/test-sharepoint-container.sh
+scripts/test-sharepoint-container.sh --evidence /tmp/sharepoint-acceptance.json
 ```
 
 It generates an ephemeral TLS CA, starts isolated Graph/OAuth fixtures and the production C# image, exercises the real MCP protocol and repository writes, then removes only its disposable containers/data. Its download endpoint rejects any forwarded Authorization header. [Container evidence](evidence/sharepoint-container-smoke.json) is fixture acceptance, not a live Microsoft tenant result. CI repeats this test.
@@ -106,3 +106,5 @@ Back up both the index and the snapshot folder, together with configuration iden
 No SharePoint operation approves or releases a clinical model. Branching, hosted reviews, webhooks and release tags are not SharePoint repository capabilities. Use Git hosting or the governance services for those workflows.
 
 References: [conditional list-field updates](https://learn.microsoft.com/en-us/graph/api/listitem-update?view=graph-rest-1.0), [column uniqueness](https://learn.microsoft.com/en-us/graph/api/resources/columndefinition?view=graph-rest-1.0), [file uploads](https://learn.microsoft.com/en-us/graph/api/driveitem-put-content?view=graph-rest-1.0), [content downloads](https://learn.microsoft.com/en-us/graph/api/driveitem-get-content?view=graph-rest-1.0), [client credentials](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-client-creds-grant-flow).
+
+The current harness executes the real C# repository against a disposable synthetic HTTPS Graph contract after compiling `Modeller.Application.Tests`. It checks immutable historical/binary bytes, conditional revisions, credential-free download redirects and new-adapter readback. This is separate from acceptance against an actual Microsoft tenant. Application-image builds remain hosted CI only.

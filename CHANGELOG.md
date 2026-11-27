@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Complete the primary C# runtime, retain exact repository/audit contracts and retire superseded application sources.
+- Add exact-context mapping reuse, shared channel monitoring and the optional Michael guide.
+
+
 ### Added
 
 - Exact-context mapping reuse with browser controls and versioned human-confirmed project learning.

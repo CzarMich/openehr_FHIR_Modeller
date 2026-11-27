@@ -16,6 +16,8 @@ Tests establish the behaviour and scope of the exact revision being checked. A s
 | Source metadata/plans | `dotnet/Modeller.Database.Tests` | Vendor-neutral catalogues, fingerprints, bounded/parameterised structural plans; no hospital records |
 | Terminology HTTPS | `dotnet/tests/terminology-contracts.py` | Actual MCP against disposable authenticated HTTPS fixture: code membership, versions, expansion, translation proposals and exact resource search |
 | CDR HTTPS | `dotnet/tests/cdr-contracts.py` | Real C# connection, catalogue array and XML retrieval, credential redaction/encryption; optional installed native-engine query checks, with metadata-only history |
+| CKM HTTPS | `dotnet/tests/ckm-contracts.py` | Actual MCP source-specific credentials, federated provenance/window totals, explicit failures and mounted credential rotation |
+| SharePoint HTTPS | `dotnet/tests/sharepoint-contracts.py` | OAuth, schema-backed immutable snapshots, historical/binary bytes, revision conflicts and new-adapter readback against a synthetic Graph contract |
 | Browser backend | `npm --prefix chat test` | Sessions, repositories, groups/teams, privacy boundaries and integration orchestration |
 | Browser UI | `npm --prefix chat run test:browser` | User workflows, exact reviews, sharing, reuse and viewport behaviour using synthetic fixtures |
 | Standards engines | `fhir` acceptance and `engine` test/fixture scripts on hosted CI | Actual compilation/validation with retained scope and exact source/dependency evidence |

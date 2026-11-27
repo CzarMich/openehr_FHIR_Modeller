@@ -7,6 +7,8 @@ using Modeller.Core;
 
 if(args.FirstOrDefault()=="--cdr-fixture"){await CdrFixtureTests.Run();return;}
 
+if(args.FirstOrDefault()=="--sharepoint-fixture"){SharePointFixtureTests.Run();return;}
+
 var root=Path.Combine(Path.GetTempPath(),"modeller-application-unit-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(root);var checks=0;
 void Check(bool condition,string name){if(!condition)throw new Exception("CHECK_FAILED: "+name);checks++;}
 void Reject(Action action,string code){try{action();throw new Exception("REJECTION_MISSING: "+code);}catch(ProcessingException e){Check(e.Code==code,"expected "+code+" got "+e.Code);}}
@@ -52,6 +54,7 @@ try{
     Environment.SetEnvironmentVariable("MODEL_REPOSITORY_PROVIDER","git");Environment.SetEnvironmentVariable("MODEL_GIT_REMOTE_URL",null);Environment.SetEnvironmentVariable("MODEL_GIT_LAYOUT","categories");var git=new GitRepository(Path.Combine(root,"git-models"));git.Create("synthetic","Git fixture","");var gitA=git.Save("synthetic","requirements/rules.md","Synthetic git revision one",new JsonObject(),null);var gitB=git.Save("synthetic","requirements/rules.md","Synthetic git revision two",new JsonObject(),S(gitA,"revision"));Check(S(git.Artifact("synthetic","requirements/rules.md",S(gitA,"revision")),"content")=="Synthetic git revision one","Git immutable history");Check(git.History("synthetic","requirements/rules.md").Count==2,"Git native revision history");Check(S(git.Diff(S(gitA,"revision"),S(gitB,"revision")),"patch").Contains("Synthetic git revision two",StringComparison.Ordinal),"Git diff without external drivers");Reject(()=>git.Branch("--unsafe",S(gitB,"revision")),"INVALID_GIT_BRANCH");Check(git.Branch("synthetic-review",S(gitB,"revision"))["switched"]?.GetValue<bool>()==false,"creating review branch does not switch active branch");
     await ProjectQualityTests.Run(root,Check);
     FhirTerminologyTests.Run(Check);
+    CkmScoringTests.Run(Check);
     await OptionalRepositoryTests.Run(root,Check);
     Console.WriteLine(new JsonObject{["suite"]="application-domain-and-security",["status"]="PASS",["checks"]=checks,["clinicalData"]=false}.ToJsonString());
 }finally{SqliteConnection.ClearAllPools();Directory.Delete(root,true);}

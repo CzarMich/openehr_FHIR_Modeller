@@ -40,6 +40,8 @@ jobs:
           dotnet run --project dotnet/Modeller.Application.Tests -c Release -p:NuGetAudit=false
       - name: Verify actual CDR HTTPS connection and template retrieval
         run: python3 dotnet/tests/cdr-contracts.py --evidence "$RUNNER_TEMP/cdr-acceptance.json"
+      - name: Verify SharePoint immutable repository contracts over HTTPS
+        run: python3 dotnet/tests/sharepoint-contracts.py --evidence "$RUNNER_TEMP/sharepoint-acceptance.json"
       - uses: docker/setup-buildx-action@v3
       - name: Build the independent runtime image on the hosted runner
         uses: docker/build-push-action@v6
@@ -62,6 +64,8 @@ jobs:
           path: |
             ${{ runner.temp }}/dotnet-contracts.jsonl
             ${{ runner.temp }}/dotnet-runtime-contracts.jsonl
+            ${{ runner.temp }}/cdr-acceptance.json
+            ${{ runner.temp }}/sharepoint-acceptance.json
 
   sql-server-safety:
     # Source write-denial/attack testing is deferred at the user's request.
@@ -108,6 +112,15 @@ jobs:
         with:
           name: terminology-acceptance-${{ github.sha }}
           path: ${{ runner.temp }}/terminology-acceptance.json
+          if-no-files-found: warn
+      - name: Verify packaged authenticated CKM discovery and credential rotation
+        run: python3 dotnet/tests/ckm-contracts.py --image modeller-primary-ci:${{ github.sha }} --evidence "$RUNNER_TEMP/ckm-acceptance.json"
+      - name: Preserve CKM fixture evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ckm-acceptance-${{ github.sha }}
+          path: ${{ runner.temp }}/ckm-acceptance.json
           if-no-files-found: warn
       - name: Verify exact internal audit cutover and restart persistence
         run: python3 dotnet/tests/storage-contracts.py --image modeller-primary-ci:${{ github.sha }} --evidence "$RUNNER_TEMP/storage-acceptance.json"
