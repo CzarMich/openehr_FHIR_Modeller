@@ -68,6 +68,11 @@ def main():
             check(request(base,'/api/v1/projects/fixture',other)[0]==404,'Tenant repositories isolated')
             first=smoke.Client(base+'/mcp',bearer=writer);first.rpc('initialize',{'protocolVersion':'2025-11-25','capabilities':{},'clientInfo':{'name':'synthetic-auth','version':'1'}})
             check(bool(first.session),'MCP session issued')
+            fhir_config={'name':'Synthetic FHIR project','fhirVersion':'4.0.1','canonical':'https://example.org/synthetic','packageId':'org.example.synthetic','version':'1.0.0','publisher':'Synthetic fixture','dependencies':[]}
+            created=first.tool('fhir_project',{'action':'create','projectId':'fhir-created','document':json.dumps(fhir_config)})
+            check(created['project']['id']=='fhir-created','Project-create scope permits FHIR creation without unrelated write scope')
+            hidden=smoke.Client(base+'/mcp',bearer=restricted);hidden.rpc('initialize',{'protocolVersion':'2025-11-25','capabilities':{},'clientInfo':{'name':'synthetic-restricted','version':'1'}})
+            check(hidden.tool('fhir_project',{'action':'list'})['items']==[],'FHIR project list respects project read scopes')
             check(request(base,'/mcp',reader,headers={'Mcp-Session-Id':first.session})[0]==403,'MCP sessions bound to actor')
             check(request(base,'/api/v1/reviews?project=fixture',writer)[0]==401,'Ordinary OIDC cannot approve as human')
             target='/api/v1/reviews?project=fixture';body=b''

@@ -33,9 +33,9 @@ public sealed class FhirWorkspace(SnapshotRepository repository,StandardsGateway
         var action=S(input,"action");var id=S(input,"projectId");
         if(tool=="fhir_project"){
             if(action=="capabilities")return await gateway.Fhir("capabilities.get",new JsonObject(),tenant,cancellation);
-            if(action=="list"){var items=new JsonArray();foreach(var p in repository.List().OfType<JsonObject>()){try{items.Add(Project(S(p,"id"))["project"]!.DeepClone());}catch(ProcessingException e)when(e.Code=="ARTIFACT_NOT_FOUND"){}}return new JsonObject{["items"]=items,["total"]=items.Count,["providers"]=new JsonArray("openEHR","FHIR")};}
+            if(action=="list"){var items=new JsonArray();foreach(var p in repository.List().OfType<JsonObject>().Where(p=>actor.CanReadProject(S(p,"id")))){try{items.Add(Project(S(p,"id"))["project"]!.DeepClone());}catch(ProcessingException e)when(e.Code=="ARTIFACT_NOT_FOUND"){}}return new JsonObject{["items"]=items,["total"]=items.Count,["providers"]=new JsonArray("openEHR","FHIR")};}
             if(action is "create" or "update"){
-                write(id);var config=Configuration(Parse(S(input,"document","{}")));
+                if(action=="create")actor.Create(id);else write(id);var config=Configuration(Parse(S(input,"document","{}")));
                 if(action=="create")repository.Create(id,S(config,"name"),"FHIR authoring workspace");
                 else{var current=Project(id);if(S((JsonObject)current["project"]!,"fhirVersion")!=S(config,"fhirVersion")&&repository.Artifacts(id).OfType<JsonObject>().Any(a=>S(a,"path").StartsWith("fhir/",StringComparison.Ordinal)||S(a,"path").StartsWith("mappings/",StringComparison.Ordinal)))throw new ProcessingException("FHIR_RELEASE_CHANGE_REQUIRES_NEW_PROJECT");}
                 repository.Save(id,ProjectPath,config.ToJsonString(),new JsonObject{["standard"]="FHIR"},input["expectedRevision"]?.GetValue<string>());

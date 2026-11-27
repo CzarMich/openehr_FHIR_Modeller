@@ -30,7 +30,7 @@ public sealed class ModellingApplication:IDisposable
         if(name=="terminology_resolve")return corpus.Resolve(args);
         if(name=="guide_adl_idiom_lookup")return corpus.Idioms(S(args,"pattern"));
         if(name=="examples_get"){var uri=S(args,"uri");if(uri=="")uri="openehr://examples/"+S(args,"kind")+"/"+S(args,"name");return corpus.Resource(uri);}
-        if(name.StartsWith("fhir_",StringComparison.Ordinal)){var id=S(args,"projectId");if(id!="")actor.Read(id);return await new FhirWorkspace(Repository(actor,true),engines,actor.Write,actor.Tenant,remote,new MappingSelections(repository,Repository(actor,true),actor),actor).Execute(name,args,cancellation);}
+        if(name.StartsWith("fhir_",StringComparison.Ordinal)){var id=S(args,"projectId");if(id!=""&&!(name=="fhir_project"&&S(args,"action")=="create"))actor.Read(id);return await new FhirWorkspace(Repository(actor,true),engines,actor.Write,actor.Tenant,remote,new MappingSelections(repository,Repository(actor,true),actor),actor).Execute(name,args,cancellation);}
         if(name is "archetype_validate" or "template_validate" or "template_compile" or "opt_validate" or "model_inspect" or "aql_validate"){
             var operation=name switch{"archetype_validate"=>"validate/archetype","template_validate"=>"validate/template","template_compile"=>"compile/template","opt_validate"=>"validate/opt","aql_validate"=>"validate/aql",_=>S(args,"format") is "opt14" or "opt2"?"inspect/opt":"inspect/archetype"};
             return await engines.Native(operation,S(args,"content"),args[name=="aql_validate"?"templates":"dependencies"] as JsonArray,cancellation);
