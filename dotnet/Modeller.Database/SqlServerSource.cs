@@ -34,7 +34,7 @@ public sealed class SqlServerSource:IAsyncDisposable
     // Fail closed on unknown effective permissions. VIEW DEFINITION is mandatory so object checks
     // cannot silently omit objects hidden by metadata visibility. No source permissions are changed.
     public async Task VerifyReadOnly(CancellationToken cancellation){
-        var databaseAllowed=new HashSet<string>(["CONNECT","SELECT","VIEW DEFINITION","SHOWPLAN","VIEW DATABASE STATE","VIEW DATABASE PERFORMANCE STATE","VIEW DATABASE SECURITY STATE"],StringComparer.Ordinal);
+        var databaseAllowed=new HashSet<string>(["CONNECT","SELECT","VIEW DEFINITION","VIEW SECURITY DEFINITION","VIEW PERFORMANCE DEFINITION","VIEW ANY COLUMN ENCRYPTION KEY DEFINITION","VIEW ANY COLUMN MASTER KEY DEFINITION","SHOWPLAN","VIEW DATABASE STATE","VIEW DATABASE PERFORMANCE STATE","VIEW DATABASE SECURITY STATE"],StringComparer.Ordinal);
         var serverAllowed=new HashSet<string>(["CONNECT SQL","VIEW ANY DATABASE","VIEW SERVER STATE","VIEW SERVER PERFORMANCE STATE","VIEW SERVER SECURITY STATE","VIEW ANY DEFINITION","VIEW ANY SECURITY DEFINITION","VIEW ANY PERFORMANCE DEFINITION"],StringComparer.Ordinal);
         var objectAllowed=new HashSet<string>(["SELECT","VIEW DEFINITION","VIEW SECURITY DEFINITION","VIEW PERFORMANCE DEFINITION"],StringComparer.Ordinal);
         await using(var r=await Read("SELECT permission_name FROM sys.fn_my_permissions(NULL, 'SERVER');",cancellation)){while(await r.ReadAsync(cancellation))if(!serverAllowed.Contains(r.GetString(0)))throw new ProcessingException("SOURCE_WRITE_PERMISSION_DENIED");}

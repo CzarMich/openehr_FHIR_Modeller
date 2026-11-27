@@ -4,7 +4,25 @@ namespace Modeller.Core;
 
 public static class Network
 {
-    public static HttpClient Client(TimeSpan timeout) => new(new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false, MaxResponseHeadersLength = 32, MaxConnectionsPerServer = 2 }) { Timeout = timeout };
+    public static HttpClient Client(TimeSpan timeout) {
+        var handler=new HttpClientHandler{AllowAutoRedirect=false,UseProxy=false,MaxResponseHeadersLength=32,MaxConnectionsPerServer=2};
+        var bundle=Environment.GetEnvironmentVariable("HTTP_CA_BUNDLE");
+        if(!string.IsNullOrEmpty(bundle)){
+            if(!Path.IsPathFullyQualified(bundle)||!File.Exists(bundle)||new FileInfo(bundle).Length>1048576)throw new ProcessingException("HTTP_CA_BUNDLE_INVALID");
+            var roots=new System.Security.Cryptography.X509Certificates.X509Certificate2Collection();roots.ImportFromPem(File.ReadAllText(bundle));if(roots.Count==0)throw new ProcessingException("HTTP_CA_BUNDLE_INVALID");
+            handler.ServerCertificateCustomValidationCallback=(_,certificate,provided,errors)=>{
+                if(errors==System.Net.Security.SslPolicyErrors.None)return true;
+                if(certificate is null||(errors&~System.Net.Security.SslPolicyErrors.RemoteCertificateChainErrors)!=0)return false;
+                using var chain=new System.Security.Cryptography.X509Certificates.X509Chain();
+                chain.ChainPolicy.TrustMode=System.Security.Cryptography.X509Certificates.X509ChainTrustMode.CustomRootTrust;chain.ChainPolicy.CustomTrustStore.AddRange(roots);
+                chain.ChainPolicy.RevocationMode=System.Security.Cryptography.X509Certificates.X509RevocationMode.NoCheck;
+                chain.ChainPolicy.ApplicationPolicy.Add(new System.Security.Cryptography.Oid("1.3.6.1.5.5.7.3.1"));
+                if(provided is not null)foreach(var element in provided.ChainElements)chain.ChainPolicy.ExtraStore.Add(element.Certificate);
+                return chain.Build(certificate);
+            };
+        }
+        return new HttpClient(handler){Timeout=timeout};
+    }
     public static string Key(string file) {
         if (!Path.IsPathFullyQualified(file) || new FileInfo(file).Length > 8192) throw new ProcessingException("CONNECTION_CREDENTIAL_INVALID");
         var key = File.ReadAllText(file).Trim();
