@@ -2268,6 +2268,7 @@ test("C# integration review requires inspecting exact models and a human comment
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/chat/integration/");
     await expect(page.locator("#notice")).toContainText("Project loaded");
+    await page.getByRole("tab", { name: "Mapping & review", exact: true }).click();
     await page.getByRole("button", { name: "Inspect selection and rules" }).click();
     await expect(page.locator("#review")).toContainText("Synthetic user instruction");
     await page.getByRole("button", { name: "Confirm exact mapping" }).click();
@@ -2291,7 +2292,7 @@ test("C# integration page reports unavailable service without claiming migration
     );
     await page.goto("/chat/integration/");
     await expect(page.locator("#notice")).toContainText("C# integration service is not enabled or ready");
-    await expect(page.getByText("Clinical databases are read-only.", { exact: true })).toBeVisible();
+    await expect(page.getByText("Clinical data handling: read-only sources", { exact: true })).toBeVisible();
 });
 
 test("channel groups let an owner grant monitoring and show members only operational summaries", async ({ page }) => {
@@ -2358,6 +2359,7 @@ test("channel groups let an owner grant monitoring and show members only operati
     });
     await page.goto("/chat/integration/");
     await expect(page.locator("#notice")).toContainText("Create a project");
+    await page.getByRole("tab", { name: "Groups & access", exact: true }).click();
     await page.getByRole("button", { name: "Load / refresh groups" }).click();
     await expect(page.locator("#group-monitor")).toContainText("RUNNING");
     await page.locator("#group-management > summary").click();
@@ -2440,7 +2442,9 @@ test("existing confirmed mapping can be found and inspected without AI generatio
     });
     await page.goto("/chat/integration/");
     await expect(page.locator("#notice")).toContainText("Project loaded");
+    await page.getByRole("tab", { name: "Models", exact: true }).click();
     await page.locator("[data-model]").check();
+    await page.getByRole("tab", { name: "Mapping & review", exact: true }).click();
     await page.getByText("Reuse verified work and save AI calls", { exact: true }).click();
     await page.locator("#reuse-source-system").fill("lab-source");
     await page.locator("#reuse-semantics").fill("dictionary-1");
@@ -2512,7 +2516,7 @@ test("shared workspace styles load on both pages and navigation identifies the c
     await expect(page.locator("#workspace-content")).toBeAttached();
 });
 
-test("integration workflow supports keyboard skips, step links, phone layout and zoom-sized content", async ({
+test("integration tabs support keyboard navigation, retained fields, deep links and narrow viewports", async ({
     page,
 }) => {
     await page.route("**/chat/api/session", (route) =>
@@ -2523,18 +2527,52 @@ test("integration workflow supports keyboard skips, step links, phone layout and
     await expect(page.getByRole("link", { name: "Skip to integration workspace" })).toBeFocused();
     await page.keyboard.press("Enter");
     await expect(page.locator("#integration-content")).toBeFocused();
-    const workflow = page.getByRole("navigation", { name: "Integration workflow", exact: true });
-    await workflow.getByRole("link", { name: "Groups and access", exact: true }).click();
+    const tabs = page.getByRole("tablist", { name: "Integration sections", exact: true });
+    await expect(page.getByRole("tabpanel")).toHaveCount(1);
+    await expect(page.getByRole("tab", { selected: true })).toHaveText("Project");
+    await page.locator("#project-step details > summary").click();
+    await page.locator("#project-id").fill("unsaved-project");
+    await tabs.getByRole("tab", { name: "Groups & access", exact: true }).click();
     await expect(page).toHaveURL(/#sharing-step$/);
-    await expect(page.getByRole("heading", { name: "Shared channel groups", exact: true })).toBeInViewport();
+    await expect(page.getByRole("heading", { name: "Shared channel groups", exact: true })).toBeVisible();
+    await expect(page.locator("#project-step")).toBeHidden();
+    await expect(page.getByRole("tabpanel")).toHaveCount(1);
+    await page.keyboard.press("Home");
+    await expect(tabs.getByRole("tab", { name: "Project", exact: true })).toBeFocused();
+    await expect(page.locator("#project-id")).toHaveValue("unsaved-project");
+    await tabs.getByRole("tab", { name: "Project", exact: true }).focus();
+    await page.keyboard.press("ArrowLeft");
+    await expect(tabs.getByRole("tab", { name: "Groups & access", exact: true })).toBeFocused();
+    await page.keyboard.press("ArrowRight");
+    await expect(tabs.getByRole("tab", { name: "Project", exact: true })).toBeFocused();
+    await page.keyboard.press("End");
+    await expect(tabs.getByRole("tab", { name: "Groups & access", exact: true })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(page.locator("#sharing-step")).toBeFocused();
+    await page.reload();
+    await expect(tabs.getByRole("tab", { name: "Groups & access", exact: true })).toHaveAttribute(
+        "aria-selected",
+        "true",
+    );
     for (const width of [1440, 390, 320]) {
         await page.setViewportSize({ width, height: 900 });
-        await workflow.getByRole("link", { name: "1. Project", exact: true }).click();
-        await expect(page.getByRole("heading", { name: "1. Choose a project", exact: true })).toBeInViewport();
+        await tabs.getByRole("tab", { name: "Project", exact: true }).click();
+        await expect(page.getByRole("heading", { name: "1. Choose a project", exact: true })).toBeVisible();
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
         const control = await page.locator("#project").boundingBox();
         expect(control.height).toBeGreaterThanOrEqual(44);
-        await page.screenshot({ path: `test-results/standard-integration-${width}.png`, fullPage: true });
+        await tabs.getByRole("tab", { name: "Models", exact: true }).click();
+        await page.locator("#model-id").fill("unsaved-model");
+        await tabs.getByRole("tab", { name: "Mapping & review", exact: true }).click();
+        await page.locator("#decision-comment").fill("Unsubmitted review comment");
+        await page.locator("#reviewed").check();
+        await tabs.getByRole("tab", { name: "Models", exact: true }).click();
+        await expect(page.locator("#model-id")).toHaveValue("unsaved-model");
+        await tabs.getByRole("tab", { name: "Mapping & review", exact: true }).click();
+        await expect(page.locator("#decision-comment")).toHaveValue("Unsubmitted review comment");
+        await expect(page.locator("#reviewed")).toBeChecked();
+        await expect(page.getByRole("tabpanel")).toHaveCount(1);
+        await page.screenshot({ path: `test-results/integration-tabs-${width}.png`, fullPage: true });
     }
 });
 

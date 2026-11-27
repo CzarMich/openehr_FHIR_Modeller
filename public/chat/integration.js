@@ -1,4 +1,42 @@
 const $ = (id) => document.getElementById(id);
+// Tabs change presentation only. Hidden forms keep their values and review state.
+const workflowTabs = [...document.querySelectorAll('[role="tab"]')];
+function activateTab(tab, focus = false, updateHash = true) {
+    for (const item of workflowTabs) {
+        const active = item === tab;
+        item.setAttribute("aria-selected", String(active));
+        item.tabIndex = active ? 0 : -1;
+        $(item.getAttribute("aria-controls")).hidden = !active;
+    }
+    if (updateHash) history.replaceState(null, "", "#" + tab.getAttribute("aria-controls"));
+    if (focus) tab.focus({ preventScroll: true });
+    tab.scrollIntoView({ block: "nearest", inline: "nearest" });
+}
+function restoreTab() {
+    const tab = workflowTabs.find((item) => "#" + item.getAttribute("aria-controls") === location.hash);
+    if (tab) activateTab(tab, false, false);
+}
+for (const [index, tab] of workflowTabs.entries()) {
+    tab.addEventListener("click", () => activateTab(tab));
+    tab.addEventListener("keydown", (event) => {
+        const next =
+            event.key === "ArrowRight"
+                ? (index + 1) % workflowTabs.length
+                : event.key === "ArrowLeft"
+                  ? (index + workflowTabs.length - 1) % workflowTabs.length
+                  : event.key === "Home"
+                    ? 0
+                    : event.key === "End"
+                      ? workflowTabs.length - 1
+                      : null;
+        if (next === null) return;
+        event.preventDefault();
+        activateTab(workflowTabs[next], true);
+    });
+}
+window.addEventListener("hashchange", restoreTab);
+restoreTab();
+
 let session,
     selected,
     pending,
@@ -45,14 +83,14 @@ function button(label, action) {
 async function run(action) {
     if (busy) return;
     busy = true;
-    document.querySelectorAll("button").forEach((b) => (b.disabled = true));
+    document.querySelectorAll('button:not([role="tab"])').forEach((b) => (b.disabled = true));
     try {
         await action();
     } catch (error) {
         notice(error.message);
     } finally {
         busy = false;
-        document.querySelectorAll("button").forEach((b) => (b.disabled = false));
+        document.querySelectorAll('button:not([role="tab"])').forEach((b) => (b.disabled = false));
     }
 }
 function showReview(view) {
@@ -83,6 +121,7 @@ function showReview(view) {
 }
 async function load() {
     const id = project();
+    $("active-project").textContent = $("project").selectedOptions[0]?.textContent || id;
     const [provided, mappings, connections] = await Promise.all([
         models("projects/" + id + "/models"),
         models("projects/" + id + "/mappings"),
