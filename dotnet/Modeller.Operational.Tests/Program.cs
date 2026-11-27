@@ -219,5 +219,46 @@ try {
     var changedSourceSelection = (System.Text.Json.Nodes.JsonObject)sourceSelection.DeepClone(); var changedSourcePlan = (System.Text.Json.Nodes.JsonObject)sourcePlan.DeepClone(); changedSourcePlan["sourceProfileKey"] = new string('f', 64); changedSourceSelection["executionMapping"] = changedSourcePlan.ToJsonString();
     Reject(() => modelStore.Prepare("source-selection", changedSourceSelection, modelActor), "SOURCE_PROFILE_SELECTION_MISMATCH");
     Reject(() => modelStore.Decide(sourceDefinition["subject"]!.GetValue<string>(), 0, "CONFIRMED", "An agent cannot confirm its own source mapping", modelActor), "HUMAN_MAPPING_REVIEW_REQUIRED");
+    var pipelineScope = scope with { ProjectId = "private-pipeline" };
+    using (var registry = new IdentityRegistry(root, key)) {
+        var contractDefinition = new SourceContractDefinition(1, "json", [], [], [new("patientId", "json-pointer", "/mrn", Classification: "patient-identifier"), new("anchor", "json-pointer", "/anchor", Classification: "record-identifier"), new("name", "json-pointer", "/name", Classification: "direct-identifier"), new("value", "json-pointer", "/value")], new("patientId", "anchor", identity.System, AuthoritativeRegistration: true), []);
+        var exactContract = new SourceContract(System.Text.Json.JsonSerializer.Serialize(contractDefinition, Data.Json));
+        var pipelinePolicy = new ClinicalPolicy(1, pipelineScope.SourceSystem, pipelineScope.DestinationId, 0, false, null, [new("patient", "Patient", "/subject", "logical", false)], []);
+        var pipeline = new ClinicalPipeline(registry, pipelineScope, pipelinePolicy, exactContract);
+        var bytes = System.Text.Encoding.UTF8.GetBytes("[{\"mrn\":\"000001\",\"anchor\":\"patient-row-1\",\"name\":\"Synthetic Name\",\"value\":\"5.2\"}]");
+        var record = new SourceProjection(exactContract).Read(bytes)[0];
+        var source = new SourceConnection("synthetic-private", root, "json", [pipelineScope.ProjectId], [pipelineScope.Owner], pipelineScope.SourceSystem);
+        var held = pipeline.Admit(source, "synthetic-channel", new string('a', 64), new string('b', 64), record, "SYN-PIPE-1", bytes, now);
+        Check(held.State == "WAITING_PATIENT_IDENTITY" && registry.FindPatient(pipelineScope, identity) is null, "A contract's authoritative marker cannot alone register patients from an untrusted source");
+        Check(new DependencyQueue(registry).ReadOriginal(pipelineScope, record.SourceSha256).SequenceEqual(bytes), "Private pipeline admission durably retains the exact original before reporting held status");
+        pipeline.Admit(source with { TrustPatientRegistration = true }, "synthetic-channel", new string('a', 64), new string('b', 64), record, "SYN-PIPE-1", bytes, now);
+        var ready = pipeline.Acquire(held.Id, new string('a', 64), new string('b', 64), now)!;
+        Check(ready is not null && pipeline.MappingInput(ready)["value"]!.GetValue<string>() == "5.2", "Trusted source registration releases its own waiting clinical record without AI");
+        var output = pipeline.ApplyReferences(ready!, new System.Text.Json.Nodes.JsonObject { ["resourceType"] = "Observation" });
+        Check(output["subject"]!["identifier"]!["value"]!.GetValue<string>() == identity.Value && output["subject"]!["reference"] is null, "Reviewed logical references render independently of destination lookup");
+        Reject(() => pipeline.Acquire(held.Id, new string('c', 64), new string('b', 64), now), "HELD_MAPPING_CHANGED");
+        new DependencyQueue(registry).Fail(pipelineScope, ready!, Data.Hash("SYNTHETIC_VALIDATION_FAILURE"), false, now);
+        Check(pipeline.Inspect(held.Id, now).State == "PROCESSING_REVIEW_REQUIRED", "A failed record cannot be silently leased again without a review decision");
+        var privacyScope = pipelineScope with { ProjectId = "private-privacy" };
+        registry.ChangePolicy(privacyScope, 0, true, "urn:synthetic:private-pseudonym");
+        var privatePolicy = pipelinePolicy with { PrivacyPolicyRevision = 1, PseudonymisePatientIdentifiers = true, PseudonymSystem = "urn:synthetic:private-pseudonym" };
+        var privatePipeline = new ClinicalPipeline(registry, privacyScope, privatePolicy, exactContract);
+        var admitted = privatePipeline.Admit(source with { Projects = [privacyScope.ProjectId], TrustPatientRegistration = true }, "synthetic-private-channel", new string('a', 64), new string('b', 64), record, "SYN-PRIVATE-1", bytes, now);
+        var privateLease = privatePipeline.Acquire(admitted.Id, new string('a', 64), new string('b', 64), now)!;
+        var filtered = privatePipeline.MappingInput(privateLease);
+        Check(filtered["patientId"]!.GetValue<string>() != identity.Value && !filtered.ContainsKey("name") && !filtered.ContainsKey("anchor") && filtered["value"]!.GetValue<string>() == "5.2", "Pseudonymisation replaces patient aliases and excludes direct identifiers while retaining clinical values");
+        var protectedOutput = privatePipeline.ApplyReferences(privateLease, new System.Text.Json.Nodes.JsonObject { ["resourceType"] = "Observation", ["valueString"] = "5.2" });
+        Check(protectedOutput["subject"]!["identifier"]!["system"]!.GetValue<string>() == "urn:synthetic:private-pseudonym", "Outbound Patient references use only the configured pseudonym namespace");
+        Reject(() => privatePipeline.CheckPrivacy(privateLease, new System.Text.Json.Nodes.JsonObject { ["text"] = "Patient 000001" }), "OUTBOUND_DIRECT_IDENTIFIER_REJECTED");
+        Reject(() => new ClinicalPipeline(registry, privacyScope, pipelinePolicy, exactContract), "PRIVACY_POLICY_REVIEW_REQUIRED");
+        var targetPatient = new System.Text.Json.Nodes.JsonObject { ["resourceType"] = "Patient", ["id"] = "synthetic-patient" };
+        Check(DestinationEvidence.PatientBinding(new System.Text.Json.Nodes.JsonObject { ["subject"] = new System.Text.Json.Nodes.JsonObject { ["reference"] = "Patient/synthetic-patient" } }, targetPatient, identity), "Exact direct Patient relationship can establish dependency binding");
+        Check(!DestinationEvidence.PatientBinding(new System.Text.Json.Nodes.JsonObject { ["subject"] = new System.Text.Json.Nodes.JsonObject { ["reference"] = "Patient/another-patient" } }, targetPatient, identity), "A different patient's Encounter cannot establish a clinical dependency");
+    }
+    Check(parsedAdt.CanonicalV2Xml is { Length: > 0 }, "ER7 messages have a canonical v2 XML projection for supplied profile validation");
+    var xmlAdt = ClinicalMessages.Read(parsedAdt.CanonicalV2Xml!, "hl7-v2-xml")[0];
+    Check(xmlAdt.Type == parsedAdt.Type && xmlAdt.ControlId == parsedAdt.ControlId, "ER7 and v2 XML agree on declared message scope and control identity");
+    var metadata = ClinicalMessages.Describe(System.Text.Encoding.ASCII.GetBytes(adt), "hl7-v2").ToJsonString();
+    Check(!metadata.Contains("000001", StringComparison.Ordinal) && !metadata.Contains("Example", StringComparison.Ordinal) && metadata.Contains("NOT_INCLUDED", StringComparison.Ordinal), "HL7 inspection excludes patient values");
     Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new { operationalChecks = checks, status = "PASS", clinicalData = "SYNTHETIC_ONLY", qualification = "DOMAIN_ONLY_NOT_RUNTIME_ENABLED" }));
 } finally { CryptographicOperations.ZeroMemory(key); if (Directory.Exists(root)) Directory.Delete(root, true); }

@@ -1,0 +1,128 @@
+using System.Security.Cryptography;
+using System.Text.Json.Nodes;
+using Modeller.Core;
+
+namespace Modeller.Operational;
+
+/// <summary>Private clinical admission and deterministic identity/reference enforcement. No model-provider calls.</summary>
+public sealed class ClinicalPipeline
+{
+    private readonly IdentityRegistry registry;
+    private readonly DependencyQueue queue;
+    private readonly OperationalScope scope;
+    private readonly ClinicalPolicy policy;
+    private readonly SourceContract contract;
+    public ClinicalPipeline(IdentityRegistry registry, OperationalScope scope, ClinicalPolicy policy, SourceContract contract) {
+        this.registry = registry; queue = new(registry); this.scope = scope; this.policy = policy; this.contract = new(contract.Content);
+        if (policy.IdentityDomain != scope.SourceSystem || policy.DestinationId != scope.DestinationId) throw new ProcessingException("CLINICAL_POLICY_SCOPE_MISMATCH");
+        var actual = registry.Policy(scope);
+        if (actual.Revision != policy.PrivacyPolicyRevision || actual.PseudonymisePatientIdentifiers != policy.PseudonymisePatientIdentifiers || actual.PseudonymSystem != policy.PseudonymSystem) throw new ProcessingException("PRIVACY_POLICY_REVIEW_REQUIRED");
+        foreach (var reference in policy.References) if (reference.Role != "patient" && !contract.Definition.Relations.Any(relation => relation.Role == reference.Role)) throw new ProcessingException("SOURCE_RELATION_POLICY_REQUIRED");
+        foreach (var publication in policy.Publications) if (publication.Role != "patient" && !contract.Definition.Relations.Any(relation => relation.Role == publication.Role)) throw new ProcessingException("SOURCE_PUBLICATION_RELATION_REQUIRED");
+    }
+    public static IdentityRegistry Open(Configuration config) {
+        if (config.OperationalRoot is null || config.OperationalKeyFile is null || !Path.IsPathFullyQualified(config.OperationalKeyFile)) throw new ProcessingException("OPERATIONAL_STORE_CONFIGURATION_REQUIRED");
+        var file = new FileInfo(config.OperationalKeyFile);
+        if (!file.Exists || file.LinkTarget is not null || file.Length != 32) throw new ProcessingException("OPERATIONAL_KEY_REQUIRED");
+        var key = File.ReadAllBytes(file.FullName);
+        try { return new(config.OperationalRoot, key); }
+        finally { CryptographicOperations.ZeroMemory(key); }
+    }
+    private ClinicalIdentity? Relation(ProjectedSourceRecord record, string role) => role == "patient" ? record.PatientIdentity : record.Relations.GetValueOrDefault(role);
+    public PendingMessage Admit(SourceConnection source, string intakeId, string subject, string mappingHash, ProjectedSourceRecord record,
+        string recordId, byte[] original, DateTimeOffset now) {
+        if (source.IdentityDomain != policy.IdentityDomain || source.Format != contract.Definition.Format || record.SourceContractSha256 != contract.Sha256) throw new ProcessingException("SOURCE_IDENTITY_DOMAIN_MISMATCH");
+        if (record.AuthoritativePatientEvent && source.TrustPatientRegistration && record.PatientIdentity is not null && record.PatientAnchor is not null)
+            registry.RegisterVerifiedPatient(scope, record.PatientIdentity, record.PatientAnchor, record.SourceSha256);
+        var dependencies = policy.References.Where(reference => reference.RequireDestination).Select(reference => {
+            var identity = Relation(record, reference.Role);
+            return identity is null ? null : new EntityKey(reference.TargetType, identity.System, identity.Value);
+        }).OfType<EntityKey>().Distinct().ToArray();
+        // An absent required relationship is held separately; inventing a key would hide missing data.
+        var missing = policy.References.Any(reference => Relation(record, reference.Role) is null);
+        var envelope = new JsonObject { ["record"] = record.Record.DeepClone(), ["relations"] = System.Text.Json.JsonSerializer.SerializeToNode(record.Relations, Data.Json), ["missingRelationship"] = missing };
+        return queue.Accept(scope, new(source.Id, intakeId, recordId, record.SourceSha256, subject, mappingHash, policy.PrivacyPolicyRevision,
+            record.PatientIdentity, dependencies, envelope, now.AddDays(policy.HoldDays)), original, now);
+    }
+    public PendingMessage Inspect(string id, DateTimeOffset now) => queue.Inspect(scope, id, now);
+    public ProcessingLease? Acquire(string id, string subject, string mappingHash, DateTimeOffset now) {
+        var item = queue.Inspect(scope, id, now);
+        if (item.Input.MappingSubject != subject || item.Input.MappingSha256 != mappingHash) throw new ProcessingException("HELD_MAPPING_CHANGED");
+        if (item.Input.Source["missingRelationship"]?.GetValue<bool>() == true) return null;
+        return queue.Acquire(scope, id, now);
+    }
+    public JsonObject MappingInput(ProcessingLease lease) {
+        var record = (JsonObject)lease.Input.Source["record"]!.DeepClone();
+        if (!policy.PseudonymisePatientIdentifiers) return record;
+        void Filter(JsonObject row) {
+            foreach (var field in contract.Definition.Fields) {
+                if (field.Classification == "patient-identifier") row[field.Name] = lease.OutboundPatientIdentity.Value;
+                else if (field.Classification is "direct-identifier" or "narrative" || field.Name == contract.Definition.Patient.AnchorField) row.Remove(field.Name);
+            }
+            if (contract.Definition.Patient.SystemField is string authority) row[authority] = lease.OutboundPatientIdentity.System;
+        }
+        if (record["_group"] is JsonObject group && group["records"] is JsonArray rows) {
+            foreach (var row in rows.OfType<JsonObject>()) Filter(row);
+            group.Remove("key"); // Raw grouping keys are internal correlation data, not an outbound identity.
+        } else Filter(record);
+        return record;
+    }
+    public JsonObject ApplyReferences(ProcessingLease lease, JsonObject input) {
+        var resource = (JsonObject)input.DeepClone();
+        var relations = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, ClinicalIdentity?>>(lease.Input.Source["relations"]!, Data.Json)!;
+        foreach (var reference in policy.References) {
+            var identity = reference.Role == "patient" ? lease.Input.PatientIdentity : relations.GetValueOrDefault(reference.Role);
+            var existing = Get(resource, reference.Path) as JsonObject;
+            var resolved = FhirReferences.Resolve(registry, queue, scope, policy.PrivacyPolicyRevision, lease.Input.PatientIdentity,
+                new(reference.Mode, reference.TargetType), identity, existing?["reference"]?.GetValue<string>());
+            if (resolved.State != "RESOLVED") throw new ProcessingException(resolved.State);
+            Set(resource, reference.Path, resolved.Reference!);
+        }
+        CheckPrivacy(lease, resource);
+        return resource;
+    }
+    public void CheckPrivacy(ProcessingLease lease, JsonObject resource) {
+        if (!policy.PseudonymisePatientIdentifiers) return;
+        var original = (JsonObject)lease.Input.Source["record"]!;
+        var rows = original["_group"]?["records"] is JsonArray grouped ? grouped.OfType<JsonObject>() : [original];
+        var forbidden = rows.SelectMany(row => contract.Definition.Fields.Where(field => field.Classification is "patient-identifier" or "direct-identifier" or "narrative" || field.Name == contract.Definition.Patient.AnchorField).Select(field => row[field.Name]))
+            .Where(value => value?.GetValueKind() == System.Text.Json.JsonValueKind.String).Select(value => value!.GetValue<string>()).Append(lease.Input.PatientIdentity!.Value).Where(value => value.Length > 0 && value != lease.OutboundPatientIdentity.Value).Distinct(StringComparer.Ordinal).ToArray();
+        void Walk(JsonNode? node) {
+            if (node is JsonObject obj) { foreach (var pair in obj) Walk(pair.Value); }
+            else if (node is JsonArray array) { foreach (var child in array) Walk(child); }
+            else if (node?.GetValueKind() == System.Text.Json.JsonValueKind.String && forbidden.Any(value => node.GetValue<string>().Contains(value, StringComparison.Ordinal))) throw new ProcessingException("OUTBOUND_DIRECT_IDENTIFIER_REJECTED");
+        }
+        Walk(resource);
+    }
+    public ClinicalIdentity? PublicationIdentity(ProcessingLease lease, string resourceType) {
+        var publication = policy.Publications.SingleOrDefault(item => item.ResourceType == resourceType);
+        if (publication is null) return null;
+        if (publication.Role == "patient") return lease.Input.PatientIdentity;
+        var relations = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, ClinicalIdentity?>>(lease.Input.Source["relations"]!, Data.Json)!;
+        return relations.GetValueOrDefault(publication.Role);
+    }
+    public PendingMessage Complete(ProcessingLease lease, string evidenceHash, bool uncertain, DateTimeOffset now) => queue.Complete(scope, lease.Id, lease.LeaseId, evidenceHash, uncertain, now);
+    private static string[] Tokens(string path) {
+        if (!path.StartsWith('/') || path == "/") throw new ProcessingException("REFERENCE_TARGET_PATH_INVALID");
+        return path[1..].Split('/').Select(part => {
+            for (var i = 0; i < part.Length; i++) if (part[i] == '~' && (i + 1 >= part.Length || part[++i] is not ('0' or '1'))) throw new ProcessingException("REFERENCE_TARGET_PATH_INVALID");
+            return part.Replace("~1", "/", StringComparison.Ordinal).Replace("~0", "~", StringComparison.Ordinal);
+        }).ToArray();
+    }
+    private static JsonNode? Get(JsonNode root, string path) {
+        JsonNode? node = root;
+        foreach (var token in Tokens(path)) node = node is JsonObject obj ? obj[token] : node is JsonArray array && int.TryParse(token, out var i) && i >= 0 && i < array.Count ? array[i] : null;
+        return node;
+    }
+    private static void Set(JsonObject root, string path, JsonObject value) {
+        var tokens = Tokens(path); JsonNode node = root;
+        for (var i = 0; i < tokens.Length - 1; i++) {
+            if (node is JsonObject obj) { if (obj[tokens[i]] is null) obj[tokens[i]] = new JsonObject(); node = obj[tokens[i]]!; }
+            else if (node is JsonArray array && int.TryParse(tokens[i], out var index) && index >= 0 && index < array.Count) node = array[index] ?? throw new ProcessingException("REFERENCE_TARGET_PATH_INVALID");
+            else throw new ProcessingException("REFERENCE_TARGET_PATH_INVALID");
+        }
+        if (node is JsonObject parent) parent[tokens[^1]] = value.DeepClone();
+        else if (node is JsonArray array && int.TryParse(tokens[^1], out var index) && index >= 0 && index < array.Count) array[index] = value.DeepClone();
+        else throw new ProcessingException("REFERENCE_TARGET_PATH_INVALID");
+    }
+}

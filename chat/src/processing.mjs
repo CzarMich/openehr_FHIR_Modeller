@@ -138,7 +138,7 @@ export class ProcessingWorkspace {
         fields(input, ["projectId", "format", "name"]);
         if (
             !projectId.test(input.projectId) ||
-            !["csv", "json", "fhir-json", "openehr-json", "xml", "xlsx"].includes(input.format) ||
+            !["csv", "json", "fhir-json", "openehr-json", "xml", "xlsx", "hl7-v2", "hl7-v2-xml", "hl7-v3", "cda"].includes(input.format) ||
             typeof input.name !== "string" ||
             input.name.length > 180 ||
             /[\r\n\0]/.test(input.name) ||
@@ -180,6 +180,8 @@ export class ProcessingWorkspace {
                 displayName: s.displayName || s.id,
                 projects: s.projects,
                 uploaded: !!s.uploaded,
+                identityDomain: s.identityDomain || null,
+                trustPatientRegistration: !!s.trustPatientRegistration,
             })),
             destinations: result.destinations.map((d) => ({
                 id: d.id,
@@ -203,7 +205,7 @@ export class ProcessingWorkspace {
     matches(source, name) {
         return source.uploaded
             ? name === "source.bin"
-            : name.toLowerCase().endsWith("." + ({ "fhir-json": "json", "openehr-json": "json" }[source.format] || source.format));
+            : name.toLowerCase().endsWith("." + ({ "fhir-json": "json", "openehr-json": "json", "hl7-v2": "hl7", "hl7-v2-xml": "xml", "hl7-v3": "xml", cda: "xml" }[source.format] || source.format));
     }
     async file(source, name) {
         if (
@@ -387,6 +389,8 @@ export class ProcessingWorkspace {
                 id: s.id,
                 root: s.root,
                 format: s.format,
+                identityDomain: s.identityDomain || null,
+                trustPatientRegistration: !!s.trustPatientRegistration,
                 projects: s.projects,
                 owners: s.owners,
             })),
@@ -429,6 +433,7 @@ export class ProcessingWorkspace {
             sourceSha256: input.sourceSha256,
             mode: input.mode,
             destinationId: input.destinationId || null,
+            intakeId: input.id || input.subject,
         };
         const id = hash(JSON.stringify({ ...request, file: undefined })),
             directory = this.jobDirectory(owner, id, true);
@@ -721,6 +726,24 @@ export class ProcessingWorkspace {
         this.persist(channel);
         return channel;
     }
+    resumeHeld(channel) {
+        if (!channel.waitingJobs?.length || channel.nextHeldRetry > this.clock()) return false;
+        const id = channel.waitingJobs.shift();
+        channel.nextHeldRetry = this.clock() + Math.max(5, channel.pollSeconds) * 1000;
+        const directory = this.jobDirectory(channel.owner, id), request = json(join(directory, "request.json"));
+        if (request.subject !== channel.subject || request.sourceId !== channel.sourceId || request.destinationId !== (channel.destinationId || null)) throw problem("Held work must retain its reviewed channel assignment.", 409);
+        save(join(directory, "configuration.json"), this.configuration(channel.owner, channel.projectId));
+        channel.activeJob = id;
+        this.persist(channel);
+        this.launch({ id, directory, request }, true).then(state => {
+            channel.activeJob = null;
+            if (state.status === "WAITING_DEPENDENCIES") channel.waitingJobs.push(id);
+            else if (!terminal.has(state.status)) { channel.status = "PAUSED"; channel.error = state.error || state.status; channel.waitingJobs.push(id); }
+            if (channel.status === "STOPPING") channel.status = "STOPPED";
+            this.persist(channel);
+        }).catch(() => { channel.activeJob = null; channel.waitingJobs.push(id); channel.status = "PAUSED"; channel.error = "WORKER_UNAVAILABLE"; this.persist(channel); });
+        return true;
+    }
     async tick() {
         if (this.ticking || !this.core.ready) return;
         this.ticking = true;
@@ -740,6 +763,9 @@ export class ProcessingWorkspace {
                     continue;
                 channel.nextPoll = this.clock() + channel.pollSeconds * 1000;
                 try {
+                    this.source(channel.owner, channel.projectId, channel.sourceId);
+                    if (channel.lastPollWasIntake && this.resumeHeld(channel)) { channel.lastPollWasIntake = false; this.persist(channel); continue; }
+                    channel.lastPollWasIntake = true;
                     const source = this.source(channel.owner, channel.projectId, channel.sourceId),
                         names = readdirSync(source.root)
                             .filter((name) => this.matches(source, name))
@@ -773,10 +799,14 @@ export class ProcessingWorkspace {
                             .then((state) => {
                                 channel.activeJob = null;
                                 if (
-                                    state.status === "COMPLETED" ||
+                                    state.status === "COMPLETED" || state.status === "WAITING_DEPENDENCIES" ||
                                     (state.status === "COMPLETED_WITH_FAILURES" &&
                                         channel.failurePolicy === "quarantine-and-continue")
                                 ) {
+                                    if (state.status === "WAITING_DEPENDENCIES") {
+                                        channel.waitingJobs ||= [];
+                                        if (!channel.waitingJobs.includes(job.id)) channel.waitingJobs.push(job.id);
+                                    }
                                     channel.completedFiles ||= {};
                                     channel.completedFiles[name] = signature;
                                     channel.acknowledged.push(file.sha256);
@@ -799,6 +829,7 @@ export class ProcessingWorkspace {
                             });
                         break;
                     }
+                    if (!channel.activeJob) this.resumeHeld(channel);
                 } catch {
                     channel.status = "PAUSED";
                     channel.error = "SOURCE_OR_CONNECTION_UNAVAILABLE";

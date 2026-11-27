@@ -64,11 +64,12 @@ public sealed class DependencyQueue(IdentityRegistry registry)
         Save(scope, token, item, transaction); return item;
     }
     private string Readiness(string token, OperationalScope scope, PendingMessage item, DateTimeOffset now, Microsoft.Data.Sqlite.SqliteTransaction transaction) {
-        if (Final.Contains(item.State) || item.State is "RECONCILIATION_REQUIRED" or "LEASED") return item.State;
+        if (Final.Contains(item.State) || item.State is "RECONCILIATION_REQUIRED" or "LEASED" or "PROCESSING_REVIEW_REQUIRED") return item.State;
         if (item.Input.ExpiresAt <= now) return "EXPIRED";
         var policy = registry.Policy(scope, transaction);
         if (policy.Revision != item.Input.PrivacyPolicyRevision) return "POLICY_REVIEW_REQUIRED";
         if (item.Input.PatientIdentity is null) return "WAITING_PATIENT_IDENTITY";
+        if (item.Input.Source["missingRelationship"]?.GetValue<bool>() == true) return "WAITING_RELATIONSHIP_IDENTIFIER";
         var patient = registry.Read<RegisteredPatient>(token, "patient", registry.PatientKey(item.Input.PatientIdentity), transaction);
         if (patient?.State != "VERIFIED") return "WAITING_PATIENT_IDENTITY";
         foreach (var key in item.Input.Dependencies) {
@@ -138,6 +139,19 @@ public sealed class DependencyQueue(IdentityRegistry registry)
         if (!uncertain) registry.MarkDestinationIdentityUse(scope, item.Input.PrivacyPolicyRevision, evidenceSha256, transaction);
         var after = item with { Revision = item.Revision + 1, State = uncertain ? "RECONCILIATION_REQUIRED" : "DELIVERED", LastEvidenceSha256 = evidenceSha256, LeaseUntil = null };
         Save(scope, token, after, transaction); transaction.Commit(); return after;
+    }
+    public PendingMessage Fail(OperationalScope scope, ProcessingLease lease, string evidenceSha256, bool writeMayHaveOccurred, DateTimeOffset now) {
+        var token = registry.Scope(scope); Hash(lease.Id); Hash(evidenceSha256); using var transaction = registry.Transaction();
+        var item = registry.Read<PendingMessage>(token, "pending", lease.Id, transaction) ?? throw new ProcessingException("PENDING_INPUT_UNAVAILABLE");
+        if (item.State != "LEASED" || item.LeaseId != lease.LeaseId || item.LeaseUntil <= now) throw new ProcessingException("PROCESSING_LEASE_CONFLICT");
+        var after = item with { Revision = item.Revision + 1, State = writeMayHaveOccurred ? "RECONCILIATION_REQUIRED" : "PROCESSING_REVIEW_REQUIRED", LastEvidenceSha256 = evidenceSha256, LeaseUntil = null };
+        Save(scope, token, after, transaction); transaction.Commit(); return after;
+    }
+    public void InvalidateEntity(OperationalScope scope, EntityKey key, string evidenceSha256) {
+        var token = registry.Scope(scope); Hash(evidenceSha256); using var transaction = registry.Transaction();
+        var entityId = EntityId(key); var before = registry.Read<EntityEvidence>(token, "entity", entityId, transaction);
+        if (before is not null) registry.Write(token, "entity", entityId, 1, before with { State = "UNAVAILABLE", EvidenceSha256 = evidenceSha256 }, transaction);
+        transaction.Commit();
     }
     public PendingMessage Cancel(OperationalScope scope, string id, int expectedRevision) {
         var token = registry.Scope(scope); Hash(id); using var transaction = registry.Transaction();

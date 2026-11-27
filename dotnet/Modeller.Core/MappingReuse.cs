@@ -53,7 +53,7 @@ public sealed partial class ModelStore
         if (keys.Distinct(StringComparer.Ordinal).Count() != keys.Length) throw new ProcessingException("DUPLICATE_MODEL");
         foreach (var key in keys) if (GetModel(key, actor)["projectId"]?.GetValue<string>() != projectId) throw new ProcessingException("MODEL_PROJECT_MISMATCH");
         var direction = Data.Required(input, "direction");
-        if (direction is not ("source-direct-to-fhir" or "source-to-fhir" or "fhir-to-openehr" or "source-to-openehr" or "openehr-to-fhir")) throw new ProcessingException("MAPPING_SCOPE_REQUIRED");
+        if (direction is not ("source-direct-to-fhir" or "fhir-to-openehr" or "source-to-openehr" or "openehr-to-fhir")) throw new ProcessingException("MAPPING_SCOPE_REQUIRED");
         var limit = input["count"]?.GetValue<int>() ?? 10;
         if (limit is < 1 or > 50) throw new ProcessingException("REUSE_COUNT_INVALID");
         var expected = Data.Canonical(context); var selectedKeys = Data.Canonical(new JsonArray(keys.Select(key => (JsonNode)JsonValue.Create(key)!).ToArray()));

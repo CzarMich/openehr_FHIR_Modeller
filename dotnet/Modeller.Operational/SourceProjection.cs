@@ -11,7 +11,7 @@ namespace Modeller.Operational;
 
 public sealed record ProjectedSourceRecord(JsonObject Record, ClinicalIdentity? PatientIdentity, string? PatientAnchor,
     Dictionary<string, ClinicalIdentity?> Relations, string SourceSha256, string SourceContractSha256,
-    string? MessageId, bool AuthoritativePatientEvent, SourceValidationReport? Validation);
+    string? MessageId, bool AuthoritativePatientEvent, SourceValidationReport? Validation, JsonArray? InputResources = null);
 
 /// <summary>Projects only declared fields. These records remain in the private operational boundary.</summary>
 public sealed class SourceProjection
@@ -91,7 +91,7 @@ public sealed class SourceProjection
                 var nodes = values.Cast<object>().Take(10001).ToArray();
                 if (nodes.Length > 10000 || nodes.Length > 1 && !field.Multiple) throw new ProcessingException("SOURCE_FIELD_CARDINALITY_AMBIGUOUS");
                 if (nodes.Length == 0) { if (field.Required) throw new ProcessingException("SOURCE_REQUIRED_FIELD_MISSING"); continue; }
-                string Value(object node) => node switch { XElement element => element.Value, XAttribute attribute => attribute.Value, XText text => text.Value, _ => throw new ProcessingException("SOURCE_FIELD_NODE_UNSUPPORTED") };
+                string Value(object node) => node switch { XElement element when !element.HasElements => element.Value, XElement => throw new ProcessingException("SOURCE_MIXED_CONTENT_SCALAR_REJECTED"), XAttribute attribute => attribute.Value, XText text => text.Value, _ => throw new ProcessingException("SOURCE_FIELD_NODE_UNSUPPORTED") };
                 record[field.Name] = field.Multiple ? new JsonArray(nodes.Select(node => FieldValue(JsonValue.Create(Value(node)))).ToArray()) : FieldValue(JsonValue.Create(Value(nodes[0])));
             }
             records.Add(Envelope(record, sourceSha, messageId, report));
@@ -106,10 +106,11 @@ public sealed class SourceProjection
             var messages = ClinicalMessages.Read(original, definition.Format);
             var result = new List<ProjectedSourceRecord>();
             foreach (var message in messages) {
+                var messageStart = result.Count;
                 if (definition.Format.StartsWith("hl7-v2", StringComparison.Ordinal) && !definition.Versions.Contains(message.Version, StringComparer.Ordinal) || definition.MessageTypes.Length > 0 && !definition.MessageTypes.Contains(message.Type, StringComparer.Ordinal)) throw new ProcessingException("SOURCE_MESSAGE_PROFILE_MISMATCH");
                 if (definition.Fields[0].Kind == "xpath") {
-                    if (messages.Count != 1 || definition.Format == "hl7-v2") throw new ProcessingException("SOURCE_XML_PROJECTION_REQUIRES_DOCUMENT");
-                    result.AddRange(XmlRecords(original, sourceSha, message.ControlId));
+                    var xml = message.CanonicalV2Xml ?? original;
+                    result.AddRange(XmlRecords(xml, sourceSha, message.ControlId));
                 } else {
                     var roots = definition.RecordPath is { Length: > 0 } path ? Pointer(message.Document, path) : (true, (JsonNode?)message.Document);
                     if (!roots.Item1 || roots.Item2 is null) throw new ProcessingException("SOURCE_RECORD_SELECTOR_EMPTY");
@@ -117,18 +118,18 @@ public sealed class SourceProjection
                     if (records.Length is < 1 or > 10000) throw new ProcessingException("SOURCE_RECORD_LIMIT");
                     SourceValidationReport? report = null;
                     if (xmlValidation is not null) {
-                        if (definition.Format == "hl7-v2") throw new ProcessingException("SOURCE_V2_XML_PROFILE_PROJECTION_REQUIRED");
-                        report = xmlValidation.Validate(original);
+                        report = xmlValidation.Validate(message.CanonicalV2Xml ?? original);
                         if (!report.Valid) throw new ProcessingException("SOURCE_PROFILE_VALIDATION_FAILED");
                     }
                     foreach (var record in records) result.Add(Envelope(JsonRecord(record), sourceSha, message.ControlId, report));
                 }
+                for (var ordinal = messageStart; ordinal < result.Count; ordinal++) result[ordinal] = result[ordinal] with { MessageId = message.ControlId is null ? null : message.ControlId + ":record:" + (ordinal - messageStart).ToString(System.Globalization.CultureInfo.InvariantCulture) };
                 if (result.Count > 10000) throw new ProcessingException("SOURCE_RECORD_LIMIT");
             }
             return result;
         }
         if (definition.Fields[0].Kind == "xpath") return XmlRecords(original, sourceSha, null);
         var sourceRecords = Sources.Parse(original, definition.Format);
-        return sourceRecords.Select(record => Envelope(JsonRecord(record), sourceSha, null, null)).ToList();
+        return sourceRecords.Select(record => Envelope(JsonRecord(record), sourceSha, null, null) with { InputResources = definition.Format is "fhir-json" or "openehr-json" ? new JsonArray(record.DeepClone()) : null }).ToList();
     }
 }

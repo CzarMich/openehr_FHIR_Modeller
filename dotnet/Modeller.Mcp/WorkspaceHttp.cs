@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http.Extensions;
 using Modeller.Core;
+using Modeller.Operational;
 
 namespace Modeller.Mcp;
 
@@ -36,6 +37,19 @@ public static class WorkspaceHttp
                 else if (parts.Length == 3 && parts[0] == "mappings" && parts[2] == "decisions" && context.Request.Method == "POST") {
                     Data.Keys(args, "decision", "expectedSequence", "comment");
                     result = protocol.Workspace.Models.Decide(parts[1], args["expectedSequence"]!.GetValue<int>(), Data.Required(args, "decision"), Data.Required(args, "comment"), actor);
+                } else if (parts.Length == 5 && parts[0] == "projects" && parts[2] == "destinations" && parts[4] == "privacy") {
+                    _ = protocol.Workspace.Models.GetProject(parts[1], actor);
+                    if (!System.Text.RegularExpressions.Regex.IsMatch(parts[3], "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")) throw new ProcessingException("DESTINATION_IDENTIFIER_REQUIRED");
+                    using var operational = ClinicalPipeline.Open(protocol.Workspace.Configuration);
+                    var scope = new OperationalScope(actor.Owner, parts[1], "destination-policy", parts[3]);
+                    DestinationPrivacyPolicy policy;
+                    if (context.Request.Method == "GET") policy = operational.Policy(scope);
+                    else {
+                        actor.Decision(parts[1]);
+                        Data.Keys(args, "expectedRevision", "pseudonymisePatientIdentifiers", "pseudonymSystem");
+                        policy = operational.ChangePolicy(scope, args["expectedRevision"]!.GetValue<int>(), args["pseudonymisePatientIdentifiers"]!.GetValue<bool>(), args["pseudonymSystem"]?.GetValue<string>());
+                    }
+                    result = System.Text.Json.JsonSerializer.SerializeToNode(policy, Data.Json)!.AsObject();
                 } else if (path == "execute" && context.Request.Method == "POST") {
                     Data.Keys(args, "tool", "action", "projectId", "arguments");
                     result = await protocol.Workspace.Execute(Data.Required(args, "tool"), Data.Required(args, "action"), args["projectId"]?.GetValue<string>(), args["arguments"] as JsonObject ?? new JsonObject(), actor, context.RequestAborted);

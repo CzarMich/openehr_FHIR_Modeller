@@ -11,22 +11,27 @@ public sealed class Mapping
     private readonly JsonArray stages;
     public string Direction { get; }
     public string? SourceProfileKey { get; }
+    public ClinicalPolicy? ClinicalPolicy { get; }
     public bool ProducesFhir => Direction is not ("source-to-openehr" or "fhir-to-openehr");
     public bool ProducesOpenEhr => Direction is "source-to-openehr" or "fhir-to-openehr";
     public bool RequiresOpenEhrInput => Direction == "openehr-to-fhir";
     public bool NeedsFhirModel => Direction != "source-to-openehr";
-    public bool NeedsOpenEhrModel => Direction != "source-direct-to-fhir";
+    public bool NeedsOpenEhrModel => Direction is "source-to-openehr" or "fhir-to-openehr" or "openehr-to-fhir";
     public string Reversibility => Data.Required(specification, "reversibility");
     public string SchemaHash { get; }
     public Mapping(string json) {
         if (System.Text.Encoding.UTF8.GetByteCount(json) > 1048576 || Data.ParseStrict(System.Text.Encoding.UTF8.GetBytes(json)) is not JsonObject mapping) throw new ProcessingException("MAPPING_INVALID");
         specification = mapping;
-        Data.Keys(mapping, "schemaVersion", "version", "direction", "sourceSchemaSha256", "reversibility", "description", "name", "requirements", "examples", "unresolvedQuestions", "sourceSchema", "groupBy", "stages", "sourceProfileKey");
+        Data.Keys(mapping, "schemaVersion", "version", "direction", "sourceSchemaSha256", "reversibility", "description", "name", "requirements", "examples", "unresolvedQuestions", "sourceSchema", "groupBy", "stages", "sourceProfileKey", "clinicalPolicy");
         if (mapping["schemaVersion"]?.GetValue<int>() != 2 || string.IsNullOrWhiteSpace(Data.Required(mapping, "version")) || string.IsNullOrWhiteSpace(Data.Required(mapping, "description"))) throw new ProcessingException("MAPPING_VERSION_REQUIRED");
+        ClinicalPolicy = mapping["clinicalPolicy"] is JsonObject policy ? ClinicalPolicy.Parse(policy) : null;
+        if (mapping.ContainsKey("clinicalPolicy") && ClinicalPolicy is null) throw new ProcessingException("CLINICAL_POLICY_REQUIRED");
         SourceProfileKey = mapping["sourceProfileKey"]?.GetValue<string>();
+        if (ClinicalPolicy is not null && SourceProfileKey is null) throw new ProcessingException("EXACT_SOURCE_PROFILE_REQUIRED");
         if (SourceProfileKey is not null && !Regex.IsMatch(SourceProfileKey, "^[a-f0-9]{64}$")) throw new ProcessingException("SOURCE_PROFILE_KEY_REQUIRED");
         Direction = Data.Required(mapping, "direction"); SchemaHash = Data.Required(mapping, "sourceSchemaSha256");
-        if (Direction is not ("source-to-fhir" or "source-direct-to-fhir" or "fhir-to-openehr" or "source-to-openehr" or "openehr-to-fhir") || !Regex.IsMatch(SchemaHash, "^[a-f0-9]{64}$") || mapping["reversibility"]?.GetValue<string>() is not ("lossless-within-scope" or "retained-context" or "lossy")) throw new ProcessingException("MAPPING_SCOPE_REQUIRED");
+        if (Direction == "source-to-fhir") throw new ProcessingException("LEGACY_CHAINED_MAPPING_REVIEW_REQUIRED");
+        if (Direction is not ("source-direct-to-fhir" or "fhir-to-openehr" or "source-to-openehr" or "openehr-to-fhir") || !Regex.IsMatch(SchemaHash, "^[a-f0-9]{64}$") || mapping["reversibility"]?.GetValue<string>() is not ("lossless-within-scope" or "retained-context" or "lossy")) throw new ProcessingException("MAPPING_SCOPE_REQUIRED");
         if (mapping["requirements"] is not JsonArray requirements || requirements.Count is < 1 or > 100) throw new ProcessingException("NARRATIVE_REQUIREMENTS_REQUIRED");
         foreach (var node in requirements) {
             if (node is not JsonObject requirement) throw new ProcessingException("REQUIREMENT_INVALID");
@@ -41,7 +46,7 @@ public sealed class Mapping
             if (example["synthetic"]?.GetValue<bool>() != true || example["input"] is not JsonObject || example.ContainsKey("expected") == example.ContainsKey("expectedError") || example["expected"] is not null && example["expected"] is not JsonArray) throw new ProcessingException("SYNTHETIC_EXAMPLE_INVALID");
         }
         stages = mapping["stages"] as JsonArray ?? throw new ProcessingException("MAPPING_STAGES_REQUIRED");
-        if (stages.Count != (Direction == "source-to-fhir" ? 2 : 1)) throw new ProcessingException("MAPPING_STAGES_INVALID");
+        if (stages.Count != 1) throw new ProcessingException("MAPPING_STAGES_INVALID");
         if (mapping["groupBy"] is JsonArray groupBy) { if (groupBy.Count is < 1 or > 8) throw new ProcessingException("MAPPING_GROUP_INVALID"); foreach (var path in groupBy) Tokens(path!.GetValue<string>()); }
         foreach (var item in stages) {
             if (item is not JsonObject stage || stage["rules"] is not JsonArray rules || rules.Count is < 1 or > 256 || stage["seed"] is not JsonObject) throw new ProcessingException("MAPPING_STAGE_INVALID");
@@ -144,7 +149,7 @@ public sealed class Mapping
                     var outputBytes = System.Text.Encoding.UTF8.GetByteCount(output.ToJsonString());
                     if (outputBytes > 2097152) throw new ProcessingException("RECORD_OUTPUT_LIMIT");
                     stageBytes += outputBytes; if (stageBytes > 8388608) throw new ProcessingException("RECORD_EXPANSION_LIMIT");
-                    var composition = Direction == "source-to-fhir" && stageNumber == 0 ? output : previous.Composition;
+                    var composition = previous.Composition;
                     next.Add(new(output, composition, provenance, unmapped));
                     if (next.Count > 100) throw new ProcessingException("RECORD_EXPANSION_LIMIT");
                 }

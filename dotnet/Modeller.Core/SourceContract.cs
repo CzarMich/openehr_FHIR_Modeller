@@ -29,7 +29,7 @@ public sealed class SourceContract
             if (field is null || field.Name is null || !Regex.IsMatch(field.Name, "^[A-Za-z][A-Za-z0-9_]{0,63}$") || !names.Add(field.Name) || field.Kind is not ("json-pointer" or "xpath") || field.Path is null || field.Path.Length > 2048 || field.Path.Any(char.IsControl)
                 || field.Classification is not ("clinical" or "patient-identifier" or "direct-identifier" or "narrative" or "record-identifier")) throw new ProcessingException("SOURCE_FIELD_DEFINITION_INVALID");
             if (field.Kind == "json-pointer" && field.Path.Length > 0 && !field.Path.StartsWith('/')) throw new ProcessingException("SOURCE_FIELD_POINTER_REQUIRED");
-            if (field.Kind == "xpath" && definition.Format is not ("xml" or "hl7-v2-xml" or "hl7-v3" or "cda")) throw new ProcessingException("SOURCE_FIELD_FORMAT_MISMATCH");
+            if (field.Kind == "xpath" && definition.Format is not ("xml" or "hl7-v2" or "hl7-v2-xml" or "hl7-v3" or "cda")) throw new ProcessingException("SOURCE_FIELD_FORMAT_MISMATCH");
         }
         if (!names.Contains(definition.Patient.IdentifierField) || !names.Contains(definition.Patient.AnchorField)) throw new ProcessingException("SOURCE_PATIENT_BINDING_REQUIRED");
         var patientField = definition.Fields.Single(field => field.Name == definition.Patient.IdentifierField);

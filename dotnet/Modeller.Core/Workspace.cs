@@ -9,6 +9,7 @@ namespace Modeller.Core;
 public sealed class Workspace(ModelStore models, Configuration configuration)
 {
     public ModelStore Models => models;
+    public Configuration Configuration => configuration;
     public async Task<JsonObject> Execute(string tool, string action, string? projectId, JsonObject arguments, ModelActor actor, CancellationToken cancellation) {
         if (tool == "modelling_project") {
             if (action == "list") return new JsonObject { ["items"] = models.Projects(actor) };

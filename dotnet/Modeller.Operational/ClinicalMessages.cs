@@ -10,7 +10,7 @@ using NHapi.Base.Parser;
 namespace Modeller.Operational;
 
 public sealed record ParsedClinicalMessage(string Standard, string Version, string Type, string? ControlId,
-    string SourceSha256, JsonObject Document, string ValidationStage, bool ProfileValidated = false);
+    string SourceSha256, JsonObject Document, string ValidationStage, bool ProfileValidated = false, byte[]? CanonicalV2Xml = null);
 
 /// <summary>Private message parsing. Never publish Document through a general MCP tool.</summary>
 public static class ClinicalMessages
@@ -24,6 +24,25 @@ public static class ClinicalMessages
             "hl7-v3" or "cda" => [ReadV3(original, format)],
             _ => throw new ProcessingException("MESSAGE_FORMAT_UNSUPPORTED")
         };
+    }
+    public static JsonObject Describe(byte[] original, string format) {
+        var messages = Read(original, format);
+        var fields = new SortedDictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        var complete = true;
+        void Walk(JsonNode? node, string path, int depth) {
+            if (depth > 24 || fields.Count >= 256 || path.Length > 512) { complete = false; return; }
+            if (path.Length > 0) {
+                if (!fields.TryGetValue(path, out var types)) fields[path] = types = new(StringComparer.Ordinal);
+                types.Add(node is null ? "null" : node.GetValueKind().ToString().ToLowerInvariant());
+            }
+            if (node is JsonObject obj) foreach (var pair in obj) Walk(pair.Value, path + "/" + pair.Key.Replace("~", "~0", StringComparison.Ordinal).Replace("/", "~1", StringComparison.Ordinal), depth + 1);
+            else if (node is JsonArray array) foreach (var child in array) Walk(child, path + "/*", depth + 1);
+        }
+        foreach (var message in messages) Walk(message.Document, "", 0);
+        return new JsonObject { ["format"] = format, ["count"] = messages.Count, ["versions"] = new JsonArray(messages.Select(message => message.Version).Distinct().Select(value => (JsonNode)JsonValue.Create(value)!).ToArray()),
+            ["messageTypes"] = new JsonArray(messages.Select(message => message.Type).Distinct().Select(value => (JsonNode)JsonValue.Create(value)!).ToArray()),
+            ["fields"] = new JsonArray(fields.Select(field => (JsonNode)new JsonObject { ["path"] = field.Key, ["types"] = new JsonArray(field.Value.Order(StringComparer.Ordinal).Select(value => (JsonNode)JsonValue.Create(value)!).ToArray()), ["meaning"] = "UNRESOLVED" }).ToArray()),
+            ["complete"] = complete, ["sampleValues"] = "NOT_INCLUDED", ["profileValidation"] = "NOT_EXECUTED", ["clinicalApproval"] = false };
     }
     private static List<ParsedClinicalMessage> ReadV2Inputs(byte[] bytes) {
         var messages = ReadFrames(bytes).SelectMany(SplitMessages).Take(10001).ToArray();
@@ -84,7 +103,7 @@ public static class ClinicalMessages
         try {
             var model = new PipeParser().Parse(content); var visits = 0;
             var document = new JsonObject { ["wire"] = wire, ["model"] = Structure(model, 0, ref visits), ["fieldSeparator"] = separator.ToString(), ["encodingCharacters"] = header[1] };
-            return new("HL7v2", version, header[8], header[9], Convert.ToHexStringLower(SHA256.HashData(bytes)), document, "MODEL_PARSED");
+            return new("HL7v2", version, header[8].Replace(header[1][0], '^'), header[9], Convert.ToHexStringLower(SHA256.HashData(bytes)), document, "MODEL_PARSED", CanonicalV2Xml: Encoding.UTF8.GetBytes(new DefaultXMLParser().Encode(model)));
         } catch (NHapi.Base.HL7Exception) { throw new ProcessingException("HL7_V2_MODEL_VALIDATION_FAILED"); }
     }
     private static JsonObject Structure(IStructure structure, int depth, ref int visits) {
@@ -137,7 +156,8 @@ public static class ClinicalMessages
             var msh = model.GetAll("MSH").SingleOrDefault() as ISegment ?? throw new ProcessingException("HL7_HEADER_INVALID");
             var controlId = (msh.GetField(10, 0) as IPrimitive)?.Value;
             if (string.IsNullOrWhiteSpace(controlId)) throw new ProcessingException("HL7_HEADER_INVALID");
-            return new("HL7v2", model.Version, model.GetStructureName(), controlId, Convert.ToHexStringLower(SHA256.HashData(bytes)), new JsonObject { ["model"] = Structure(model, 0, ref visits) }, "MODEL_PARSED");
+            var header = new PipeParser().Encode(model).Split('\r')[0].Split('|');
+            return new("HL7v2", model.Version, header[8], controlId, Convert.ToHexStringLower(SHA256.HashData(bytes)), new JsonObject { ["model"] = Structure(model, 0, ref visits) }, "MODEL_PARSED", CanonicalV2Xml: Encoding.UTF8.GetBytes(new DefaultXMLParser().Encode(model)));
         } catch (NHapi.Base.HL7Exception) { throw new ProcessingException("HL7_V2_MODEL_VALIDATION_FAILED"); }
     }
     private static ParsedClinicalMessage ReadV3(byte[] bytes, string format) {
