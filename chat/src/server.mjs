@@ -1,3 +1,5 @@
+import { ChannelGroups } from "./channel-groups.mjs";
+import { createHash } from "node:crypto";
 import { IntegrationCore } from "./integration-core.mjs";
 import { ProcessingWorkspace } from "./processing.mjs";
 import { ModellingClients } from "./modelling-clients.mjs";
@@ -87,6 +89,7 @@ export function createApplication(
         shares = new Shares(store),
     } = {},
 ) {
+    const channelGroups = new ChannelGroups(config, processing);
     mcpFactory ||= (signal) => new ModellingClients(config, integrationCore, signal);
     provider.canUseGlobal = (identity) => identityCanUseGlobal(auth.identityStore, identity);
     connections.canUseGlobal = provider.canUseGlobal;
@@ -657,6 +660,33 @@ export function createApplication(
                     throw Object.assign(new Error("Integration mode is not configured."), { status: 503 });
                 const suffix = path.slice("/chat/api/integration/".length);
                 const url = new URL(req.url, config.origin);
+                if (suffix === "channel-groups" && req.method === "GET")
+                    return json(res, 200, channelGroups.list(session));
+                if (suffix === "channel-groups" && req.method === "POST") {
+                    if (!config.allowWrites)
+                        throw Object.assign(new Error("Workspace changes are disabled."), { status: 403 });
+                    return json(res, 200, channelGroups.change(session, await body(req, null)));
+                }
+                if (suffix === "channel-groups/directory" && req.method === "GET") {
+                    const issuer = session.reviewIdentity?.issuer;
+                    const localUsers =
+                        auth.identityStore?.issuer === issuer
+                            ? auth.identityStore
+                                  .read()
+                                  .users.filter((user) => user.status === "active" && !user.mfaPending)
+                                  .map((user) => ({
+                                      id: createHash("sha256")
+                                          .update(issuer + "\n" + user.id)
+                                          .digest("hex"),
+                                      tenant: createHash("sha256").update(issuer).digest("hex"),
+                                      label: user.displayName,
+                                  }))
+                            : [];
+                    return json(res, 200, channelGroups.directory(session, localUsers));
+                }
+                const groupAudit = suffix.match(/^channel-groups\/([a-f0-9]{64})\/audit$/);
+                if (groupAudit && req.method === "GET")
+                    return json(res, 200, channelGroups.audit(session, groupAudit[1]));
                 if (suffix === "models") {
                     const target = url.searchParams.get("target");
                     if (typeof target !== "string" || !target.startsWith("/api/v1/integration/"))

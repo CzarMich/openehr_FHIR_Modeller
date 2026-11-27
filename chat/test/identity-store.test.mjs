@@ -132,6 +132,10 @@ test("active local sessions renew without extending authentication age or revivi
     assert.equal(store.renewSession(owner.sessionToken), null, "MFA setup cannot be renewed");
     store.verifyMfaSetup(owner.sessionToken, code(owner.totpSecret));
     const initial = store.localSession(owner.sessionToken);
+    assert.ok(
+        Math.abs(initial.reviewIdentity.started - Math.floor(Date.now() / 1000)) < 5,
+        "signed review assertions use Unix seconds",
+    );
     const expires = store.renewSession(owner.sessionToken);
     assert(expires >= initial.expires);
     assert.equal(store.localSession(owner.sessionToken).reviewIdentity.started, initial.reviewIdentity.started);

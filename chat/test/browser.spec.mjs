@@ -2293,3 +2293,90 @@ test("C# integration page reports unavailable service without claiming migration
     await expect(page.locator("#notice")).toContainText("C# integration service is not enabled or ready");
     await expect(page.getByText("Clinical databases are read-only.", { exact: true })).toBeVisible();
 });
+
+test("channel groups let an owner grant monitoring and show members only operational summaries", async ({ page }) => {
+    const owner = "a".repeat(64),
+        colleague = "b".repeat(64),
+        id = "c".repeat(64),
+        channelId = "d".repeat(64);
+    let isOwner = true,
+        saved;
+    const group = {
+        id,
+        name: "Laboratory interfaces",
+        owner,
+        revision: 1,
+        grants: [],
+        channels: [
+            {
+                reference: "e".repeat(64),
+                name: "Lab results",
+                projectId: "lab",
+                revision: 1,
+                mapping: "f".repeat(64),
+                mode: "export",
+                status: "RUNNING",
+                read: 12,
+                rejected: 1,
+                emitted: 11,
+            },
+        ],
+    };
+    await page.route("**/chat/api/session", (route) =>
+        route.fulfill({ json: { authenticated: true, csrf: "synthetic-csrf", integrationReady: true } }),
+    );
+    await page.route("**/chat/api/integration/**", async (route) => {
+        const url = new URL(route.request().url());
+        let result = { items: [] };
+        if (url.pathname.endsWith("/channel-groups/directory"))
+            result = {
+                items: [
+                    { id: owner, label: "Modeller" },
+                    { id: colleague, label: "Operations colleague" },
+                ],
+            };
+        else if (url.pathname.endsWith("/channel-groups") && route.request().method() === "POST") {
+            saved = route.request().postDataJSON();
+            group.grants = saved.grants;
+            group.revision++;
+            result = { id, revision: group.revision };
+        } else if (url.pathname.endsWith("/channel-groups"))
+            result = {
+                self: isOwner ? owner : colleague,
+                canCreate: isOwner,
+                groups: [
+                    {
+                        ...group,
+                        permissions: isOwner ? ["manage", "view", "monitor"] : ["view", "monitor"],
+                        grants: isOwner ? group.grants : undefined,
+                    },
+                ],
+                teams: [],
+            };
+        else if (url.pathname.endsWith("/channels")) result = { items: [{ id: channelId, name: "Lab results" }] };
+        await route.fulfill({ json: result });
+    });
+    await page.goto("/chat/integration/");
+    await expect(page.locator("#notice")).toContainText("Create a project");
+    await page.getByRole("button", { name: "Load / refresh groups" }).click();
+    await expect(page.locator("#group-monitor")).toContainText("RUNNING");
+    await page.locator("#group-management > summary").click();
+    await page.locator(`#group-grants select[data-principal="${colleague}"]`).selectOption("monitor");
+    await page.getByRole("button", { name: "Save access grants" }).click();
+    await expect(page.locator("#notice")).toContainText("Groups refreshed");
+    expect(saved).toEqual({
+        kind: "group",
+        action: "grants",
+        id,
+        expectedRevision: 1,
+        grants: [{ kind: "user", id: colleague, permissions: ["monitor"] }],
+    });
+    isOwner = false;
+    await page.getByRole("button", { name: "Load / refresh groups" }).click();
+    await expect(page.locator("#group-management")).toBeHidden();
+    await expect(page.locator("#team-management")).toBeHidden();
+    await expect(page.locator("#group-monitor")).toContainText('"read": 12');
+    await expect(page.locator("#group-monitor").getByRole("button")).toHaveCount(0);
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

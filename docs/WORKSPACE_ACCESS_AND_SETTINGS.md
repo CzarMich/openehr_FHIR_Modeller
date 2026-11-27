@@ -1,8 +1,22 @@
 # Shared channel groups, teams and UI configuration
 
-This document records the required product design and acceptance gates for shared operations. It is not a claim that all sharing/settings controls are already delivered. The current private file runtime isolates jobs/channels by owner; shared access must be implemented and tested without silently widening that boundary.
+This document distinguishes implemented shared monitoring from remaining product requirements. The feature branch provides browser-managed channel groups, reusable teams, view/monitor grants, immediate membership rechecks, revision conflicts and access history. Private processing jobs/channels remain owner-isolated. Shared editing, operation, patient-level results and general source/destination configuration forms are not delivered by this change. Production availability requires a release and deployment.
 
 The working product name is **openEHR Modeller**, with clinical discovery, mapping and integration as its scope. Visible branding can change without renaming persistent namespaces, repository URLs, identity issuers, signing/encryption keys or existing accounts.
+
+## Using the implemented group controls
+
+In **Integration workspace → Shared channel groups**, select **Load / refresh groups**. A signed-in modeller can create a named channel group and a reusable team. Local active users appear in the sharing directory; federated users register their verified identity by opening the groups list. Sharing remains inside the verified identity issuer/organisation boundary. Use operational names without patient identifiers: shared names, project identifiers, mapping references and counts can themselves be sensitive metadata.
+
+The group owner selects an owned channel and explicitly attaches it, then chooses **View** or **View and monitor** for each person or owned team and saves the grants. View returns the channel name, project, pinned mapping reference, mode and revision. Monitor adds allowlisted status, counts and a failure indicator. It does not expose the private filename, source/destination connection identifiers, free-text failure, record bodies, exports, quarantine, credentials or complete job reports. Monitor users have no start/pause or edit controls and gain no approval authority. Refresh retrieves current summaries; no patient-bearing monitoring stream or public bearer link is created.
+
+Team membership is editable separately. A team grant deliberately follows its current members; removing a member or grant takes effect on the next read. If team ownership transfers, the group owner retains the ability to inspect/revoke its existing team grant. Group grants cannot appoint clinical approvers or bypass exact-version model/mapping confirmation.
+
+Owners can inspect **Show access history** and transfer group/team ownership to another registered person. Every object always has one explicit owner; transferring removes the former owner's management rights. **Detach all channel assignments before transferring a channel group.** Private channel ownership is not transferred by group membership. Detaching removes sharing only and leaves the channel and private processing data intact. Shared editing/operation and private channel ownership transfer need separate authorisation and are pending.
+
+Access metadata is stored in the platform's private `channel-access` directory outside model repositories and source databases. Atomic updates use a filesystem lock, current object revision, purpose-separated HMAC signatures and the existing protected review keyring. Key rotation requires retaining verification keys for stored records until re-signed; this feature does not request a new user key. Audit records retain membership/assignment before and after changes without job records or credentials. A persistent lock after an interrupted write requires operator recovery; automatic lock breaking and automatic audit deletion are not enabled. The store currently caps users at 2,000, groups/teams at 128 each per organisation, grants/members/assignments at 200/200/128, and audit history at 10,000 changes. Reaching a cap fails explicitly rather than silently dropping history or grants. A larger production governance store and a documented archival UI remain release work.
+
+Signed-in humans use the browser session and CSRF protection. General MCP credentials cannot administer group membership. Browser writes require the configured fresh review-session age; viewing uses the ordinary session lifetime. Local authentication timestamps use Unix seconds in request-bound review assertions, matching federated authentication and the C# verifier.
 
 ## Channel groups and ownership
 

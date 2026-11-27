@@ -585,7 +585,7 @@ export class IdentityStore {
                 tenant: this.issuer,
                 roles: user.roles,
                 projectScopes: user.projectScopes || [],
-                started: session.created,
+                started: Math.floor(session.created / 1000),
                 method: "interactive_local",
             },
             expires: session.expires,

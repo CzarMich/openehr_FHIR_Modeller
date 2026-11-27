@@ -178,6 +178,66 @@
                 <h3>Selected job report</h3>
                 <pre id="report"></pre>
             </section>
+            <section>
+                <h2>Shared channel groups</h2>
+                <p>
+                    Share operational channel metadata with people or reusable teams in your organisation. Monitor
+                    access adds status and counts. It does not grant editing, start/pause, clinical approval, connection
+                    credentials, private files or patient results. Use group and channel names without patient
+                    information.
+                </p>
+                <button id="groups-refresh">Load / refresh groups</button>
+                <label
+                    >Channel group
+                    <select id="channel-group"></select
+                ></label>
+                <div id="group-monitor" aria-live="polite"></div>
+                <details id="group-management" hidden>
+                    <summary>Manage this group's access and channels</summary>
+                    <label>New group name <input id="group-name" maxlength="100" /></label>
+                    <button id="group-create">Create group</button>
+                    <div id="group-owner-controls" hidden>
+                        <label
+                            >Owned channel
+                            <select id="group-owned-channel"></select
+                        ></label>
+                        <button id="group-attach">Attach channel to group</button>
+                        <p>
+                            Choose each person's or team's access, then save. Team access follows current team
+                            membership. Saving replaces the group's current grants.
+                        </p>
+                        <div id="group-grants"></div>
+                        <button id="group-save-grants">Save access grants</button>
+                        <label
+                            >Transfer group ownership to
+                            <select id="group-next-owner"></select
+                        ></label>
+                        <button id="group-transfer">Transfer ownership</button>
+                        <p>
+                            Detach channel assignments before transferring group ownership. Transfer removes your
+                            management access immediately; private channel ownership and records remain unchanged.
+                        </p>
+                        <button id="group-audit">Show access history</button>
+                    </div>
+                </details>
+                <details id="team-management" hidden>
+                    <summary>Manage reusable teams</summary>
+                    <label>New team name <input id="team-name" maxlength="100" /></label>
+                    <button id="team-create">Create team</button>
+                    <label
+                        >Team
+                        <select id="channel-team"></select
+                    ></label>
+                    <div id="team-members"></div>
+                    <button id="team-save-members">Save team membership</button>
+                    <label
+                        >Transfer team ownership to
+                        <select id="team-next-owner"></select
+                    ></label>
+                    <button id="team-transfer">Transfer team ownership</button>
+                </details>
+                <pre id="group-access-history"></pre>
+            </section>
         </main>
     </body>
 </html>
