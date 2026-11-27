@@ -14,7 +14,7 @@ Routine supported settings stay in their existing protected UI. A connection sho
 
 [`design-system.css`](../public/chat/design-system.css) owns the colour, font, spacing, border, radius and control tokens and the shared workspace switcher. It loads after layout-specific styles on both pages. Keep workspace layouts in their existing stylesheets; use shared `--ui-*` variables for new visuals. The browser server explicitly serves the shared asset. Do not introduce a separate component framework or build tool for these native HTML/JavaScript views.
 
-Use semantic labels, headings, links for navigation and buttons for actions. Keep form controls at least 44 pixels high, preserve visible keyboard focus and avoid conveying status solely by colour. Code/model content retains a monospace font. The main canvas, cards and editable fields have distinct backgrounds. Existing dynamic status text remains a polite live region. Respect reduced motion and keep the optional Michael guide dismissible.
+Use semantic labels, headings, links for navigation and buttons for actions. Keep form controls and standalone navigation links at least 44 pixels high, preserve visible keyboard focus and avoid conveying status solely by colour. Code/model content retains a monospace font. The main canvas, cards and editable fields have distinct backgrounds. Existing dynamic status text remains a polite live region. Respect reduced motion and keep the optional Michael guide dismissible.
 
 Do not send patient data, credentials or private job results into chat to render interface guidance. Shared monitoring continues to exclude private rows and operational rights.
 

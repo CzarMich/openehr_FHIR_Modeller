@@ -2489,6 +2489,8 @@ test("shared workspace styles load on both pages and navigation identifies the c
     );
     const sharedStyle = page.locator('link[href="/chat/design-system.css"]');
     await expect(sharedStyle).toHaveCount(1);
+    const guide = await page.locator(".sidebar-bottom a").boundingBox();
+    expect(guide.height).toBeGreaterThanOrEqual(44);
     const css = await page.request.get("/chat/design-system.css");
     expect(css.ok()).toBe(true);
     expect(css.headers()["content-type"]).toContain("text/css");

@@ -396,3 +396,9 @@ input[type="radio"] {
         padding: 6px;
     }
 }
+
+.sidebar-bottom a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+}
