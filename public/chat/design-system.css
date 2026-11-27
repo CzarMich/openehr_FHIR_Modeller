@@ -206,46 +206,58 @@ input[type="radio"] {
     margin: 0;
 }
 .integration-layout {
-    display: grid;
-    grid-template-columns: 216px minmax(0, 1fr);
-    gap: 24px;
-    align-items: start;
+    display: block;
 }
 .integration-layout main {
     min-width: 0;
 }
 .workflow-nav {
     position: sticky;
-    top: 24px;
-    padding: 20px 0;
+    top: 0;
+    z-index: 2;
+    background: var(--ui-canvas);
+    padding: 8px 0 0;
 }
-.workflow-nav h2 {
-    margin: 0 0 12px;
+.workflow-nav [role="tablist"] {
+    display: flex;
+    overflow-x: auto;
+    gap: 4px;
+    border-bottom: 1px solid var(--ui-border);
+    padding: 4px 4px 8px;
+}
+.integration-page .workflow-nav [role="tab"] {
+    flex: 0 0 auto;
+    min-height: 44px;
+    margin: 0;
+    padding: 10px 14px;
+    border: 1px solid transparent;
+    border-radius: var(--ui-radius);
+    color: var(--ui-muted);
+    white-space: nowrap;
+    background: transparent;
+}
+.integration-page .workflow-nav [role="tab"][aria-selected="true"] {
+    color: var(--ui-primary);
+    background: var(--ui-primary-soft);
+    border-color: var(--ui-primary);
+}
+.integration-page .workspace-context {
+    margin: 18px 0 8px;
+    color: var(--ui-muted);
     font-size: 14px;
 }
-.workflow-nav ol {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-.workflow-nav a {
-    display: flex;
-    align-items: center;
-    min-height: 44px;
-    padding: 8px 12px;
-    margin-bottom: 4px;
-    border-radius: var(--ui-radius);
-    text-decoration: none;
+.integration-page .workspace-context strong {
     color: var(--ui-ink);
 }
-.workflow-nav a:hover {
-    background: var(--ui-primary-soft);
-    color: var(--ui-primary-hover);
-}
-.integration-page main > section {
+.integration-page main > [role="tabpanel"] {
     padding: 24px;
-    margin: 20px 0;
-    scroll-margin-top: 24px;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: var(--ui-surface);
+}
+.integration-page [role="tabpanel"][hidden] {
+    display: none;
 }
 .integration-page label {
     font-weight: 600;
@@ -295,10 +307,16 @@ input[type="radio"] {
     border-radius: 0 var(--ui-radius) var(--ui-radius) 0;
 }
 .integration-page .policy-note {
-    padding: 16px;
-    background: var(--ui-surface);
-    border: 1px solid var(--ui-border);
-    border-radius: var(--ui-radius);
+    margin: 8px 0 16px;
+    padding: 0;
+    color: var(--ui-muted);
+}
+.integration-page .policy-note summary {
+    font-size: 13px;
+}
+.integration-page .policy-note p {
+    margin: 0 0 12px;
+    max-width: 80ch;
 }
 .integration-page summary {
     min-height: 44px;
@@ -313,23 +331,6 @@ input[type="radio"] {
 @media (max-width: 800px) {
     .integration-page {
         padding: 16px;
-    }
-    .integration-layout {
-        display: block;
-    }
-    .workflow-nav {
-        position: static;
-        padding: 12px 0;
-    }
-    .workflow-nav ol {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-    }
-    .workflow-nav a {
-        border: 1px solid var(--ui-border);
-        background: var(--ui-surface);
-        margin: 0;
     }
     .integration-page main > section {
         padding: 16px;

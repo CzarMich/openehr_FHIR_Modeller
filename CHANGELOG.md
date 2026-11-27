@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Replace the long integration page with accessible tabs that retain form and review state.
+
 - Let users drag Leticia, retain her position and reset it with mouse or keyboard controls.
 
 - Rename the optional workspace guide to Leticia and remove the displayed personal copyright line.
