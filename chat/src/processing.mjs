@@ -138,7 +138,7 @@ export class ProcessingWorkspace {
         fields(input, ["projectId", "format", "name"]);
         if (
             !projectId.test(input.projectId) ||
-            !["csv", "json", "fhir-json", "xml", "xlsx"].includes(input.format) ||
+            !["csv", "json", "fhir-json", "openehr-json", "xml", "xlsx"].includes(input.format) ||
             typeof input.name !== "string" ||
             input.name.length > 180 ||
             /[\r\n\0]/.test(input.name) ||
@@ -203,7 +203,7 @@ export class ProcessingWorkspace {
     matches(source, name) {
         return source.uploaded
             ? name === "source.bin"
-            : name.toLowerCase().endsWith("." + ({ "fhir-json": "json" }[source.format] || source.format));
+            : name.toLowerCase().endsWith("." + ({ "fhir-json": "json", "openehr-json": "json" }[source.format] || source.format));
     }
     async file(source, name) {
         if (
@@ -373,8 +373,8 @@ export class ProcessingWorkspace {
                 !this.connections(owner, input.projectId).destinations.some((d) => d.id === input.destinationId))
         )
             throw problem("Choose an authorised export or FHIR destination.", 403);
-        if (input.mode === "deliver" && mapping.direction === "fhir-to-openehr")
-            throw problem("Reverse mappings export openEHR; select a FHIR-producing mapping for delivery.");
+        if (input.mode === "deliver" && ["fhir-to-openehr", "source-to-openehr"].includes(mapping.direction))
+            throw problem("This mapping exports openEHR compositions. Select a FHIR-producing mapping for FHIR delivery.");
         const file = await this.file(source, input.file);
         return this.ticket(owner, "job", { ...input, sourceSha256: file.sha256, mappingSha256: mapping.mappingSha256 });
     }

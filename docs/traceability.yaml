@@ -990,6 +990,78 @@
         "chat/test/browser.spec.mjs"
       ],
       "verification": "Shared visual contract and responsive keyboard navigation; protected confirmation regression tests remain in force."
+    },
+    {
+      "id": "REQ-F40",
+      "title": "Private HL7 message and document ingestion",
+      "canonical": "docs/requirements.md",
+      "status": "draft",
+      "implementation": "partial",
+      "packages": [
+        "dotnet/Modeller.Operational/Modeller.Operational.csproj"
+      ],
+      "tests": [
+        "dotnet/Modeller.Operational.Tests/Program.cs"
+      ],
+      "verification": "Parser dependencies selected only; HL7 reader, profiles, transports and end-to-end qualification remain pending."
+    },
+    {
+      "id": "REQ-F41",
+      "title": "Durable patient and encounter dependency handling",
+      "canonical": "docs/requirements.md",
+      "status": "draft",
+      "implementation": "partial",
+      "packages": [
+        "dotnet/Modeller.Operational/DependencyQueue.cs"
+      ],
+      "tests": [
+        "dotnet/Modeller.Operational.Tests/Program.cs"
+      ],
+      "verification": "Synthetic domain queue tests only; runtime intake, destination evidence verification and operational UI are not yet connected."
+    },
+    {
+      "id": "REQ-F42",
+      "title": "Reviewed FHIR relationship reference policies",
+      "canonical": "docs/requirements.md",
+      "status": "draft",
+      "implementation": "partial",
+      "packages": [
+        "docs/HL7_AND_IDENTITY.md"
+      ],
+      "tests": [
+        "dotnet/Modeller.Operational.Tests/Program.cs"
+      ],
+      "verification": "Requirement and exact-key dependency foundation only; selectable reference-policy execution remains pending."
+    },
+    {
+      "id": "REQ-F43",
+      "title": "Protected stable patient pseudonyms",
+      "canonical": "docs/requirements.md",
+      "status": "draft",
+      "implementation": "partial",
+      "packages": [
+        "dotnet/Modeller.Operational/IdentityRegistry.cs"
+      ],
+      "tests": [
+        "dotnet/Modeller.Operational.Tests/Program.cs"
+      ],
+      "verification": "Encrypted internal registry and policy-revision domain tests only; browser toggle and operational enforcement remain pending."
+    },
+    {
+      "id": "REQ-F44",
+      "title": "Explicit openEHR and FHIR route selection",
+      "canonical": "docs/requirements.md",
+      "status": "draft",
+      "implementation": "partial",
+      "packages": [
+        "dotnet/Modeller.Core/Mapping.cs",
+        "dotnet/Modeller.Core/ModelStore.cs",
+        "dotnet/Modeller.Processing/Program.cs"
+      ],
+      "tests": [
+        "dotnet/Modeller.Processing.Tests/Program.cs"
+      ],
+      "verification": "Additional route unit checks pass; packaged end-to-end composition/profile validation and release acceptance remain pending."
     }
   ]
 }

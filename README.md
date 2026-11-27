@@ -33,6 +33,10 @@ HTTPS does not imply encryption on every private service hop. See the
 
 Create an explicit source-discovery job: choose the database or platform/API connector, an operator-managed profile, purpose and original narrative. The catalogue includes SQL Server, Oracle, PostgreSQL, MySQL, MariaDB and SAP HANA, plus Epic, SAP BW and configured clinical APIs. Each choice reports its own implementation and qualification status; selection alone does not make a connector operational. SQL Server currently has executable metadata discovery. See [source jobs and connector status](docs/SOURCE_CONNECTORS.md).
 
+## HL7 and patient identity
+
+HL7 v2 messaging and HL7 v3/CDA intake are under development and are not yet enabled in the deployed runtime. Generic XML parsing does not implement those standards. The planned integration includes private durable holding for missing Patients/Encounters, reviewed logical or literal FHIR reference policies, a mandatory patient-identity gate and an optional destination pseudonymisation policy. See [HL7 support, dependencies and patient identity](docs/HL7_AND_IDENTITY.md) for the actual implementation status and qualification requirements.
+
 ## Reuse work and reduce AI calls
 
 The feature branch provides a deterministic **Find existing work without AI** action in the Integration workspace. It searches saved drafts and currently confirmed mappings using the source identity/meaning version, schema, purpose, original requirements, exact models, terminology pins and runtime. Loading an existing mapping requires no new generation. Human corrections become new versioned proposals for confirmation; they are not silently promoted into approved rules.

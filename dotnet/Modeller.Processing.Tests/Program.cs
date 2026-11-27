@@ -110,6 +110,22 @@ try {
     File.WriteAllText(eventPath, File.ReadAllText(eventPath).Replace("CONFIRMED", "REVOKED"));
     Reject(() => store.GetDefinition(subject, actor), "DECISION_AUDIT_INTEGRITY_FAILED");
 } finally { Directory.Delete(storeRoot, true); }
+// The new routes retain explicit model selection and do not invent a FHIR output.
+var ehrOnly = (JsonObject)plan.DeepClone();
+ehrOnly["direction"] = "source-to-openehr";
+ehrOnly["name"] = "synthetic-composition-only";
+ehrOnly["stages"] = new JsonArray(new JsonObject { ["seed"] = new JsonObject { ["_type"] = "COMPOSITION" }, ["rules"] = new JsonArray(Rule("/value", "/syntheticValue")) });
+ehrOnly["examples"] = new JsonArray(new JsonObject { ["synthetic"] = true, ["input"] = records[0].DeepClone(), ["expected"] = new JsonArray(new JsonObject { ["_type"] = "COMPOSITION", ["syntheticValue"] = "0" }) });
+var ehrMapping = new Mapping(ehrOnly.ToJsonString()); ehrMapping.VerifyExamples();
+Check(ehrMapping.ProducesOpenEhr && !ehrMapping.ProducesFhir && !ehrMapping.NeedsFhirModel && ehrMapping.NeedsOpenEhrModel, "Composition-only route does not require an unrelated FHIR model");
+var ehrInput = Sources.Parse(Encoding.UTF8.GetBytes("{\"_type\":\"COMPOSITION\",\"syntheticValue\":\"0\"}"), "openehr-json");
+Check(ehrInput.Count == 1 && ehrInput[0]["syntheticValue"]!.GetValue<string>() == "0", "Canonical composition input retains clinical values without conversion");
+Reject(() => Sources.Parse(Encoding.UTF8.GetBytes("{\"_type\":\"OBSERVATION\"}"), "openehr-json"), "OPENEHR_COMPOSITION_REQUIRED");
+var ehrForward = (JsonObject)ehrOnly.DeepClone(); ehrForward["direction"] = "openehr-to-fhir";
+ehrForward["stages"] = new JsonArray(new JsonObject { ["seed"] = new JsonObject { ["resourceType"] = "Observation" }, ["rules"] = new JsonArray(Rule("/syntheticValue", "/valueString")) });
+ehrForward["examples"] = new JsonArray(new JsonObject { ["synthetic"] = true, ["input"] = ehrInput[0].DeepClone(), ["expected"] = new JsonArray(new JsonObject { ["resourceType"] = "Observation", ["valueString"] = "0" }) });
+var ehrForwardMapping = new Mapping(ehrForward.ToJsonString()); ehrForwardMapping.VerifyExamples();
+Check(ehrForwardMapping.RequiresOpenEhrInput && ehrForwardMapping.ProducesFhir && ehrForwardMapping.NeedsOpenEhrModel && ehrForwardMapping.NeedsFhirModel, "Composition-to-FHIR requires both the source template and target profile");
 Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new { coreChecks = count, status = "PASS" }));
 
 // Isolated synthetic HTTP destination: no production endpoint or clinical database.

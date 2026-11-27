@@ -83,3 +83,7 @@ API and browser control record confirmation/revocation in the protected ledger;
 previews require a current matching selection. This does not confer clinical
 approval or destination-write permission. Private operational runs and FHIR push
 remain tracked separately under REQ-F31.
+
+## HL7 and patient identity
+
+HL7 v2, HL7 v3 and CDA intake are not enabled in the deployed runtime. New route, patient registry and dependency-queue components are under development; domain tests are not operational or vendor qualification. Logical/literal reference selection and the destination pseudonymisation toggle still require runtime and UI integration. See [the detailed support status](docs/HL7_AND_IDENTITY.md).

@@ -42,7 +42,8 @@ Stop a channel before changing its assignment. The API requires the expected cha
 | Generic XML | Direct children of a root become records; DTD/external entities and mixed content rejected; namespaces preserved in names |
 | XLSX | One data sheet at `xl/worksheets/sheet1.xml`, shared/inline strings and values; no formulas or macros; no implicit date or clinical-code inference |
 | FHIR JSON | Single resource, object array or collection Bundle entries containing only `resource` (fullUrl/request/response/search/paging context is rejected rather than discarded); actual release/profile validation is required for reverse mapping; no automatic reference remapping |
-| SQL, queues, HL7 v2, CDA, specialised datasets | Unsupported; generic XML/JSON parsing does not implement those standards |
+| HL7 v2, HL7 v3 and CDA | Not enabled; see [native support and identity requirements](HL7_AND_IDENTITY.md). Generic XML/JSON parsing does not implement these standards |
+| SQL row extraction, queues and specialised datasets | Unsupported by the deployed private file worker |
 
 Limits: 16 MiB/source, 10,000 records, 256 field paths, depth/ZIP limits, up to 100 mapped outputs per source group, 2 MiB/output and 8 MiB/stage. Jobs stop at a 256 MiB private storage bound checked between groups; private owner storage admission is bounded at 512 MiB. These are admission/backpressure controls, not an automated retention service. Operators must archive/delete completed private data under their retention policy.
 

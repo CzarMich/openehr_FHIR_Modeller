@@ -35,7 +35,10 @@ try {
         var mapping = new Mapping(models.MappingJson); mapping.VerifyExamples();
         mapping.VerifySource(records);
         if (mapping.Direction == "fhir-to-openehr" && source.Format != "fhir-json") throw new ProcessingException("DECLARED_FHIR_SOURCE_REQUIRED");
+        if (mapping.RequiresOpenEhrInput && source.Format != "openehr-json") throw new ProcessingException("DECLARED_OPENEHR_SOURCE_REQUIRED");
+        if (source.Format == "openehr-json" && !mapping.RequiresOpenEhrInput) throw new ProcessingException("DECLARED_OPENEHR_MAPPING_REQUIRED");
         if (mapping.Direction == "fhir-to-openehr" && request.Mode != "export") throw new ProcessingException("REVERSE_MAPPING_EXPORT_ONLY");
+        if (mapping.Direction == "source-to-openehr" && request.Mode != "export") throw new ProcessingException("OPENEHR_OUTPUT_EXPORT_ONLY");
         var destination = request.Mode == "deliver" ? config.Destinations.SingleOrDefault(d => d.Id == request.DestinationId && d.Projects.Contains(request.ProjectId, StringComparer.Ordinal) && d.Owners.Contains(request.Owner, StringComparer.Ordinal)) ?? throw new ProcessingException("DESTINATION_ACCESS_REJECTED") : null;
         using var delivery = destination is null ? null : new FhirDelivery(config, destination);
         if (delivery is not null) await delivery.Check(Data.Required(models.Project, "fhirVersion"), cancellation.Token);
@@ -74,15 +77,19 @@ try {
                         var inputs = groups[index].Record["_group"]?["records"] as JsonArray ?? new JsonArray(groups[index].Record.DeepClone());
                         for (var inputIndex = 0; inputIndex < inputs.Count; inputIndex++) await validation.Fhir((JsonObject)inputs[inputIndex]!, Path.Combine(directory, "evidence", $"input-{index:D6}-{inputIndex:D6}"), cancellation.Token);
                     }
+                    if (mapping.RequiresOpenEhrInput) {
+                        var inputs = groups[index].Record["_group"]?["records"] as JsonArray ?? new JsonArray(groups[index].Record.DeepClone());
+                        for (var inputIndex = 0; inputIndex < inputs.Count; inputIndex++) await validation.Composition((JsonObject)inputs[inputIndex]!, Path.Combine(directory, "evidence", $"input-openehr-{index:D6}-{inputIndex:D6}.json"), cancellation.Token);
+                    }
                     var mapped = mapping.Transform(groups[index].Record);
                     // Validate the complete source record's outputs before the first destination write.
                     for (var output = 0; output < mapped.Count; output++) {
                         var prefix = Path.Combine(directory, "evidence", $"{index:D6}-{output:D3}");
-                        if (mapping.Direction != "source-direct-to-fhir") {
+                        if (mapping.Direction == "source-to-fhir" || mapping.ProducesOpenEhr) {
                             var composition = mapping.Direction == "source-to-fhir" ? mapped[output].Composition! : mapped[output].Output;
                             await validation.Composition(composition, prefix + "-openehr.json", cancellation.Token);
                         }
-                        if (mapping.Direction != "fhir-to-openehr") await validation.Fhir(mapped[output].Output, prefix + "-fhir", cancellation.Token);
+                        if (mapping.ProducesFhir) await validation.Fhir(mapped[output].Output, prefix + "-fhir", cancellation.Token);
                         Data.Write(prefix + "-provenance.json", new { sourceId = request.SourceId, sourceSha256 = request.SourceSha256, group = index, mapped[output].Provenance, mapped[output].Unmapped, mappingSha256 = state.MappingSha256 });
                     }
                     if (mapping.Reversibility == "retained-context") Data.Write(Path.Combine(directory, "evidence", $"{index:D6}-retained-source.json"), groups[index].Record);

@@ -10,15 +10,23 @@ public sealed class Mapping
     private readonly JsonObject specification;
     private readonly JsonArray stages;
     public string Direction { get; }
+    public string? SourceProfileKey { get; }
+    public bool ProducesFhir => Direction is not ("source-to-openehr" or "fhir-to-openehr");
+    public bool ProducesOpenEhr => Direction is "source-to-openehr" or "fhir-to-openehr";
+    public bool RequiresOpenEhrInput => Direction == "openehr-to-fhir";
+    public bool NeedsFhirModel => Direction != "source-to-openehr";
+    public bool NeedsOpenEhrModel => Direction != "source-direct-to-fhir";
     public string Reversibility => Data.Required(specification, "reversibility");
     public string SchemaHash { get; }
     public Mapping(string json) {
         if (System.Text.Encoding.UTF8.GetByteCount(json) > 1048576 || Data.ParseStrict(System.Text.Encoding.UTF8.GetBytes(json)) is not JsonObject mapping) throw new ProcessingException("MAPPING_INVALID");
         specification = mapping;
-        Data.Keys(mapping, "schemaVersion", "version", "direction", "sourceSchemaSha256", "reversibility", "description", "name", "requirements", "examples", "unresolvedQuestions", "sourceSchema", "groupBy", "stages");
+        Data.Keys(mapping, "schemaVersion", "version", "direction", "sourceSchemaSha256", "reversibility", "description", "name", "requirements", "examples", "unresolvedQuestions", "sourceSchema", "groupBy", "stages", "sourceProfileKey");
         if (mapping["schemaVersion"]?.GetValue<int>() != 2 || string.IsNullOrWhiteSpace(Data.Required(mapping, "version")) || string.IsNullOrWhiteSpace(Data.Required(mapping, "description"))) throw new ProcessingException("MAPPING_VERSION_REQUIRED");
+        SourceProfileKey = mapping["sourceProfileKey"]?.GetValue<string>();
+        if (SourceProfileKey is not null && !Regex.IsMatch(SourceProfileKey, "^[a-f0-9]{64}$")) throw new ProcessingException("SOURCE_PROFILE_KEY_REQUIRED");
         Direction = Data.Required(mapping, "direction"); SchemaHash = Data.Required(mapping, "sourceSchemaSha256");
-        if (Direction is not ("source-to-fhir" or "source-direct-to-fhir" or "fhir-to-openehr") || !Regex.IsMatch(SchemaHash, "^[a-f0-9]{64}$") || mapping["reversibility"]?.GetValue<string>() is not ("lossless-within-scope" or "retained-context" or "lossy")) throw new ProcessingException("MAPPING_SCOPE_REQUIRED");
+        if (Direction is not ("source-to-fhir" or "source-direct-to-fhir" or "fhir-to-openehr" or "source-to-openehr" or "openehr-to-fhir") || !Regex.IsMatch(SchemaHash, "^[a-f0-9]{64}$") || mapping["reversibility"]?.GetValue<string>() is not ("lossless-within-scope" or "retained-context" or "lossy")) throw new ProcessingException("MAPPING_SCOPE_REQUIRED");
         if (mapping["requirements"] is not JsonArray requirements || requirements.Count is < 1 or > 100) throw new ProcessingException("NARRATIVE_REQUIREMENTS_REQUIRED");
         foreach (var node in requirements) {
             if (node is not JsonObject requirement) throw new ProcessingException("REQUIREMENT_INVALID");

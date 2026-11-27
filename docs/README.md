@@ -27,6 +27,8 @@ material retains its respective terms; see the
 - [Capabilities and limitations](../CAPABILITIES.md), [MCP tools](MCP_TOOLS.md) and [protocol support](MCP_PROTOCOL.md)
 - [Identity and access](IDENTITY_AND_ACCESS.md), [OIDC](OIDC.md) and [security](SECURITY.md)
 
+- [HL7, dependencies and patient identity](HL7_AND_IDENTITY.md): native support status, out-of-order messages, reference policies and pseudonymisation.
+
 ## Modelling and storage
 
 - [CKM sources](CKM_SOURCES.md) and [model imports](MODEL_IMPORTS.md)
