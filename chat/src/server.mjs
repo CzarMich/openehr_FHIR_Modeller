@@ -1,3 +1,4 @@
+import { VendorSources } from "./vendor-sources.mjs";
 import { ChannelGroups } from "./channel-groups.mjs";
 import { createHash } from "node:crypto";
 import { IntegrationCore } from "./integration-core.mjs";
@@ -89,6 +90,24 @@ export function createApplication(
         shares = new Shares(store),
     } = {},
 ) {
+    const vendorSources = new VendorSources(config, integrationCore, processing);
+    vendorSources.canOperateOwner = (owner, issuer) => {
+        const store = auth.identityStore;
+        if (!store || issuer !== store.issuer) return true;
+        const user = store.read().users.find(
+            (user) =>
+                createHash("sha256")
+                    .update(issuer + "\n" + user.id)
+                    .digest("hex") === owner,
+        );
+        return (
+            !!user &&
+            user.status === "active" &&
+            !user.mfaPending &&
+            user.roles.some((role) => ["modelling-administrator", "modelling-approver"].includes(role))
+        );
+    };
+    processing.vendor = vendorSources;
     const channelGroups = new ChannelGroups(config, processing);
     mcpFactory ||= (signal) => new ModellingClients(config, integrationCore, signal);
     provider.canUseGlobal = (identity) => identityCanUseGlobal(auth.identityStore, identity);
@@ -662,6 +681,36 @@ export function createApplication(
                     throw Object.assign(new Error("Integration mode is not configured."), { status: 503 });
                 const suffix = path.slice("/chat/api/integration/".length);
                 const url = new URL(req.url, config.origin);
+                if (suffix === "vendor-sources" && req.method === "GET")
+                    return json(res, 200, await vendorSources.list(session, url.searchParams.get("projectId")));
+                if (suffix.startsWith("vendor-sources/") && req.method === "POST") {
+                    if (!config.allowWrites)
+                        throw Object.assign(new Error("Workspace changes are disabled."), { status: 403 });
+                    const input = await body(req, null, "Invalid source configuration.", 262144);
+                    const operation = suffix.slice("vendor-sources/".length);
+                    const methods = {
+                        "profile-preview": "previewProfile",
+                        "profile-commit": "commitProfile",
+                        discover: "discover",
+                        detail: "detail",
+                        "plan-preview": "previewPlan",
+                        "plan-commit": "commitPlan",
+                        refresh: "refresh",
+                        disable: "disable",
+                        enable: "enable",
+                        "metadata-access": "metadataAccess",
+                    };
+                    if (!methods[operation])
+                        throw Object.assign(new Error("Unknown source operation."), { status: 404 });
+                    return json(
+                        res,
+                        200,
+                        await vendorSources[methods[operation]](
+                            session,
+                            operation.endsWith("commit") ? input.confirmation : input,
+                        ),
+                    );
+                }
                 if (suffix === "channel-groups" && req.method === "GET")
                     return json(res, 200, channelGroups.list(session));
                 if (suffix === "channel-groups" && req.method === "POST") {
@@ -1579,6 +1628,8 @@ export function createApplication(
                     config.cdrEnabled ? { client: cdr, session } : null,
                     execution,
                 );
+                if (integrationCore.ready)
+                    workspace.sourceMetadata = (args) => vendorSources.agentMetadata(session, args);
                 const messages = execution.prepare(
                     conversation.messages.filter((message) => message !== reply),
                     { ...workspace.metadata(), repositoryState: await workspace.repositoryState() },
@@ -1842,6 +1893,7 @@ export function createApplication(
         integrationCore.start().catch(() => {});
     });
     server.on("close", () => {
+        vendorSources.close();
         processing.close();
         integrationCore.stop();
         clearInterval(cleanup);

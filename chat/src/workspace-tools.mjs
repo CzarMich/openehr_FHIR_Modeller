@@ -244,6 +244,23 @@ export class WorkspaceTools {
                     ["repository", "path", "message", "expectedRevision"],
                 ),
             );
+        if (this.sourceMetadata)
+            personal.push(
+                tool(
+                    "clinical_source_metadata",
+                    "List or discover explicitly shared vendor source metadata for this verified user/project. Returns bounded table/column/key or API capability definitions only. No patient rows, credentials, clinical reads, source configuration or approval actions are available. Use actual metadata and supplied dictionaries; unresolved clinical meanings require evidence.",
+                    {
+                        action: { type: "string", enum: ["list", "discover"] },
+                        projectId: string,
+                        sourceId: string,
+                        query: { type: "string", maxLength: 128 },
+                        afterTableId: { type: "integer", minimum: 0 },
+                        tableId: { type: "integer", minimum: 1 },
+                        afterColumnId: { type: "integer", minimum: 0 },
+                    },
+                    ["action", "projectId"],
+                ),
+            );
         this.personal = personal;
         const save = personal.find((item) => item.name === PERSONAL_WRITE);
         if (save)
@@ -600,6 +617,7 @@ export class WorkspaceTools {
         } else if (name === "workspace_task_handoff") result = this.execution.handoff(args);
         else if (name === "workspace_checkpoints") result = this.checkpoints.summary();
         else if (name === "workspace_checkpoint_read") result = this.checkpoints.read(args);
+        else if (name === "clinical_source_metadata") result = await this.sourceMetadata(args);
         else if (name === "personal_connections")
             result = {
                 connections: this.connections.list(this.identity),

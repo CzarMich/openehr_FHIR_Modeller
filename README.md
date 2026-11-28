@@ -22,7 +22,7 @@ migrations or invoke write-capable procedures. Use database-enforced read-only p
 FHIR delivery uses a separately authorised FHIR API, never its backing database.
 See [the clinical database policy](docs/CLINICAL_DATA_READ_ONLY.md).
 
-SQL Server metadata discovery and structural query-plan checking use the native .NET driver with tested permission checks. Clinical-row extraction and database polling channels are not enabled by these discovery tools. See [database discovery and driver qualification](docs/DATABASE_DISCOVERY.md).
+Database metadata discovery and private source extraction are separate operations. The vendor adapters support SQL Server, Oracle, PostgreSQL, MySQL, MariaDB and SAP HANA, plus Epic Clarity/FHIR and approved clinical/BW APIs. Private reads require a separately reviewed source configuration and plan; metadata tools never return clinical rows. See [database discovery and driver qualification](docs/DATABASE_DISCOVERY.md).
 Browser chat can send chosen conversation context to your configured AI provider.
 Keep patient records out of chat, model repositories and general MCP requests.
 Filesystem model/history data is not generally encrypted by the application;
@@ -32,7 +32,7 @@ HTTPS does not imply encryption on every private service hop. See the
 
 ## Select a clinical source
 
-Create an explicit source-discovery job: choose the database or platform/API connector, an operator-managed profile, purpose and original narrative. The catalogue includes SQL Server, Oracle, PostgreSQL, MySQL, MariaDB and SAP HANA, plus Epic, SAP BW and configured clinical APIs. Each choice reports its own implementation and qualification status; selection alone does not make a connector operational. SQL Server currently has executable metadata discovery. See [source jobs and connector status](docs/SOURCE_CONNECTORS.md).
+Create an explicit source-discovery job: choose the database or platform/API connector, an operator-managed profile, purpose and original narrative. The catalogue includes SQL Server, Oracle, PostgreSQL, MySQL, MariaDB and SAP HANA, plus Epic, SAP BW and configured clinical APIs. Each choice reports its own implementation and qualification status; selection alone does not make a connector operational. Use **Integration → Vendor connections** for encrypted connection settings, metadata discovery, read-plan review and private capture. Native drivers are included except the operator-installed licensed HANA ODBC client. Actual installation qualification remains mandatory. See [vendor integration setup and use](docs/VENDOR_INTEGRATIONS.md) and [source jobs and connector status](docs/SOURCE_CONNECTORS.md).
 
 ## HL7 and patient identity
 
@@ -51,7 +51,7 @@ Encrypted model-read caching and private task checkpoints also reduce repeated r
   engines, validate results and retain their provenance and revisions.
 - Supply existing templates and StructureDefinitions when modelling is unnecessary.
   The agent needs the actual model content and version, not just its name.
-- Discover actual SQL Server schemas, tables, columns and keys without returning patient rows to an agent. Use the installation’s dictionary and user guidance to resolve clinical meaning.
+- Discover actual allowed database schemas, tables, columns and keys without returning patient rows to an agent. Use the installation’s dictionary and user guidance to resolve clinical meaning.
 - Use local terminology catalogues or configured FHIR terminology services to investigate codes, value sets and mapping candidates.
 - Inspect synthetic CSV/custom JSON, identify missing information and preview
   the four independent mapping routes without an implicit intermediate standard.

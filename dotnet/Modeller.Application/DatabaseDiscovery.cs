@@ -9,9 +9,9 @@ public static class DatabaseDiscovery
     public static async Task<JsonNode> Execute(string name,JsonObject args,ModellingIdentity actor,SnapshotRepository repository,CancellationToken cancellation){
         if(Environment.GetEnvironmentVariable("SOURCE_DATABASE_ENABLED")!="true")throw new ProcessingException("SOURCE_DATABASE_DISABLED");
         var project=Data.Required(args,"project");actor.Read(project);
-        var id=SourceDiscoveryJobs.SqlProfile(repository,project,Data.Required(args,"jobId"));var root=Environment.GetEnvironmentVariable("SOURCE_DATABASE_PROFILES_DIR")??"/run/secrets/source-databases";
-        var profile=SqlSourceProfile.Load(root,id,actor.Tenant,project);using var timeout=CancellationTokenSource.CreateLinkedTokenSource(cancellation);timeout.CancelAfter(TimeSpan.FromSeconds(45));
-        await using var source=await SqlServerSource.Open(profile,timeout.Token);var catalogue=await source.Discover(timeout.Token);
+        var selected=SourceDiscoveryJobs.DatabaseProfile(repository,project,Data.Required(args,"jobId"));var id=selected.Profile;var root=Environment.GetEnvironmentVariable("SOURCE_DATABASE_PROFILES_DIR")??"/run/secrets/source-databases";
+        using var timeout=CancellationTokenSource.CreateLinkedTokenSource(cancellation);timeout.CancelAfter(TimeSpan.FromSeconds(45));
+        await using var source=await DiscoverySource.Open(root,id,selected.Connector,actor.Tenant,project,timeout.Token);var catalogue=await source.Discover(timeout.Token);
         var fingerprint=catalogue.Fingerprint;
         if(name=="source_database_discover"){
             var query=KnowledgeCorpus.Text(args,"query");var after=args["afterTableId"]?.GetValue<int>()??0;var limit=args["limit"]?.GetValue<int>()??25;
@@ -27,7 +27,7 @@ public static class DatabaseDiscovery
         if(name=="source_database_plan_check"){
             var plan=args["plan"]!.Deserialize<SourcePlan>(JsonSerializerOptions.Web)??throw new ProcessingException("SOURCE_PLAN_INVALID");
             if(plan.Filters is null||plan.Fields is null||plan.Joins is null||plan.Filters.Length!=0)throw new ProcessingException("SOURCE_PLAN_INVALID");
-            var compiled=SourcePlanCompiler.Compile(catalogue,plan);
+            var compiled=SourcePlanCompiler.Compile(catalogue,plan,selected.Connector switch {"epic-clarity-sqlserver"=>"sqlserver","epic-clarity-oracle"=>"oracle",_=>selected.Connector});
             return new JsonObject{["schemaFingerprint"]=fingerprint,["sqlShape"]=compiled.Sql,["metadataOnly"]=true,["executable"]=false,["requiresHumanConfirmation"]=true,["clinicalApproval"]=false,["notice"]="This checks structural compatibility only. Confirm clinical meanings, joins, selection criteria, narrative rules and exact destination profiles before any private extraction or mapping. Patient-specific filter values must stay in the private workspace."};
         }
         throw new ProcessingException("TOOL_NOT_FOUND");

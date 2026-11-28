@@ -19,14 +19,17 @@ flowchart TB
     App --> Standards[Private openEHR and FHIR compilers and validators]
     App --> Definitions[Configured CKMs, FHIR packages and repositories]
     App --> Terminology[Configured FHIR terminology services and local catalogues]
-    DB[Clinical SQL Server] -->|Read-only metadata| Discovery[Registered source connector]
+    DB[Clinical source databases] -->|Read-only metadata| Discovery[Registered source connector]
     Discovery --> App
     Dictionary[Vendor dictionary and user-provided semantic evidence] --> App
     Browser -->|Explicit confirmed run or channel assignment| Runtime[Private .NET processing worker]
     Models -->|Exact confirmed revisions| Runtime
     Audit -->|Confirmation evidence| Runtime
     Files[Private files or registered folder] -->|Read-only source access| Runtime
-    DB -. Private extraction and polling require separate qualification .-> Runtime
+    DB -->|Closed reviewed read-only plan| Extract[Private .NET vendor extractor]
+    APIs[Epic FHIR, BW and approved REST APIs] -->|Approved read operations| Extract
+    Browser -->|Encrypted source settings and human-reviewed plan| Extract
+    Extract -->|Complete durable snapshot| Files
     Runtime --> Standards
     Runtime --> Export[Private validated export]
     Runtime --> Quarantine[Private reconciliation and quarantine]
@@ -41,7 +44,7 @@ Clinical records and validator findings belong in the private processing boundar
 |---|---|
 | `Modeller.Core` | Shared mapping, source-file contracts, model selection, human-proof and delivery primitives. It does not reference a database driver. |
 | `Modeller.Application` | Model repositories, immutable imports, provenance, traceability, standards adapters, terminology, review, private CDR workspace and application policy. |
-| `Modeller.Database` | Native SQL Server connection and effective-permission checks, metadata catalogue and closed structural query-plan compiler. No arbitrary SQL or clinical-row MCP operation is exposed. |
+| `Modeller.Database` | Native/ODBC database and approved vendor API adapters, effective read-only checks, bounded metadata and closed query-plan compiler. No arbitrary SQL or clinical-row MCP operation is exposed. |
 | `Modeller.Mcp` | Primary MCP/REST transport, authentication, request bounds, Host/Origin checks, session binding and purpose-bound browser assertions. Its integration workspace mode adapts the existing private model/job workflow. |
 | `Modeller.Processing` | Deterministic private file processing, validation, quarantine, export and authorised delivery. Database drivers are outside this worker's dependency graph. |
 | Node browser backend | Human sessions, private workspace, provider connections, write confirmation and request-bound calls to review/integration adapters. |
@@ -124,3 +127,9 @@ flowchart LR
 `Modeller.Operational` owns bounded HL7 parsing/projection, supplied source-profile checks, encrypted internal patient identities, stable pseudonyms and durable dependency state. Its SQLite store is private platform storage, never a clinical source database. Source connections remain read-only without an override. Private workers require an exact confirmed source contract and patient policy. Source registration requires separate explicit trust; a patient number in an arbitrary record is insufficient. Verified destination reads establish Patient/Encounter relationships before dependent delivery. Held channels retain their original encrypted input and continue accepting later messages. An uncertain write requires reconciliation rather than automatic repetition.
 
 The feature branch's runtime/adapter and installation acceptance must pass before these changes are described as deployed. [HL7 and identity operations](HL7_AND_IDENTITY.md) records the tested formats, profile scope and transport limitations.
+
+## Vendor source adapter boundary
+
+The separate C# `Modeller.Extraction` executable owns native/ODBC clinical-source drivers and approved HTTP read adapters. Browser `VendorSources` protects encrypted owner/project-scoped profiles, fresh human review, immutable read-plan/runtime pins and atomic private intake publication. General MCP exposes metadata only. A source read is independent of model/mapping confirmation and destination delivery. SQL Server private extraction requires existing snapshot isolation; the platform never enables it or changes source permissions. SAP HANA requires the installed licensed, checksum-pinned client.
+
+Read-only database snapshots and explicitly reviewed append-only streams feed the existing private processing worker. Exact cursor JSON avoids JavaScript numeric rounding; cursor advancement follows durable captured bytes and manifests. API response pages are encrypted and hash-linked. Foreign-origin/unapproved paging, incomplete windows, drift and unsupported permissions fail closed. The four mapping routes and mandatory patient/dependency policy remain unchanged. See [vendor integrations](VENDOR_INTEGRATIONS.md) for actual scope, setup, acceptance and limits.

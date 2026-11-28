@@ -67,6 +67,11 @@ with tempfile.TemporaryDirectory(prefix='modeller-workspace-contracts-') as temp
             request(target,token=proof('GET',target,'',roles=['modelling-reviewer'],project_scopes=['project:other:read']),expected=403)
             profile={'resourceType':'StructureDefinition','id':'SyntheticPatient','url':'https://example.org/StructureDefinition/SyntheticPatient','version':'1.0.0','name':'SyntheticPatient','status':'draft','fhirVersion':'4.0.1','kind':'resource','abstract':False,'type':'Patient','baseDefinition':'http://hl7.org/fhir/StructureDefinition/Patient','derivation':'constraint','differential':{'element':[{'id':'Patient.identifier','path':'Patient.identifier','min':1}]}}
             model=request('/api/v1/integration/projects/synthetic/models',{'id':'synthetic-patient','standard':'FHIR','version':'1.0.0','origin':'externally-provided','content':compact(profile),'provenance':{'source':'Independent synthetic acceptance fixture'}})
+            access_target='/api/v1/integration/projects/synthetic/source-access'
+            assert request(access_target,{'action':'configure'})['readOnly']
+            denied_access={'action':'extract'}
+            request(access_target,denied_access,token=proof('POST',access_target,compact(denied_access),roles=['modelling-modeller'],project_scopes=['project:synthetic:write']),expected=403)
+            request(access_target,denied_access,token=proof('POST',access_target,compact(denied_access),session_started=int(time.time())-1200),expected=401)
             authority='urn:uuid:991c7a7a-c903-4da4-944c-23329b16797a'
             def source_model(identifier,format,id_path,name_path,versions=None,message_types=None):
                 definition={'schemaVersion':1,'format':format,'versions':versions or [],'messageTypes':message_types or [],'fields':[{'name':'id','kind':'json-pointer','path':id_path,'classification':'patient-identifier'},{'name':'name','kind':'json-pointer','path':name_path,'classification':'direct-identifier'}],'patient':{'identifierField':'id','anchorField':'id','system':authority,'authoritativeRegistration':True},'relations':[]}

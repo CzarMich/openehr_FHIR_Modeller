@@ -10,7 +10,7 @@ This guide describes the source-tree runtime and compatibility contracts. It doe
 |---|---|
 | Primary modelling MCP | `Modeller.Mcp` full-application mode adapts shared services. Captured tool/resource/prompt contracts and byte-preserved resources are checked over HTTP. Source discovery adds explicit, separately tested contracts. |
 | Human review REST API | Purpose/request-bound assertions, verified identity and role/project permissions, persistent replay nonces and exact source revisions. Ordinary MCP credentials cannot approve as humans. |
-| Source discovery | Explicit database/platform selection jobs. Native SQL Server metadata discovery is tested against an isolated SQL Server 2022; other listed connectors remain gated until implemented and qualified. |
+| Source discovery | Explicit database/platform selection jobs. Native/ODBC database and approved HTTP source adapters provide metadata discovery and separately reviewed private capture. The private extractor is a separate executable; actual vendor installation acceptance remains required. |
 | Model repositories | Filesystem snapshots, native Git history/layout and SharePoint conditional immutable snapshots. Preserve revisions, original bytes and provider-specific concurrency semantics. Live provider acceptance is separate from local domain tests. |
 | Standards operations | Retained installed compilers/validators; exact source, dependency and output hashes. Unsupported/missing stages remain explicit. Technical results do not establish clinical approval. |
 | Private integration | Separate versioned registry, model/rule confirmation, file-source worker, channels, quarantine/export and controlled FHIR delivery. See [integration operations](INTEGRATION_ENGINE.md). |
@@ -26,7 +26,7 @@ The private integration registry has its own model/mapping confirmation records.
 
 ## Runtime boundaries
 
-`Modeller.Core` and the file-processing worker do not depend on clinical source database drivers. The separate operational library uses SQLite solely for encrypted internal patient/queue state; it accepts no clinical-source connection string. Clinical-source adapters live separately from internal audit storage. SQL Server source discovery is metadata-only, uses operator-protected profiles and cannot be used to select an internal audit database for unrestricted operations.
+`Modeller.Core` and the file-processing worker do not depend on clinical source database drivers. The separate operational library uses SQLite solely for encrypted internal patient/queue state; it accepts no clinical-source connection string. Clinical-source adapters live separately from internal audit storage; `Modeller.Extraction` owns the driver dependencies and bounded private source reads. SQL Server source discovery is metadata-only, uses operator-protected profiles and cannot be used to select an internal audit database for unrestricted operations.
 
 The primary application uses HTTP internally. Ingress and Kubernetes health/readiness probes must match that protocol and preserve Host allowlisting. Application images run as UID/GID 1000 for existing volume ownership. The ingress, browser, application and standards engines remain an immutable release cohort.
 

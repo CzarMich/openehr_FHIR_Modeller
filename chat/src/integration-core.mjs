@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { createHash, createHmac, randomBytes } from "node:crypto";
-import { mkdirSync, writeFileSync, existsSync, lstatSync } from "node:fs";
+import { mkdirSync, writeFileSync, existsSync, lstatSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { problem } from "./personal-http.mjs";
 
@@ -22,7 +22,11 @@ export class IntegrationCore {
         mkdirSync(directory, { recursive: true, mode: 0o700 });
         const operationalKeyFile = join(directory, "operational-key");
         if (!existsSync(operationalKeyFile)) {
-            if (existsSync(join(this.config.dataDir, "integration-operational", "operational.sqlite")))
+            if (
+                existsSync(join(this.config.dataDir, "integration-operational", "operational.sqlite")) ||
+                (existsSync(join(this.config.dataDir, "vendor-adapters", "profiles")) &&
+                    readdirSync(join(this.config.dataDir, "vendor-adapters", "profiles")).length > 0)
+            )
                 throw problem(
                     "The patient identity encryption key is missing. Restore the original key before starting.",
                     503,
@@ -111,7 +115,7 @@ export class IntegrationCore {
     async request(session, method, target, input) {
         if (!this.ready) throw problem("The C# modelling service is unavailable.", 503);
         if (
-            !/^\/api\/v1\/integration\/(?:projects(?:\/[A-Za-z0-9][A-Za-z0-9_.-]{0,63}(?:\/(?:models|mappings|reuse|source-trust|pending\/(?:inspect|resolve-patient|resolve-relationship|recover)|destinations\/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}\/privacy))?)?|mappings\/[a-f0-9]{64}(?:\/decisions)?|execute)$/.test(
+            !/^\/api\/v1\/integration\/(?:projects(?:\/[A-Za-z0-9][A-Za-z0-9_.-]{0,63}(?:\/(?:models|mappings|reuse|source-trust|source-access|pending\/(?:inspect|resolve-patient|resolve-relationship|recover)|destinations\/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}\/privacy))?)?|mappings\/[a-f0-9]{64}(?:\/decisions)?|execute)$/.test(
                 target,
             )
         )

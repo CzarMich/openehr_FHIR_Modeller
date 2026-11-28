@@ -61,3 +61,9 @@ Historical inspiration and general acknowledgements have not been promoted to ow
 ## C# MCP runtime
 
 The .NET application uses the official [C# MCP SDK](https://github.com/modelcontextprotocol/csharp-sdk) with its exact upstream license/transition notice and third-party notices retained in `dotnet/notices/`. Microsoft .NET and its runtime image retain their own license and third-party notices. Exact NuGet dependencies/checksums are recorded in `dotnet/Modeller.Mcp/packages.lock.json`; no SDK source is vendored. Published application images also retain installed NuGet licence/NOTICE files and package metadata under `notices/nuget/`; these do not replace upstream rights. Existing guide content and upstream credits are preserved unchanged.
+
+## Vendor source drivers
+
+Source adapters use the locked Microsoft.Data.SqlClient, Npgsql, MySqlConnector, Oracle.ManagedDataAccess.Core and System.Data.Odbc packages. Their package licenses and notices are retained by the NuGet notice collector; the application license does not replace them. MySqlConnector and System.Data.Odbc retain their MIT terms; Npgsql retains its PostgreSQL license. Oracle.ManagedDataAccess.Core is distributed unmodified with the [Oracle Free Distribution, Hosting, and Use Terms and Conditions](dotnet/notices/licenses/Oracle.ManagedDataAccess.Core.LICENSE.txt). That complete license is included in the distributed notices.
+
+The proprietary SAP HANA ODBC client is not included in this repository or its default images. Operators must install an appropriately licensed client and pin its checksum. The adapter never downloads or loads an agent-supplied driver. Oracle and SAP product names identify compatibility, not ownership or endorsement.

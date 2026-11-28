@@ -48,6 +48,7 @@ export function loadConfig(env = process.env) {
             : undefined,
         integrationAllowDelivery: env.CHAT_INTEGRATION_ALLOW_DELIVERY === "true",
         integrationServer: env.CHAT_INTEGRATION_SERVER || "/app/integration/server/Modeller.Mcp",
+        integrationExtractor: env.CHAT_INTEGRATION_EXTRACTOR || "/app/integration/extractor/Modeller.Extraction",
         integrationWorker: env.CHAT_INTEGRATION_WORKER || "/app/integration/worker/Modeller.Processing",
         integrationConnectionsFile: env.CHAT_INTEGRATION_CONNECTIONS_FILE || "",
         integrationFhirUrl: env.CHAT_INTEGRATION_FHIR_URL || "http://fhir:8094",

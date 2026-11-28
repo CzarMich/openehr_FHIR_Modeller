@@ -69,7 +69,7 @@ def verify(url):
         assert job['job']['state']=='PLANNED' and not job['executionAuthorised'] and not job['clinicalApproval'];checks+=1
         assert client.tool('source_discovery_job_get',{'project':project,'jobId':job['job']['id']})==job;checks+=1
         failure=client.tool('source_discovery_job_run',{'project':project,'jobId':job['job']['id'],'expectedRevision':job['revision']},error=True)
-        code=json.loads(failure['content'][0]['text'])['error']['code'];assert code==('SOURCE_DATABASE_DISABLED' if connector['id']=='sqlserver' else 'SOURCE_CONNECTOR_NOT_QUALIFIED');checks+=1
+        code=json.loads(failure['content'][0]['text'])['error']['code'];assert code==('SOURCE_DATABASE_DISABLED' if connector['family']=='database' else 'SOURCE_API_DISABLED');checks+=1
     assert len(client.tool('source_discovery_jobs',{'project':project})['items'])==len(connectors);checks+=1
     disabled=client.tool('source_database_discover',{'project':project,'jobId':'discovery-'+'0'*32},error=True);assert json.loads(disabled['content'][0]['text'])['error']['code']=='SOURCE_DATABASE_DISABLED';checks+=1
     origin=url.removesuffix('/mcp')

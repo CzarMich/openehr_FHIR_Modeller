@@ -21,7 +21,7 @@ LABEL org.opencontainers.image.authors="Michael Anywar" \
       org.opencontainers.image.vendor="Michael Anywar" \
       org.opencontainers.image.licenses="MIT"
 USER root
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl git openssh-client \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl git openssh-client libodbc2 \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /data/models /data/governance /data/cdr \
     && chown -R 1000:1000 /data

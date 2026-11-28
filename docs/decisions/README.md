@@ -69,3 +69,5 @@ referenced from [requirements.md](../requirements.md),
 
 - [ADR-0030: C# modelling and integration channels](0030-dotnet-modelling-and-integration-channels.md)
 - [ADR-0031: Independent clinical routes and protected patient identity](0031-independent-clinical-routes-and-identity.md)
+
+- [ADR-0032: Vendor sources and protected private capture](0032-vendor-source-adapters-and-private-capture.md)

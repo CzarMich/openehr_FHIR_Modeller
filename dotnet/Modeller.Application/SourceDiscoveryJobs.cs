@@ -10,15 +10,17 @@ public sealed class SourceDiscoveryJobs(SnapshotRepository repository,ModellingI
 {
     public static readonly SourceConnector[] Connectors=[
         new("sqlserver","Microsoft SQL Server","database","SYNTHETIC_ACCEPTANCE_PASSED","metadata","Native .NET driver; clinical-row extraction and polling are separate qualification gates."),
-        new("oracle","Oracle Database","database","QUALIFICATION_REQUIRED","not-enabled","Requires an Oracle-specific read-only connector, driver licensing/TLS configuration and isolated negative tests."),
-        new("postgresql","PostgreSQL","database","QUALIFICATION_REQUIRED","not-enabled","Clinical source access is separate from the platform's internal PostgreSQL audit store."),
-        new("mysql","MySQL","database","QUALIFICATION_REQUIRED","not-enabled","Requires qualified MySQL-specific permission checks and read-only operations."),
-        new("mariadb","MariaDB","database","QUALIFICATION_REQUIRED","not-enabled","Qualified separately from MySQL despite protocol compatibility."),
-        new("sap-hana","SAP HANA","database","QUALIFICATION_REQUIRED","not-enabled","Requires an operator-provided/qualified driver and source-specific read-only checks."),
-        new("epic-fhir","Epic FHIR API","platform-api","QUALIFICATION_REQUIRED","not-enabled","Requires organisation-approved endpoint, application registration, authorised read scopes and supported-resource discovery. No Epic database layout is assumed."),
-        new("sap-bw","SAP BW","platform-api","QUALIFICATION_REQUIRED","not-enabled","Select an approved query/API and retain grain, dimensions, measures, units, hierarchies and filters; aggregated measures are not assumed to be patient-level events."),
-        new("fhir-api","FHIR API","platform-api","QUALIFICATION_REQUIRED","not-enabled","Requires registered endpoint, validated CapabilityStatement, exact FHIR release/profiles and read-only scopes/operations."),
-        new("clinical-rest-api","Clinical REST API","platform-api","QUALIFICATION_REQUIRED","not-enabled","Requires an operator-approved API contract and explicitly allowlisted read operations. A GET method alone does not prove freedom from side effects.")
+        new("oracle","Oracle Database","database","ADAPTER_IMPLEMENTED_INSTALLATION_ACCEPTANCE_REQUIRED","metadata","Native ODP.NET over TCPS; effective privileges and read-only transaction enforced."),
+        new("postgresql","PostgreSQL","database","ADAPTER_IMPLEMENTED_INSTALLATION_ACCEPTANCE_REQUIRED","metadata","Native Npgsql with certificate validation, effective privilege checks and read-only transactions; separate from internal audit storage."),
+        new("mysql","MySQL","database","ADAPTER_IMPLEMENTED_INSTALLATION_ACCEPTANCE_REQUIRED","metadata","Native MySqlConnector with TLS, strict read grants and consistent read-only snapshots."),
+        new("mariadb","MariaDB","database","ADAPTER_IMPLEMENTED_INSTALLATION_ACCEPTANCE_REQUIRED","metadata","MariaDB-specific selection and installation acceptance using MySqlConnector and strict read grants."),
+        new("sap-hana","SAP HANA","database","ADAPTER_IMPLEMENTED_INSTALLATION_ACCEPTANCE_REQUIRED","metadata","Operator-installed checksum-pinned SAP HANA ODBC driver, verified TLS/effective privileges and read-only transaction."),
+        new("epic-clarity-sqlserver","Epic Clarity (SQL Server)","database","ADAPTER_IMPLEMENTED_INSTALLATION_ACCEPTANCE_REQUIRED","metadata","Native SQL Server; discover the actual approved Clarity schema and dictionary."),
+        new("epic-clarity-oracle","Epic Clarity (Oracle)","database","ADAPTER_IMPLEMENTED_INSTALLATION_ACCEPTANCE_REQUIRED","metadata","Native Oracle; discover the actual approved Clarity schema and dictionary."),
+        new("epic-fhir","Epic FHIR API","platform-api","ADAPTER_IMPLEMENTED_INSTALLATION_ACCEPTANCE_REQUIRED","metadata","Requires organisation-approved endpoint, application registration, authorised read scopes and supported-resource discovery. No Epic database layout is assumed."),
+        new("sap-bw","SAP BW","platform-api","ADAPTER_IMPLEMENTED_INSTALLATION_ACCEPTANCE_REQUIRED","metadata","Select an approved query/API and retain grain, dimensions, measures, units, hierarchies and filters; aggregated measures are not assumed to be patient-level events."),
+        new("fhir-api","FHIR API","platform-api","ADAPTER_IMPLEMENTED_INSTALLATION_ACCEPTANCE_REQUIRED","metadata","Requires registered endpoint, validated CapabilityStatement, exact FHIR release/profiles and read-only scopes/operations."),
+        new("clinical-rest-api","Clinical REST API","platform-api","ADAPTER_IMPLEMENTED_INSTALLATION_ACCEPTANCE_REQUIRED","metadata","Requires an operator-approved API contract and explicitly allowlisted read operations. A GET method alone does not prove freedom from side effects.")
     ];
     private static string S(JsonObject o,string key)=>KnowledgeCorpus.Text(o,key);
     private static string PathFor(string id){if(!Regex.IsMatch(id,"^discovery-[a-f0-9]{32}$"))throw new ProcessingException("SOURCE_JOB_ID_INVALID");return "documentation/source-discovery/"+id+".json";}
@@ -38,16 +40,23 @@ public sealed class SourceDiscoveryJobs(SnapshotRepository repository,ModellingI
         if(name=="source_discovery_job_get")return View(artifact);
         if(name!="source_discovery_job_run")throw new ProcessingException("TOOL_NOT_FOUND");actor.Write(project);
         if(S(artifact,"revision")!=Data.Required(args,"expectedRevision"))throw new ProcessingException("REVISION_CONFLICT");
-        if(selected.Id!="sqlserver"||selected.Qualification!="SYNTHETIC_ACCEPTANCE_PASSED")throw new ProcessingException("SOURCE_CONNECTOR_NOT_QUALIFIED");
+        if(selected.Family!="database") {
+            if(Environment.GetEnvironmentVariable("SOURCE_API_ENABLED")!="true")throw new ProcessingException("SOURCE_API_DISABLED");
+            var profile=ApiSourceProfile.Load(Environment.GetEnvironmentVariable("SOURCE_API_PROFILES_DIR")??"/run/secrets/source-apis",Data.Required(job,"sourceProfile"),actor.Tenant,project);
+            if(profile.Connector!=selected.Id)throw new ProcessingException("SOURCE_PROFILE_CONNECTOR_MISMATCH");
+            using var adapter=new ApiSource(profile);using var bound=CancellationTokenSource.CreateLinkedTokenSource(cancellation);bound.CancelAfter(TimeSpan.FromSeconds(60));var metadata=await adapter.Discover(bound.Token);
+            job["state"]="METADATA_DISCOVERED";job["discoveredAt"]=DateTimeOffset.UtcNow.ToString("O");job["metadata"]=metadata;job["patientRowsIncluded"]=false;
+            return View(repository.Save(project,PathFor(S(job,"id")),job.ToJsonString(),new JsonObject{["kind"]="source_discovery_job"},S(artifact,"revision")));
+        }
         if(Environment.GetEnvironmentVariable("SOURCE_DATABASE_ENABLED")!="true")throw new ProcessingException("SOURCE_DATABASE_DISABLED");
-        var profileForRun=SqlSourceProfile.Load(Environment.GetEnvironmentVariable("SOURCE_DATABASE_PROFILES_DIR")??"/run/secrets/source-databases",Data.Required(job,"sourceProfile"),actor.Tenant,project);
-        using var timeout=CancellationTokenSource.CreateLinkedTokenSource(cancellation);timeout.CancelAfter(TimeSpan.FromSeconds(45));await using var source=await SqlServerSource.Open(profileForRun,timeout.Token);var catalogue=await source.Discover(timeout.Token);
+        using var timeout=CancellationTokenSource.CreateLinkedTokenSource(cancellation);timeout.CancelAfter(TimeSpan.FromSeconds(60));
+        await using var source=await DiscoverySource.Open(Environment.GetEnvironmentVariable("SOURCE_DATABASE_PROFILES_DIR")??"/run/secrets/source-databases",Data.Required(job,"sourceProfile"),selected.Id,actor.Tenant,project,timeout.Token);var catalogue=await source.Discover(timeout.Token);
         job["state"]="METADATA_DISCOVERED";job["discoveredAt"]=DateTimeOffset.UtcNow.ToString("O");job["schemaFingerprint"]=catalogue.Fingerprint;job["tableCount"]=catalogue.Tables.Length;job["columnCount"]=catalogue.Tables.Sum(t=>t.Columns.Length);job["declaredKeyCount"]=catalogue.Keys.Length;job["clinicalMeanings"]="UNRESOLVED";job["patientRowsIncluded"]=false;
         return View(repository.Save(project,PathFor(S(job,"id")),job.ToJsonString(),new JsonObject{["kind"]="source_discovery_job"},S(artifact,"revision")));
     }
-    public static string SqlProfile(SnapshotRepository repository,string project,string jobId){
+    public static (string Profile,string Connector) DatabaseProfile(SnapshotRepository repository,string project,string jobId){
         var artifact=repository.Artifact(project,PathFor(jobId));var job=Data.ParseStrict(System.Text.Encoding.UTF8.GetBytes(S(artifact,"content"))) as JsonObject??throw new ProcessingException("SOURCE_JOB_INVALID");
-        if(S(job,"id")!=jobId||S(job,"project")!=project||S(job,"sourceFamily")!="database"||S(job,"connector")!="sqlserver")throw new ProcessingException("SOURCE_CONNECTOR_NOT_QUALIFIED");return Data.Required(job,"sourceProfile");
+        if(S(job,"id")!=jobId||S(job,"project")!=project||S(job,"sourceFamily")!="database")throw new ProcessingException("SOURCE_CONNECTOR_NOT_QUALIFIED");return (Data.Required(job,"sourceProfile"),Data.Required(job,"connector"));
     }
-    private static JsonObject View(JsonObject artifact){var job=JsonNode.Parse(S(artifact,"content")) as JsonObject??throw new ProcessingException("SOURCE_JOB_INVALID");var connector=Connector(Data.Required(job,"connector"));return new JsonObject{["job"]=job,["revision"]=artifact["revision"]?.DeepClone(),["connectorQualification"]=connector.Qualification,["metadataDiscoveryImplemented"]=connector.Discovery=="metadata",["metadataDiscoveryEnabled"]=connector.Discovery=="metadata"&&Environment.GetEnvironmentVariable("SOURCE_DATABASE_ENABLED")=="true",["executionAuthorised"]=false,["clinicalApproval"]=false,["notice"]="This is a versioned planning/discovery record, not approval evidence. Repository fields cannot authorise data extraction, mapping or delivery."};}
+    private static JsonObject View(JsonObject artifact){var job=JsonNode.Parse(S(artifact,"content")) as JsonObject??throw new ProcessingException("SOURCE_JOB_INVALID");var connector=Connector(Data.Required(job,"connector"));return new JsonObject{["job"]=job,["revision"]=artifact["revision"]?.DeepClone(),["connectorQualification"]=connector.Qualification,["metadataDiscoveryImplemented"]=connector.Discovery=="metadata",["metadataDiscoveryEnabled"]=connector.Discovery=="metadata"&&Environment.GetEnvironmentVariable(connector.Family=="database"?"SOURCE_DATABASE_ENABLED":"SOURCE_API_ENABLED")=="true",["executionAuthorised"]=false,["clinicalApproval"]=false,["notice"]="This is a versioned planning/discovery record, not approval evidence. Repository fields cannot authorise data extraction, mapping or delivery."};}
 }
