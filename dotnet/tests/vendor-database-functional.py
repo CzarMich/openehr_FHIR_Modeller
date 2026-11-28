@@ -2,7 +2,7 @@
 """Disposable synthetic READ integration. No source write probes or clinical endpoints."""
 import argparse,json,os,subprocess,tempfile,time,secrets,hashlib
 from pathlib import Path
-p=argparse.ArgumentParser();p.add_argument('--sdk-image',required=True);p.add_argument('--connector');args=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--sdk-image',required=True);p.add_argument('--connector',choices=['postgresql','mysql','mariadb']);args=p.parse_args()
 repo=Path(__file__).resolve().parents[2]
 def run(cmd,**kw):
  kw.setdefault('timeout',300)
@@ -15,7 +15,7 @@ with tempfile.TemporaryDirectory(prefix='modeller-vendor-databases-') as directo
  (root/'extensions').write_text('subjectAltName=DNS:localhost,IP:127.0.0.1\nextendedKeyUsage=serverAuth\n')
  run(['openssl','x509','-req','-in',str(root/'server.csr'),'-CA',str(root/'ca.pem'),'-CAkey',str(root/'ca.key'),'-CAcreateserial','-out',str(root/'server.pem'),'-days','2','-extfile',str(root/'extensions')])
  for item in root.iterdir():item.chmod(0o644 if item.suffix not in ['.key'] else 0o600)
- for kind,image,port in [('postgresql','postgres:17-bookworm',19541),('mysql','mysql:8.4',19542),('mariadb','mariadb:11.4',19543)]:
+ for kind,image,port in [('postgresql','postgres:17-bookworm@sha256:1eff563f6c868b9b433566e9f3cf6e5c79fbd3b95bf70ec7277d376cdbfc50d7',19541),('mysql','mysql:8.4@sha256:8c233bad33d520a7aae1c1e619c3a9775f4a1ba2d463d692fada04ec7f40be00',19542),('mariadb','mariadb:11.4@sha256:a8992b5e5404d11e03c54a31d0c1bdea3fd116d283aa6d1a627551f29045309b',19543)]:
   if args.connector and args.connector!=kind:continue
   name='modeller-vendor-functional-'+secrets.token_hex(5);password='SYN-'+secrets.token_hex(20);admin='ROOT-'+secrets.token_hex(20)
   try:

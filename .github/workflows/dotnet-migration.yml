@@ -138,3 +138,26 @@ jobs:
           name: internal-storage-acceptance-${{ github.sha }}
           path: ${{ runner.temp }}/storage-acceptance.json
           if-no-files-found: warn
+
+  vendor-source-functional:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.404
+      - name: Build the private source adapter and synthetic diagnostics
+        run: |
+          dotnet restore dotnet/Modeller.Extraction --locked-mode -p:NuGetAudit=false
+          dotnet build dotnet/Modeller.Extraction -c Release --no-restore
+          dotnet build dotnet/Modeller.Vendor.Tests -c Release -p:NuGetAudit=false
+      - name: Verify native TLS reads and exact append cursors on disposable databases
+        run: |
+          set -euo pipefail
+          python3 dotnet/tests/vendor-database-functional.py --sdk-image mcr.microsoft.com/dotnet/sdk:10.0.404@sha256:8c6edfb26c85153f236d26efebd9ad349aec403583f343f201ee67838b23658d | tee "$RUNNER_TEMP/vendor-source-functional.jsonl"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vendor-source-functional-${{ github.sha }}
+          path: ${{ runner.temp }}/vendor-source-functional.jsonl

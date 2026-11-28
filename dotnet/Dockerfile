@@ -16,6 +16,7 @@ RUN dotnet publish -c Release --no-restore -o /out -p:UseAppHost=false
 RUN sh /src/dotnet/notices/collect-notices.sh /root/.nuget/packages /out/notices/nuget
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0.15@sha256:aac50ceef10391e78a899e3d2ccd00bbafa2dcb56ccf4586cbccf00edb84fc21
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libodbc2 && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /out/ ./
 COPY resources/ /app/resources/

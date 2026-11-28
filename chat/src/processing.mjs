@@ -1146,7 +1146,7 @@ export class ProcessingWorkspace {
                             .sort();
                     if (names.length > 10000) throw problem("Source discovery limit reached.");
                     if (source.vendor && !channel.vendorSnapshotReady) {
-                        if (!channel.vendorExtracting && this.vendor.active.size<2) {
+                        if (!channel.vendorExtracting && this.vendor.active.size < 2) {
                             channel.vendorExtracting = true;
                             this.vendor
                                 .materialise(channel.owner, channel.projectId, channel.sourceId)

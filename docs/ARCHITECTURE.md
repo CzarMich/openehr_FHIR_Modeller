@@ -19,14 +19,17 @@ flowchart TB
     App --> Standards[Private openEHR and FHIR compilers and validators]
     App --> Definitions[Configured CKMs, FHIR packages and repositories]
     App --> Terminology[Configured FHIR terminology services and local catalogues]
-    DB[Clinical SQL Server] -->|Read-only metadata| Discovery[Registered source connector]
+    DB[Clinical source databases] -->|Read-only metadata| Discovery[Registered source connector]
     Discovery --> App
     Dictionary[Vendor dictionary and user-provided semantic evidence] --> App
     Browser -->|Explicit confirmed run or channel assignment| Runtime[Private .NET processing worker]
     Models -->|Exact confirmed revisions| Runtime
     Audit -->|Confirmation evidence| Runtime
     Files[Private files or registered folder] -->|Read-only source access| Runtime
-    DB -. Private extraction and polling require separate qualification .-> Runtime
+    DB -->|Closed reviewed read-only plan| Extract[Private .NET vendor extractor]
+    APIs[Epic FHIR, BW and approved REST APIs] -->|Approved read operations| Extract
+    Browser -->|Encrypted source settings and human-reviewed plan| Extract
+    Extract -->|Complete durable snapshot| Files
     Runtime --> Standards
     Runtime --> Export[Private validated export]
     Runtime --> Quarantine[Private reconciliation and quarantine]
@@ -41,7 +44,7 @@ Clinical records and validator findings belong in the private processing boundar
 |---|---|
 | `Modeller.Core` | Shared mapping, source-file contracts, model selection, human-proof and delivery primitives. It does not reference a database driver. |
 | `Modeller.Application` | Model repositories, immutable imports, provenance, traceability, standards adapters, terminology, review, private CDR workspace and application policy. |
-| `Modeller.Database` | Native SQL Server connection and effective-permission checks, metadata catalogue and closed structural query-plan compiler. No arbitrary SQL or clinical-row MCP operation is exposed. |
+| `Modeller.Database` | Native/ODBC database and approved vendor API adapters, effective read-only checks, bounded metadata and closed query-plan compiler. No arbitrary SQL or clinical-row MCP operation is exposed. |
 | `Modeller.Mcp` | Primary MCP/REST transport, authentication, request bounds, Host/Origin checks, session binding and purpose-bound browser assertions. Its integration workspace mode adapts the existing private model/job workflow. |
 | `Modeller.Processing` | Deterministic private file processing, validation, quarantine, export and authorised delivery. Database drivers are outside this worker's dependency graph. |
 | Node browser backend | Human sessions, private workspace, provider connections, write confirmation and request-bound calls to review/integration adapters. |
