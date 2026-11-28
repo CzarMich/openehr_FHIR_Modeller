@@ -2,6 +2,12 @@
     admin off
     auto_https off
     persist_config off
+    log {
+        format filter {
+            request delete
+            wrap json
+        }
+    }
 }
 :8343 {
     @static path /chat/*.css /chat/*.js
