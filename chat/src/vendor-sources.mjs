@@ -8,6 +8,7 @@ import {
     renameSync,
     rmSync,
     existsSync,
+    lstatSync,
     openSync,
     closeSync,
     fsyncSync,
@@ -133,18 +134,21 @@ export class VendorSources {
         };
     }
     async command(operation, request, stillCurrent) {
-        if (this.active.size >= 2) throw problem("Source adapters are busy.", 429);
+        if (this.active.size >= 2 || this.processing.active.size + this.processing.inspectionRequests >= 2)
+            throw problem("Private workers are busy.", 429);
+        this.processing.inspectionRequests++;
         const key = randomBytes(16).toString("hex");
         this.active.set(key, null);
-        const directory = mkdtempSync(join(this.root, "request-"));
-        const input = join(directory, "request.json"),
-            output = join(directory, "output");
-        writeFileSync(
-            input,
-            JSON.stringify({ ...request, originalKeyFile: this.core.configuration?.operationalKeyFile }),
-            { mode: 0o600, flag: "wx" },
-        );
+        let directory, input, output;
         try {
+            directory = mkdtempSync(join(this.root, "request-"));
+            input = join(directory, "request.json");
+            output = join(directory, "output");
+            writeFileSync(
+                input,
+                JSON.stringify({ ...request, originalKeyFile: this.core.configuration?.operationalKeyFile }),
+                { mode: 0o600, flag: "wx" },
+            );
             await new Promise((resolve, reject) => {
                 const child = this.launcher(this.config.integrationExtractor, [operation, input, output], {
                     env: {
@@ -208,12 +212,26 @@ export class VendorSources {
             const result = JSON.parse(readFileSync(join(output, "result.json"), "utf8"));
             return { result, directory, output };
         } catch (error) {
-            rmSync(directory, { recursive: true, force: true });
+            if (directory) rmSync(directory, { recursive: true, force: true });
             throw error;
         } finally {
             this.active.delete(key);
-            if (existsSync(input)) rmSync(input);
+            this.processing.inspectionRequests--;
+            if (input && existsSync(input)) rmSync(input);
         }
+    }
+    async detail(session, input) {
+        await this.authorise(session, input.projectId, "configure");
+        const item = this.get(this.processing.owner(session), input.id, input.projectId);
+        return {
+            connection: this.visible(item),
+            profile: this.reviewProfile(item.profile),
+            plan: item.plan || null,
+            readPath: item.readPath || null,
+            cursor: item.cursor || null,
+            review: item.review || null,
+            credentialsReturned: false,
+        };
     }
     async previewProfile(session, input) {
         await this.authorise(session, input.projectId, "configure");
@@ -577,6 +595,15 @@ export class VendorSources {
                     413,
                 );
             if (hash(bytes) !== check.result.sha256) throw problem("Source snapshot integrity failed.", 503);
+            const added = readdirSync(check.output).reduce(
+                (sum, name) => sum + lstatSync(join(check.output, name)).size,
+                0,
+            );
+            if (this.processing.checkOwnerQuota(owner) + added > 512 * 1024 * 1024)
+                throw problem(
+                    "The private capture storage limit would be exceeded. Archive completed evidence through the operator procedure.",
+                    413,
+                );
             const root = this.sourceRoot(owner, item);
             mkdirSync(root, { recursive: true, mode: 0o700 });
             const received = join(root, ".received", check.result.sha256);

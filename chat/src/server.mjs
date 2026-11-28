@@ -692,6 +692,7 @@ export function createApplication(
                         "profile-preview": "previewProfile",
                         "profile-commit": "commitProfile",
                         discover: "discover",
+                        detail: "detail",
                         "plan-preview": "previewPlan",
                         "plan-commit": "commitPlan",
                         refresh: "refresh",

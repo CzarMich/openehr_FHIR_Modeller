@@ -27,6 +27,9 @@ Reject(()=>VendorDatabase.ValidateAppend(schema,plan,new(1,2,"value")),"SOURCE_A
 var exact=SourcePlanCompiler.Compile(schema,plan with{Filters=[new(1,1,"gt",JsonSerializer.SerializeToElement("9223372036854775806"))]});Check(exact.Parameters[0].Value.Equals(9223372036854775806L),"Large numeric filter text binds without browser rounding");
 Reject(()=>SourcePlanCompiler.Compile(schema,plan,"unknown"),"SOURCE_DIALECT_UNKNOWN");
 Reject(()=>new VendorProfile("oracle","server",2484,"x)(BAD=1)","reader","password","t",["p"],["s"]).Validate(),"SOURCE_PROFILE_INVALID");
+Check(!VendorDatabase.ReadOnlyOracleGrant("UPDATE","NO","CLINICAL","TABLE","PUBLIC"),"Oracle PUBLIC write grants are not omitted from the effective permission gate");
+Check(!VendorDatabase.ReadOnlyOracleGrant("EXECUTE","NO","CLINICAL","PROCEDURE","PUBLIC"),"Oracle source procedure grants are rejected");
+Check(VendorDatabase.ReadOnlyOracleGrant("SELECT","NO","CLINICAL","TABLE","READER"),"Oracle direct read grant accepted");
 Check(VendorDatabase.ReadOnlyMySqlGrant("GRANT USAGE ON *.* TO 'reader'@'%'"),"Read-only MySQL login grant accepted");
 Check(VendorDatabase.ReadOnlyMySqlGrant("GRANT SELECT ON `clinical`.* TO 'reader'@'%'"),"Read-only MySQL SELECT grant accepted");
 Check(!VendorDatabase.ReadOnlyMySqlGrant("GRANT SELECT, UPDATE ON `clinical`.* TO 'reader'@'%'"),"MySQL write grant rejected without a source write probe");

@@ -161,6 +161,7 @@ export class ProcessingWorkspace {
         };
         const root = join(this.root, owner);
         if (existsSync(root)) walk(root);
+        return total;
     }
     async upload(session, input, bytes) {
         this.checkQuota(session);
@@ -1172,6 +1173,7 @@ export class ProcessingWorkspace {
                         const stableKey = channel.owner + ":" + channel.id + ":" + name,
                             signature = stat.size + ":" + stat.mtimeMs + ":" + stat.ctimeMs + ":" + stat.ino;
                         if (channel.completedFiles?.[name] === signature) continue;
+                        if (source.vendor) this.stable.set(stableKey, signature);
                         if (this.stable.get(stableKey) !== signature) {
                             this.stable.set(stableKey, signature);
                             continue;

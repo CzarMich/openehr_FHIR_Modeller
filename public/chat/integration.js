@@ -1127,3 +1127,54 @@ $("vendor-metadata-access").onclick = () =>
         });
         await vendorList();
     });
+
+$("vendor-detail").onclick = () =>
+    run(async () => {
+        const result = await api("vendor-sources/detail", { projectId: project(), id: $("vendor-connection").value }),
+            profile = result.profile;
+        $("vendor-status").textContent = pretty(result.connection);
+        $("vendor-connector").value = profile.connector;
+        $("vendor-name").value = result.connection.displayName;
+        $("vendor-domain").value = result.connection.identityDomain;
+        for (const [field, id] of [
+            ["host", "vendor-host"],
+            ["port", "vendor-port"],
+            ["database", "vendor-database-name"],
+            ["user", "vendor-user"],
+            ["driverSha256", "vendor-driver-sha"],
+            ["baseUrl", "vendor-base"],
+            ["recordsPointer", "vendor-records-pointer"],
+            ["nextPointer", "vendor-next-pointer"],
+        ])
+            $(id).value = profile[field] ?? "";
+        $("vendor-schemas").value = (profile.schemas || []).join("\n");
+        $("vendor-read-paths").value = (profile.readPaths || []).join("\n");
+        $("vendor-fhir-release").value = profile.fhirVersion || "4.0.1";
+        $("vendor-analytics").value = profile.analytics ? pretty(profile.analytics) : "";
+        const auth = profile.authentication || {};
+        $("vendor-auth").value = auth.mode || "bearer";
+        for (const [field, id] of [
+            ["user", "vendor-api-user"],
+            ["tokenEndpoint", "vendor-token-endpoint"],
+            ["clientId", "vendor-client-id"],
+            ["keyId", "vendor-key-id"],
+            ["algorithm", "vendor-algorithm"],
+        ])
+            $(id).value = auth[field] || "";
+        $("vendor-scopes").value = (auth.scopes || []).join(" ");
+        for (const id of [
+            "vendor-password",
+            "vendor-token",
+            "vendor-api-password",
+            "vendor-client-secret",
+            "vendor-private-key",
+        ])
+            $(id).value = "";
+        $("vendor-plan").value = result.plan ? pretty(result.plan) : "";
+        $("vendor-read-path").value = result.readPath || "";
+        $("vendor-capture-mode").value = result.cursor ? "append" : "snapshot";
+        $("vendor-cursor").value = result.cursor ? pretty(result.cursor) : "";
+        $("vendor-plan-comment").value = result.review?.comment || "";
+        $("vendor-append-ack").checked = false;
+        vendorKind();
+    });

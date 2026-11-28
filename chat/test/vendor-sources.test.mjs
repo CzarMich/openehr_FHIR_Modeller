@@ -314,3 +314,26 @@ test("agent discovery requires explicit revocable metadata consent and never exp
         f.close();
     }
 });
+
+test("source adapter capacity is shared with private mapping and survives preflight failure", async () => {
+    const f = fixture();
+    try {
+        f.processing.inspectionRequests = 2;
+        await assert.rejects(f.vendor.previewProfile(f.session, input), /workers are busy/);
+        assert.equal(f.vendor.active.size, 0);
+        assert.equal(f.processing.inspectionRequests, 2);
+        f.processing.inspectionRequests = 0;
+        rmSync(f.vendor.root, { recursive: true, force: true });
+        await assert.rejects(f.vendor.previewProfile(f.session, input));
+        assert.equal(f.vendor.active.size, 0);
+        assert.equal(f.processing.inspectionRequests, 0);
+        mkdirSync(f.vendor.root, { recursive: true });
+        const item = await configured(f);
+        const detail = await f.vendor.detail(f.session, { projectId: "lab", id: item.id });
+        assert.equal(detail.profile.host, "source.example");
+        assert.equal(detail.credentialsReturned, false);
+        assert.ok(!JSON.stringify(detail).includes("SYNTHETIC-SECRET-canary"));
+    } finally {
+        f.close();
+    }
+});

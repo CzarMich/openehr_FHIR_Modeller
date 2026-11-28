@@ -118,9 +118,9 @@ public sealed class VendorDatabase:IReadOnlySource
                 var system=await Query("SELECT PRIVILEGE FROM SESSION_PRIVS",ct);
                 if(system.Any(row=>!new[]{"CREATE SESSION","SELECT ANY TABLE","SELECT ANY DICTIONARY","READ ANY TABLE"}.Contains(S(row[0]),StringComparer.Ordinal)))throw new ProcessingException("SOURCE_WRITE_PERMISSION_DENIED");
                 await Empty("SELECT 1 FROM USER_TABLES WHERE ROWNUM <= 1",ct);
-                var grants=await Query("SELECT PRIVILEGE,GRANTABLE FROM USER_TAB_PRIVS_RECD UNION ALL SELECT PRIVILEGE,GRANTABLE FROM ROLE_TAB_PRIVS WHERE ROLE IN (SELECT ROLE FROM SESSION_ROLES)",ct);
-                if(grants.Any(row=>S(row[0]) is not("SELECT" or "READ")||S(row[1])=="YES"))throw new ProcessingException("SOURCE_WRITE_PERMISSION_DENIED");
-                var columnGrants=await Query("SELECT PRIVILEGE,GRANTABLE FROM USER_COL_PRIVS_RECD",ct);
+                var grants=await Query("SELECT PRIVILEGE,GRANTABLE,OWNER,TYPE,GRANTEE FROM ALL_TAB_PRIVS_RECD",ct);
+                if(grants.Any(row=>!ReadOnlyOracleGrant(S(row[0]),S(row[1]),S(row[2]),S(row[3]),S(row[4]))))throw new ProcessingException("SOURCE_WRITE_PERMISSION_DENIED");
+                var columnGrants=await Query("SELECT PRIVILEGE,GRANTABLE FROM ALL_COL_PRIVS_RECD",ct);
                 if(columnGrants.Any(row=>S(row[0]) is not("SELECT" or "READ")||S(row[1])=="YES"))throw new ProcessingException("SOURCE_WRITE_PERMISSION_DENIED");break;
             case "mysql":case "mariadb":
                 // Role grants are refused: do not mistake an unexpanded grant for effective read-only rights.
@@ -132,6 +132,8 @@ public sealed class VendorDatabase:IReadOnlySource
             default:throw new ProcessingException("SOURCE_CONNECTOR_UNKNOWN");
         }
     }
+    // Oracle's standard SYS/PUBLIC packages are not source procedure operations. The closed adapter never calls them.
+    public static bool ReadOnlyOracleGrant(string privilege,string grantable,string owner,string type,string grantee)=>grantable=="NO"&&(privilege is "SELECT" or "READ" || privilege=="EXECUTE"&&owner=="SYS"&&grantee=="PUBLIC"&&type is "PACKAGE" or "TYPE" or "FUNCTION" or "PROCEDURE");
     public static bool ReadOnlyMySqlGrant(string grant)=>Regex.IsMatch(grant,"^GRANT (USAGE|SELECT(?: \\([^;]+\\))?|SHOW VIEW)(?:, (?:SELECT|SHOW VIEW))* ON (?:`(?:[^`]|``)+`|\\*)(?:\\.(?:`(?:[^`]|``)+`|\\*))? TO (?:'(?:[^']|'')*'|`(?:[^`]|``)*`)@(?:'(?:[^']|'')*'|`(?:[^`]|``)*`)(?: IDENTIFIED BY PASSWORD '[A-Za-z0-9*]+')?$",RegexOptions.CultureInvariant);
     private Task<List<object[]>> Catalogue(string sql,CancellationToken ct,bool keys=false){
         var parameters=profile.Schemas.Select((_,i)=>profile.Dialect=="oracle"?":p"+i:profile.Dialect=="sap-hana"?"?":"@p"+i);
