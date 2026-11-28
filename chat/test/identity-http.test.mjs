@@ -145,7 +145,7 @@ test("native owner bootstrap, MFA gate, user administration, invitation and pers
 
     const invitationResponse = await request("/chat/api/identity/invitations", "POST", {
         email: "modeller@example.test",
-        roles: ["modelling-modeller"],
+        userType: "user",
     });
     assert.equal(invitationResponse.status, 201);
     const invitation = await invitationResponse.json();
@@ -157,6 +157,7 @@ test("native owner bootstrap, MFA gate, user administration, invitation and pers
     });
     assert.equal(accepted.status, 201);
     const member = await accepted.json();
+    assert.equal(member.user.userType, "user");
     csrf = member.csrf;
     const memberQr = await scanEnrollment(await request("/chat/auth/mfa-qr"));
     assert.equal(memberQr, member.otpAuthUrl);
@@ -166,6 +167,11 @@ test("native owner bootstrap, MFA gate, user administration, invitation and pers
     const memberSession = auth.session({ headers: { cookie }, socket: {} });
     csrf = memberSession.csrf;
     assert.equal((await request("/chat/api/identity/users")).status, 403);
+    assert.equal(
+        (await request("/chat/api/identity/users/" + member.user.id + "/type", "PUT", { userType: "administrator" }))
+            .status,
+        403,
+    );
     assert.equal((await request("/chat/api/identity/mcp-connection", "POST", {})).status, 403);
     assert.equal((await request("/chat/auth/logout", "POST")).status, 200);
     assert.equal(auth.identityStore.localSession(cookie.split("=")[1]), null);
@@ -181,6 +187,25 @@ test("native owner bootstrap, MFA gate, user administration, invitation and pers
     const loginResult = await login.json();
     csrf = loginResult.csrf;
     assert.equal((await request("/chat/api/identity/users")).status, 200);
+    const promoted = await request("/chat/api/identity/users/" + member.user.id + "/type", "PUT", {
+        userType: "administrator",
+    });
+    assert.equal(promoted.status, 200);
+    assert.equal((await promoted.json()).user.userType, "administrator");
+    const demoted = await request("/chat/api/identity/users/" + member.user.id + "/type", "PUT", { userType: "user" });
+    assert.equal(demoted.status, 200);
+    assert.deepEqual((await demoted.json()).user.roles, ["modelling-modeller"]);
+    assert.equal(
+        (
+            await request("/chat/auth/signup", "POST", {
+                username: "self-admin",
+                displayName: "Self Admin",
+                password,
+                userType: "administrator",
+            })
+        ).status,
+        400,
+    );
     const ownerCookie = cookie,
         ownerCsrf = csrf;
     const sharedKey = "sk-ant-" + "s".repeat(40);

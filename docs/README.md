@@ -59,3 +59,5 @@ External IG/package URLs, StructureDefinition and ValueSet imports, connected de
 - [C# integration engine](INTEGRATION_ENGINE.md): private file jobs, confirmed mapping assignments, channels, FHIR delivery and operator limits.
 
 - [Vendor source setup, private extraction and installation acceptance](VENDOR_INTEGRATIONS.md)
+
+[Keycloak organisation sign-in and registration](KEYCLOAK_SETUP.md) describes account types, domain restrictions, email, MFA and identity preservation.

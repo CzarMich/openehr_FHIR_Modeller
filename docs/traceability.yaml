@@ -414,7 +414,9 @@
         "chat/src/codex.mjs",
         "chat/src/claude.mjs",
         "public/chat",
-        ".docker/Caddyfile"
+        ".docker/Caddyfile",
+        "chat/src/user-types.mjs",
+        "identity/keycloak-registration/src/main/java/com/hygeoniq/modeller/RegistrationDomains.java"
       ],
       "tests": [
         "chat/test/identity-http.test.mjs",
@@ -428,7 +430,8 @@
         "chat/test/browser.spec.mjs",
         "chat/test/mcp.test.mjs",
         "chat/test/codex.test.mjs",
-        "chat/test/providers.test.mjs"
+        "chat/test/providers.test.mjs",
+        "identity/keycloak-registration/functional.py"
       ],
       "verification": "npm --prefix chat test and npm --prefix chat run test:browser"
     },

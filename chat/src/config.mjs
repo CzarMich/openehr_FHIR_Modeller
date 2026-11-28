@@ -26,6 +26,7 @@ export function loadConfig(env = process.env) {
         localIssuer: env.CHAT_LOCAL_IDENTITY_ISSUER || publicUrl.origin + "/identity/local",
         identityEncryptionKey: env.CHAT_LOCAL_IDENTITY_ENCRYPTION_KEY || "",
         issuer: env.CHAT_OIDC_ISSUER || "",
+        oidcRoleScheme: env.CHAT_OIDC_ROLE_SCHEME || "governance",
         clientId: env.CHAT_OIDC_CLIENT_ID || "",
         clientSecret: env.CHAT_OIDC_CLIENT_SECRET || "",
         allowedGroups: (env.CHAT_ALLOWED_GROUPS || "")
@@ -85,6 +86,7 @@ export function loadConfig(env = process.env) {
         config.contextBudget.history > config.contextBudget.input
     )
         throw new Error("Invalid chat context budget relationship");
+    if (!["governance", "platform"].includes(config.oidcRoleScheme)) throw new Error("Invalid CHAT_OIDC_ROLE_SCHEME");
     const oidcConfigured = Boolean(config.issuer || config.clientId || config.clientSecret);
     if (oidcConfigured && (!config.issuer.startsWith("https://") || !config.clientId || !config.clientSecret))
         throw new Error("Configure all OIDC client settings");

@@ -40,3 +40,5 @@ The user has deferred vulnerability scanning and attack/load testing. The option
 Historical evidence in Git is tied to its recorded revision. Current test counts, assertions and deployment state must come from a current run. Passing tests do not constitute clinical certification or a guarantee that all vulnerabilities have been found.
 
 Vendor adapters add `Modeller.Vendor.Tests`, `chat/test/vendor-sources.test.mjs` and `dotnet/tests/vendor-database-functional.py`. The latter runs disposable official PostgreSQL/MySQL/MariaDB images with synthetic records, actual TLS and private reads; it performs no source-write denial probes. Driver-specific and hospital acceptance remain separate.
+
+Keycloak two-type access adds signed platform-role claims and native account-type HTTP/browser acceptance. The separate `Keycloak registration provider` workflow builds the version-matched FormAction JAR and checks actual registration over verified disposable HTTPS, approved domains, default User roles, no account creation for disallowed domains and administrator provisioning outside the policy. It does not alter production or use real personal records.

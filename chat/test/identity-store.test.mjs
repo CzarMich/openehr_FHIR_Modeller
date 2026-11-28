@@ -215,6 +215,7 @@ test("signup requires completed owner setup and cannot inherit or delegate share
     store.verifyMfaSetup(owner.sessionToken, code(owner.totpSecret));
     const member = store.signup("alice", "Alice", password, "ip");
     assert.deepEqual(member.user.permissions, []);
+    assert.equal(member.user.userType, "user");
     assert.deepEqual(member.user.roles, ["modelling-modeller"]);
     assert.equal(store.localSession(member.sessionToken), null);
     store.verifyMfaSetup(member.sessionToken, code(member.totpSecret));

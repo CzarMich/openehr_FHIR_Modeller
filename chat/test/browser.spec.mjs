@@ -3146,3 +3146,65 @@ test("workbench keeps accounts and mapping controls inside desktop and mobile pa
         }
     }
 });
+
+test("account types stay compact and organisation administration uses server-authorised links", async ({ page }) => {
+    let invitation;
+    await page.route("**/chat/api/session", (route) =>
+        route.fulfill({
+            json: {
+                enabled: false,
+                authenticated: true,
+                user: { id: "owner-id", name: "Owner", roles: ["modelling-administrator"] },
+                csrf: "fixture-csrf",
+                reviewEnabled: true,
+                identityEnabled: true,
+                identitySetupRequired: false,
+                oidcEnabled: true,
+                organisation: {
+                    accountUrl: "https://identity.example.org/realms/openfhir/account/",
+                    administrationUrl: "https://identity.example.org/admin/openfhir/console/",
+                },
+            },
+        }),
+    );
+    await page.route("**/chat/api/identity/users", (route) =>
+        route.fulfill({
+            json: {
+                users: [
+                    {
+                        id: "11111111-1111-4111-8111-111111111111",
+                        displayName: "Synthetic User",
+                        username: "synthetic",
+                        roles: ["modelling-modeller"],
+                        userType: "user",
+                        status: "active",
+                        mfaEnabled: true,
+                    },
+                ],
+                serviceAccounts: [],
+                audit: { events: [] },
+                signupAllowedByInstallation: false,
+            },
+        }),
+    );
+    await page.route("**/chat/api/identity/invitations", (route) => {
+        invitation = route.request().postDataJSON();
+        return route.fulfill({ status: 201, json: { token: "synthetic-invitation" } });
+    });
+    await page.goto("/chat/#accounts");
+    await expect(page.getByLabel("Account type for synthetic")).toHaveValue("user");
+    await expect(page.locator("#new-user-type option")).toHaveText(["User", "Administrator"]);
+    await page.locator("#new-user-email").fill("synthetic@example.test");
+    await page.locator("#new-user-type").selectOption("user");
+    await page.getByRole("button", { name: "Create invitation link", exact: true }).click();
+    await expect.poll(() => invitation).toEqual({ email: "synthetic@example.test", userType: "user" });
+    await expect(page.locator("#allow-signup")).toBeDisabled();
+    await page
+        .getByRole("navigation", { name: "Application menu", exact: true })
+        .locator("summary", { hasText: "Project" })
+        .click();
+    await expect(page.getByRole("link", { name: "Manage organisation users" })).toHaveAttribute(
+        "href",
+        "https://identity.example.org/admin/openfhir/console/",
+    );
+});
