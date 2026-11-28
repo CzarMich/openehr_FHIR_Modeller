@@ -2491,11 +2491,13 @@ test("shared workspace styles load on both pages and navigation identifies the c
         "aria-current",
         "page",
     );
-    const sharedStyle = page.locator('link[href="/chat/design-system.css"]');
+    const sharedStyle = page.locator('link[href^="/chat/design-system.css?v="]');
     await expect(sharedStyle).toHaveCount(1);
     const guide = await page.locator(".sidebar-bottom a").boundingBox();
     expect(guide.height).toBeGreaterThanOrEqual(44);
-    const css = await page.request.get("/chat/design-system.css");
+    await expect(sharedStyle).toHaveAttribute("href", /^\/chat\/design-system\.css\?v=[a-f0-9]{64}$/);
+    const css = await page.request.get(await sharedStyle.getAttribute("href"));
+    expect(css.headers()["cache-control"]).toContain("immutable");
     expect(css.ok()).toBe(true);
     expect(css.headers()["content-type"]).toContain("text/css");
     const font = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
@@ -2547,6 +2549,8 @@ test("integration tabs support keyboard navigation, retained fields, deep links 
     await expect(tabs.getByRole("tab", { name: "Project", exact: true })).toBeFocused();
     await page.keyboard.press("End");
     await expect(tabs.getByRole("tab", { name: "Groups & access", exact: true })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("separator", { name: "Resize navigation pane" })).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(page.locator("#sharing-step")).toBeFocused();
     await page.reload();
@@ -2979,4 +2983,166 @@ test("vendor connection settings stay private and require explicit reviewed conf
     await expect(page.locator("#vendor-fhir-release")).toBeHidden();
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBeTruthy();
+});
+
+test("application workbench menus, themes and resizable panes preserve the task and work on mobile", async ({
+    page,
+}) => {
+    const { default: AxeBuilder } = await import("@axe-core/playwright");
+    await page.route("**/chat/api/session", (route) =>
+        route.fulfill({ json: { authenticated: false, integrationReady: false } }),
+    );
+    await page.addInitScript(() => localStorage.setItem("modeller.michael.hidden", "true"));
+    await page.goto("/chat/integration/");
+    const menu = page.getByRole("navigation", { name: "Application menu", exact: true });
+    await expect(menu).toBeVisible();
+    await expect(page.getByRole("tablist", { name: "Integration sections" })).toHaveAttribute(
+        "aria-orientation",
+        "vertical",
+    );
+    await page.locator("#project-step details summary").click();
+    await page.locator("#project-id").fill("retain-my-project");
+    const separator = page.getByRole("separator", { name: "Resize navigation pane" });
+    const initial = Number(await separator.getAttribute("aria-valuenow"));
+    await separator.focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(separator).toHaveAttribute("aria-valuenow", String(initial + 16));
+    await menu.locator("summary", { hasText: "View" }).click();
+    await menu.getByRole("button", { name: "Dark theme", exact: true }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect(page.locator("#project-id")).toHaveValue("retain-my-project");
+    await page.keyboard.press("Escape");
+    await page.screenshot({ path: "test-results/application-integration-dark.png", fullPage: true });
+    let findings = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+    expect(findings.violations.map(({ id, nodes }) => ({ id, targets: nodes.map((node) => node.target) }))).toEqual([]);
+    await menu.locator("summary", { hasText: "View" }).click();
+    await menu.getByRole("button", { name: "Context pane", exact: true }).click();
+    await expect(page.getByRole("complementary", { name: "Workspace context" })).toBeHidden();
+    await menu.getByRole("button", { name: "Navigation pane", exact: true }).click();
+    await expect(page.getByRole("navigation", { name: "Integration workflow" })).toBeHidden();
+    await menu.getByRole("button", { name: "Reset workspace layout", exact: true }).click();
+    await expect(page.getByRole("navigation", { name: "Integration workflow" })).toBeVisible();
+    await expect(page.getByRole("complementary", { name: "Workspace context" })).toBeVisible();
+    await menu.getByRole("button", { name: "Light theme", exact: true }).click();
+    await page.keyboard.press("Escape");
+    await page.screenshot({ path: "test-results/application-integration-light.png", fullPage: true });
+    await menu.locator("summary", { hasText: "Workspace" }).click();
+    await menu.getByRole("button", { name: "Jobs & monitoring", exact: true }).click();
+    await expect(page.locator("#monitor-step")).toBeVisible();
+    await expect(page.locator("[data-context-title]")).toHaveText("Jobs & monitoring");
+    await menu.locator("summary", { hasText: "View" }).click();
+    await menu.getByRole("button", { name: "Dark theme", exact: true }).click();
+    await page.goto("/chat/#help");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect(page.getByRole("navigation", { name: "Application menu", exact: true })).toBeVisible();
+    await page.screenshot({ path: "test-results/application-modelling-dark.png", fullPage: true });
+    findings = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+    expect(findings.violations.map(({ id, nodes }) => ({ id, targets: nodes.map((node) => node.target) }))).toEqual([]);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/chat/integration/");
+    await expect(page.getByRole("tablist", { name: "Integration sections" })).toHaveAttribute(
+        "aria-orientation",
+        "horizontal",
+    );
+    await expect(page.getByRole("complementary", { name: "Workspace context" })).toBeHidden();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: "test-results/application-mobile-dark.png", fullPage: true });
+});
+
+test("workbench keeps accounts and mapping controls inside desktop and mobile panes", async ({ page }) => {
+    test.setTimeout(60000);
+    const { default: AxeBuilder } = await import("@axe-core/playwright");
+    const roles = [
+        "modelling-administrator",
+        "modelling-modeller",
+        "modelling-reviewer",
+        "modelling-approver",
+        "modelling-publisher",
+    ];
+    await page.route("**/chat/api/session", (route) =>
+        route.fulfill({
+            json: {
+                enabled: false,
+                authenticated: true,
+                user: { id: "synthetic-owner", name: "Fixture Owner", roles },
+                access: { owner: true },
+                csrf: "fixture",
+                reviewEnabled: true,
+                identityEnabled: true,
+                identitySetupRequired: false,
+                oidcEnabled: false,
+            },
+        }),
+    );
+    await page.route("**/chat/api/identity/users", (route) =>
+        route.fulfill({
+            json: {
+                signupEnabled: false,
+                users: [
+                    {
+                        id: "synthetic-owner",
+                        username: "fixture-owner",
+                        displayName: "Fixture Owner",
+                        isOwner: true,
+                        roles,
+                        status: "active",
+                        mfaEnabled: true,
+                    },
+                ],
+                serviceAccounts: [],
+                audit: { events: [] },
+            },
+        }),
+    );
+    await page.addInitScript(() => localStorage.setItem("modeller.michael.hidden", "true"));
+    await page.goto("/chat/#accounts");
+    const menu = page.getByRole("navigation", { name: "Application menu", exact: true });
+    for (const theme of ["light", "dark"]) {
+        await menu.locator("summary", { hasText: "View" }).click();
+        await menu.getByRole("button", { name: theme === "dark" ? "Dark theme" : "Light theme", exact: true }).click();
+        await page.keyboard.press("Escape");
+        for (const width of [1900, 1101, 390]) {
+            await page.setViewportSize({ width, height: 1000 });
+            for (const name of [
+                "Accounts",
+                "Cross-standard mappings",
+                "Models",
+                "FHIR modelling",
+                "AQL workspace",
+                "Governance",
+                "Help",
+            ]) {
+                await page.getByRole("tab", { name, exact: true }).click();
+                const panel = page.getByRole("tabpanel");
+                await expect(panel).toBeVisible();
+                const bounds = await panel.evaluate((el) => ({
+                    root: document.documentElement.scrollWidth,
+                    viewport: innerWidth,
+                    panel: el.scrollWidth,
+                    available: el.clientWidth,
+                }));
+                expect(bounds.root, `${name} ${theme} ${width} page overflow`).toBeLessThanOrEqual(bounds.viewport);
+                expect(bounds.panel, `${name} ${theme} ${width} pane overflow`).toBeLessThanOrEqual(
+                    bounds.available + 1,
+                );
+                if (width === 1900 && ["Accounts", "Cross-standard mappings"].includes(name)) {
+                    if (name === "Accounts") {
+                        const save = await page.locator("#save-signup-settings").boundingBox();
+                        expect(save.width).toBeLessThan(280);
+                        expect(save.height).toBeLessThanOrEqual(36);
+                    }
+                    await page.screenshot({
+                        path: `test-results/application-${name === "Accounts" ? "accounts" : "mappings"}-${theme}.png`,
+                        fullPage: true,
+                    });
+                    const findings = await new AxeBuilder({ page })
+                        .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+                        .analyze();
+                    expect(
+                        findings.violations.map(({ id, nodes }) => ({ id, targets: nodes.map((node) => node.target) })),
+                    ).toEqual([]);
+                }
+            }
+        }
+    }
 });

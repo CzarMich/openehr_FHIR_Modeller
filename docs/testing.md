@@ -25,6 +25,8 @@ Tests establish the behaviour and scope of the exact revision being checked. A s
 
 Local C# checks use the pinned SDK container in the Makefile. The Python contract runners accept an already compiled service or a hosted-built image. SDK compilation is allowed on Dev; application-image builds belong on hosted CI. Fixtures create temporary synthetic keys/certificates and do not require a personal security key.
 
+Browser workbench acceptance covers functional menus, pane resizing/visibility, theme persistence, dark/light contrast, compact Accounts controls and page/pane overflow at desktop and mobile widths. Public asset HTTP checks cover content-versioned immutable caching, changed-release invalidation, ETag revalidation and uncached private responses.
+
 ## Release gates
 
 [PR validation](../.github/workflows/pr-validation.yml) invokes [.NET runtime validation](../.github/workflows/dotnet-migration.yml), checks deployment boundaries, runs browser tests and builds standards/primary images on hosted runners. Add affected adapter acceptance when changing external provider semantics. Qualification against a real CKM, repository, EHR, database or terminology server requires the permitted installation and its actual credentials/data contract; do not substitute mock results for that evidence.

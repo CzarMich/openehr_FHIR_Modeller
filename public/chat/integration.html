@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
     <head>
+        <script src="/chat/appearance.js"></script>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
         <title>Integration workspace · openEHR Modeller</title>
@@ -9,6 +10,8 @@
         <link rel="stylesheet" href="/chat/michael.css" />
         <script type="module" src="/chat/michael.js"></script>
         <link rel="stylesheet" href="/chat/design-system.css" />
+        <link rel="stylesheet" href="/chat/app-shell.css" />
+        <script type="module" src="/chat/app-shell.js"></script>
     </head>
     <body class="integration-page">
         <a class="skip-link" href="#integration-content">Skip to integration workspace</a>
@@ -39,9 +42,9 @@
         <details class="policy-note">
             <summary>Clinical data handling: read-only sources</summary>
             <p>
-                Clinical databases are strictly read-only. This version accepts file sources. FHIR delivery uses a
-                separately authorised HTTP API. Uploaded records stay outside the chat and model registry. Storage
-                encryption and retention are managed by your operator.
+                Clinical databases are strictly read-only. Reviewed vendor capture and file sources feed private
+                processing. FHIR delivery uses a separately authorised HTTP API. Uploaded records stay outside the chat
+                and model registry. Storage encryption and retention are managed by your operator.
             </p>
         </details>
         <div class="integration-layout">

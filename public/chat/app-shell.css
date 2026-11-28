@@ -1,0 +1,787 @@
+/* Persistent desktop workbench. Document controls remain in their workspace modules. */
+:root {
+    --application-left: 236px;
+    --application-right: 272px;
+    --application-chrome: #e4e9f0;
+    --application-panel: #f7f9fc;
+    --application-divider: #b8c5d3;
+}
+.application-menu {
+    display: flex;
+    align-items: center;
+    flex: 0 0 34px;
+    min-height: 34px;
+    padding: 0 8px;
+    gap: 2px;
+    background: var(--application-chrome);
+    border-bottom: 1px solid var(--application-divider);
+    color: var(--ui-ink);
+    position: relative;
+    z-index: 12;
+    font-size: 12px;
+}
+.application-menu details {
+    margin: 0;
+    position: relative;
+}
+.application-menu summary {
+    list-style: none;
+    min-height: 32px;
+    padding: 6px 12px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    font-size: 12px;
+    line-height: 18px;
+    font-weight: 500;
+    cursor: pointer;
+}
+.application-menu summary::-webkit-details-marker {
+    display: none;
+}
+.application-menu details[open] > summary,
+.application-menu summary:hover {
+    background: var(--ui-surface);
+    border-color: var(--ui-control-border);
+}
+.application-menu-popup {
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 0;
+    min-width: 232px;
+    max-width: min(320px, calc(100vw - 24px));
+    padding: 5px;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-control-border);
+    border-radius: 4px;
+    box-shadow: 0 6px 20px #101d3033;
+}
+.application-menu-popup :is(button, a) {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    text-align: left;
+    min-height: 36px;
+    padding: 7px 10px;
+    margin: 0;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: transparent;
+    color: var(--ui-ink);
+    font: inherit;
+    font-weight: 500;
+    box-shadow: none;
+    text-decoration: none;
+}
+.application-menu-popup :is(button, a):not(:disabled):hover {
+    background: var(--ui-primary-soft);
+    color: var(--ui-primary-hover);
+}
+.application-menu-popup button[aria-pressed="true"]::after {
+    content: "";
+    margin-left: auto;
+    width: 9px;
+    height: 5px;
+    border-left: 2px solid var(--ui-primary);
+    border-bottom: 2px solid var(--ui-primary);
+    transform: rotate(-45deg);
+}
+.application-menu-label {
+    padding: 8px 10px 3px;
+    color: var(--ui-muted);
+    font-size: 11px;
+}
+.application-menu-popup hr {
+    border: 0;
+    border-top: 1px solid var(--ui-border);
+    margin: 5px;
+}
+.application-menu-location {
+    margin-left: auto;
+    padding: 0 8px;
+    color: var(--ui-muted);
+    font-size: 11px;
+}
+.application-inspector {
+    background: var(--application-panel);
+    color: var(--ui-ink);
+    min-width: 0;
+    overflow: hidden;
+}
+.application-pane-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    height: 38px;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--application-divider);
+    background: var(--application-chrome);
+    font-size: 12px;
+    font-weight: 650;
+}
+.application-pane-heading button {
+    width: 28px;
+    min-height: 28px;
+    padding: 0;
+    margin: 0;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: var(--ui-muted);
+    background: transparent;
+    font-size: 20px;
+    box-shadow: none;
+}
+.application-pane-heading button:hover {
+    background: var(--ui-surface);
+    border-color: var(--ui-control-border);
+}
+.application-inspector-content {
+    height: calc(100% - 38px);
+    padding: 16px;
+    overflow: auto;
+    font-size: 12px;
+}
+.application-inspector-content .application-context-title {
+    font-size: 15px;
+    margin: 6px 0 8px;
+    line-height: 1.4;
+    font-weight: 650;
+}
+.application-inspector-content p {
+    color: var(--ui-muted);
+    margin: 6px 0 16px;
+}
+.application-context-label {
+    color: var(--ui-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    font-size: 10px;
+    font-weight: 650;
+}
+.application-inspector-content dl {
+    border-block: 1px solid var(--ui-border);
+    padding: 12px 0;
+    margin: 16px 0;
+}
+.application-inspector-content dt {
+    color: var(--ui-muted);
+}
+.application-inspector-content dd {
+    margin: 3px 0 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.application-context-links {
+    display: grid;
+    gap: 6px;
+    margin: 8px 0 20px;
+}
+.application-context-links button {
+    padding: 7px 10px;
+    min-height: 36px;
+    margin: 0;
+    color: var(--ui-ink);
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-control-border);
+    border-radius: 4px;
+    font-size: 12px;
+    text-align: left;
+    box-shadow: 0 1px 2px #17324d12;
+}
+.application-context-links button:hover {
+    border-color: var(--ui-primary);
+    background: var(--ui-primary-soft);
+}
+.application-context-policy {
+    border-left: 3px solid var(--ui-primary);
+    padding-left: 12px;
+}
+.application-context-policy strong {
+    font-size: 11px;
+}
+.application-inspector .policy-note {
+    font-size: 11px;
+    margin-top: 12px;
+}
+.application-inspector .policy-note summary {
+    font-size: 11px;
+    padding: 8px 0;
+}
+.application-splitter {
+    background: var(--application-chrome);
+    cursor: col-resize;
+    touch-action: none;
+    border-inline: 1px solid var(--application-divider);
+}
+.application-splitter:hover,
+.application-splitter:focus-visible {
+    background: var(--ui-primary);
+}
+.application-resizing {
+    cursor: col-resize;
+    user-select: none;
+}
+.application-resizing * {
+    cursor: col-resize !important;
+}
+@media (min-width: 1101px) {
+    .application-workspace:not(.integration-page) .sidebar {
+        width: var(--application-left);
+        padding: 20px 14px 14px;
+    }
+    .application-workspace:not(.integration-page) .main {
+        width: calc(100% - var(--application-left) - var(--application-right) - 12px);
+        margin-left: calc(var(--application-left) + 6px);
+        margin-right: calc(var(--application-right) + 6px);
+    }
+    .application-workspace:not(.integration-page) .application-inspector {
+        position: fixed;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: var(--application-right);
+    }
+    .application-workspace:not(.integration-page) .application-splitter {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        width: 6px;
+        z-index: 5;
+    }
+    .application-workspace:not(.integration-page) .application-splitter-left {
+        left: var(--application-left);
+    }
+    .application-workspace:not(.integration-page) .application-splitter-right {
+        right: var(--application-right);
+    }
+    .application-workspace.application-nav-hidden:not(.integration-page) .main {
+        margin-left: 0;
+        width: calc(100% - var(--application-right) - 6px);
+    }
+    .application-workspace.application-context-hidden:not(.integration-page) .main {
+        margin-right: 0;
+        width: calc(100% - var(--application-left) - 6px);
+    }
+    .application-workspace.application-nav-hidden.application-context-hidden:not(.integration-page) .main {
+        margin: 0;
+        width: 100%;
+    }
+    .application-workspace:not(.integration-page) .platform-label {
+        margin-top: 22px;
+    }
+    .application-workspace:not(.integration-page) .topbar {
+        flex: 0 0 48px;
+        height: 48px;
+        padding-inline: 20px;
+        border-top: 0;
+    }
+    .application-workspace:not(.integration-page) .workspace-switcher a {
+        font-size: 12px;
+        padding: 6px 8px;
+    }
+    .application-workspace:not(.integration-page) .workspace-tabs button {
+        padding: 9px 10px;
+        font-size: 12px;
+    }
+    .application-workspace.integration-page {
+        height: 100dvh;
+        min-height: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .application-workspace.integration-page .platform-header {
+        flex: 0 0 58px;
+        min-height: 58px;
+        margin: 0;
+        padding: 6px 16px;
+    }
+    .application-workspace.integration-page .brand {
+        font-size: 18px;
+        gap: 9px;
+    }
+    .application-workspace.integration-page .brand-symbol {
+        width: 36px;
+        height: 36px;
+        border-radius: 5px;
+    }
+    .application-workspace.integration-page .brand-subtitle {
+        font-size: 10px;
+        margin-top: 2px;
+    }
+    .application-workspace.integration-page .workspace-switcher a {
+        min-height: 34px;
+        font-size: 12px;
+        padding: 5px 12px;
+    }
+    .application-workspace .integration-layout {
+        display: grid;
+        grid-template-columns: var(--application-left) 6px minmax(0, 1fr) 6px var(--application-right);
+        flex: 1;
+        min-height: 0;
+    }
+    .application-workspace.application-nav-hidden .integration-layout {
+        grid-template-columns: 0 0 minmax(0, 1fr) 6px var(--application-right);
+    }
+    .application-workspace.application-context-hidden .integration-layout {
+        grid-template-columns: var(--application-left) 6px minmax(0, 1fr) 0 0;
+    }
+    .application-workspace.application-nav-hidden.application-context-hidden .integration-layout {
+        grid-template-columns: 0 0 minmax(0, 1fr) 0 0;
+    }
+    .application-workspace .workflow-nav {
+        grid-column: 1;
+        position: static;
+        min-width: 0;
+        padding: 12px 8px;
+        overflow-y: auto;
+        background: var(--application-panel);
+    }
+    .application-workspace .workflow-nav::before {
+        content: "WORKSPACE";
+        display: block;
+        padding: 6px 12px 10px;
+        color: var(--ui-muted);
+        font-size: 10px;
+        font-weight: 650;
+        letter-spacing: 0.08em;
+    }
+    .application-workspace .workflow-nav [role="tablist"] {
+        flex-direction: column;
+        overflow: visible;
+        padding: 0;
+        border: 0;
+        gap: 4px;
+        background: transparent;
+    }
+    .application-workspace.integration-page .workflow-nav [role="tab"] {
+        border: 1px solid transparent;
+        border-radius: 4px;
+        min-height: 42px;
+        padding: 10px 12px;
+        white-space: normal;
+        text-align: left;
+        font-size: 12px;
+        background: transparent;
+    }
+    .application-workspace.integration-page .workflow-nav [role="tab"][aria-selected="true"] {
+        background: var(--ui-surface);
+        border-color: var(--ui-border);
+        box-shadow:
+            inset 3px 0 var(--ui-primary),
+            0 1px 2px #17324d14;
+    }
+    .application-workspace .integration-layout > .application-splitter-left {
+        grid-column: 2;
+    }
+    .application-workspace .integration-layout > main {
+        grid-column: 3;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+        background: var(--ui-surface);
+    }
+    .application-workspace .integration-layout > .application-splitter-right {
+        grid-column: 4;
+    }
+    .application-workspace .integration-layout > .application-inspector {
+        grid-column: 5;
+    }
+    .application-workspace.integration-page .page-heading {
+        padding: 16px 20px 12px;
+        border-bottom: 1px solid var(--ui-border);
+        background: var(--ui-surface);
+    }
+    .application-workspace.integration-page h1 {
+        font-size: 20px;
+        margin-bottom: 4px;
+    }
+    .application-workspace.integration-page main > [role="tabpanel"] {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    .application-workspace.integration-page .workspace-context {
+        border-inline: 0;
+    }
+    .application-workspace.integration-page #notice {
+        border-right: 0;
+    }
+}
+@media (max-width: 1100px) {
+    .application-splitter,
+    .application-inspector,
+    .inspector-menu-action {
+        display: none !important;
+    }
+    .application-workspace.integration-page .page-heading {
+        padding-top: 16px;
+    }
+    .application-workspace .application-menu {
+        margin: 0;
+    }
+    .application-workspace:not(.integration-page).application-nav-hidden .main {
+        margin-left: 0;
+        width: 100%;
+    }
+    .application-menu-popup {
+        position: fixed;
+        top: auto;
+        left: 12px;
+        right: auto;
+    }
+}
+@media (max-width: 800px) {
+    .application-menu {
+        flex: 0 0 40px;
+        min-height: 40px;
+        padding: 0 4px;
+    }
+    .application-menu summary {
+        padding: 9px 10px;
+        min-height: 40px;
+    }
+    .application-menu-location {
+        display: none;
+    }
+    .application-menu-popup :is(button, a) {
+        min-height: 44px;
+    }
+}
+/* Both palettes share the same controls, semantic actions and focus treatment. */
+html[data-theme="dark"] {
+    color-scheme: dark;
+    --ui-canvas: #1e2229;
+    --ui-surface: #292f38;
+    --ui-ink: #e5ecf4;
+    --ui-muted: #afbed0;
+    --ui-primary: #88bfff;
+    --ui-primary-hover: #b8d8ff;
+    --ui-primary-soft: #263f60;
+    --ui-border: #465364;
+    --ui-control-border: #71839a;
+    --application-chrome: #242a32;
+    --application-panel: #20262e;
+    --application-divider: #465364;
+    --ink: #e5ecf4;
+    --text: #e5ecf4;
+    --muted: #afbed0;
+    --line: #465364;
+    --border: #465364;
+    --surface: #1e2229;
+    --soft: #252f3c;
+    --blue-soft: #263f60;
+    --blue-deep: #003d78;
+    --green: #88bfff;
+}
+html[data-theme="dark"] body {
+    background: var(--ui-canvas);
+    color: var(--ui-ink);
+}
+html[data-theme="dark"]
+    :is(
+        .sidebar,
+        .topbar,
+        .content-panel,
+        .help-topic,
+        .fhir-card,
+        .aql-card,
+        .identity-admin-section,
+        .identity-form,
+        .account-dialog,
+        .message,
+        .welcome,
+        .composer,
+        .composer-wrap,
+        .chat-project-form,
+        .artifact-view,
+        .review-detail,
+        .confirmation
+    ) {
+    background: var(--ui-surface);
+    color: var(--ui-ink);
+    border-color: var(--ui-border);
+}
+html[data-theme="dark"]
+    :is(
+        .integration-page main > [role="tabpanel"] > h2,
+        .workspace-context,
+        .content-panel th,
+        .integration-page th,
+        .workspace-switcher,
+        .application-workspace .platform-header
+    ) {
+    background: var(--application-chrome);
+    color: var(--ui-ink);
+    border-color: var(--ui-border);
+}
+html[data-theme="dark"] .workspace-switcher a[aria-current="page"],
+html[data-theme="dark"] .workspace-tabs button[aria-selected="true"] {
+    background: var(--ui-primary-soft);
+    color: var(--ui-primary);
+    border-color: var(--ui-control-border);
+}
+html[data-theme="dark"]
+    :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea, .content-panel pre, .integration-page pre) {
+    background: #1b2027;
+    color: var(--ui-ink);
+    border-color: var(--ui-control-border);
+    box-shadow: inset 0 1px 2px #00000033;
+}
+html[data-theme="dark"]
+    :is(.content-panel, .integration-page main)
+    button:not(.primary-button):not(.danger-button):not(.artifact-item):not(.review-item),
+html[data-theme="dark"] .content-panel button.secondary,
+html[data-theme="dark"] .content-panel .secondary-button {
+    background: linear-gradient(#374252, #2b3542);
+    color: var(--ui-ink);
+    border-color: var(--ui-control-border);
+    box-shadow:
+        inset 0 1px #ffffff10,
+        0 1px 2px #00000040;
+}
+html[data-theme="dark"] :is(.content-panel, .integration-page main) button:not(:disabled):hover {
+    background: #394d65;
+    color: white;
+}
+html[data-theme="dark"] :is(.primary-button, .new-chat, .send-button, #send) {
+    background: #005eb8;
+    color: white;
+    border-color: #6aa2dc;
+}
+html[data-theme="dark"] .integration-page main button.danger-button {
+    background: #392c32;
+    color: #ffb6b6;
+    border-color: #e58b8b;
+}
+html[data-theme="dark"]
+    :is(
+        .welcome h1,
+        .page-intro h1,
+        .brand,
+        .workspace-name,
+        .content-panel h2,
+        .content-panel h3,
+        .content-panel label
+    ) {
+    color: var(--ui-ink);
+}
+html[data-theme="dark"]
+    :is(.welcome .intro, .page-intro p, .platform-label, .empty-list, .sidebar-bottom, .workspace-tabs button) {
+    color: var(--ui-muted);
+}
+html[data-theme="dark"]
+    :is(
+        .suggestions button,
+        .model-item,
+        .artifact-item,
+        .review-item,
+        .fhir-panel,
+        .aql-panel,
+        .model-details,
+        .review-evidence
+    ) {
+    background: var(--ui-surface);
+    color: var(--ui-ink);
+    border-color: var(--ui-border);
+}
+html[data-theme="dark"] :is(.message.user, .help-example, #notice) {
+    background: var(--ui-primary-soft);
+    color: var(--ui-ink);
+}
+html[data-theme="dark"] .michael-panel {
+    background: var(--ui-surface);
+    border-color: var(--ui-control-border);
+    color: var(--ui-ink);
+}
+html[data-theme="dark"] .michael-panel::after {
+    background: var(--ui-surface);
+    border-color: var(--ui-control-border);
+}
+html[data-theme="dark"] .michael-panel :is(h2, p, button) {
+    color: var(--ui-ink);
+}
+html[data-theme="dark"] .michael-topics button {
+    background: #263f60;
+    border-color: var(--ui-control-border);
+}
+/* Fit work to the pane rather than stretching one form across the viewport. */
+.application-workspace
+    :is(.main, .content-panel, .fhir-panel, .fhir-card, .aql-card, .model-layout, .model-detail, .mapping-layout) {
+    min-width: 0;
+    max-width: 100%;
+}
+.application-workspace .content-panel > * {
+    min-width: 0;
+}
+.application-workspace .content-panel {
+    scrollbar-gutter: stable;
+}
+.application-workspace .page-intro {
+    max-width: none;
+    margin-bottom: 18px;
+}
+.application-workspace .page-intro h1 {
+    font-size: 23px;
+    line-height: 1.3;
+    margin: 2px 0 8px;
+    letter-spacing: -0.4px;
+}
+.application-workspace .page-intro .eyebrow {
+    font-size: 10px;
+    margin: 0 0 7px;
+}
+.application-workspace .content-panel :is(.identity-form, .identity-admin-section) {
+    padding: 16px;
+    margin: 0 0 16px;
+    border: 1px solid var(--ui-border);
+    border-radius: 5px;
+    background: var(--ui-surface);
+}
+.application-workspace .identity-user {
+    padding: 12px 0;
+}
+.application-workspace .identity-form fieldset,
+.application-workspace .identity-user fieldset {
+    padding: 8px 10px;
+    margin: 10px 0;
+    gap: 6px 14px;
+}
+.application-workspace .identity-user fieldset label,
+.application-workspace .identity-form fieldset label {
+    min-height: 28px;
+    font-size: 12px;
+}
+.application-workspace .identity-actions {
+    gap: 6px;
+}
+.application-workspace .identity-actions button {
+    margin: 0;
+}
+.application-workspace #owner-signup-settings {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin: 0 0 16px;
+    padding: 10px 12px;
+    border: 1px solid var(--ui-border);
+    border-radius: 5px;
+}
+.application-workspace #owner-signup-settings label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.application-workspace #owner-signup-settings input {
+    min-height: 0;
+    width: auto;
+    margin: 0;
+}
+.application-workspace #save-signup-settings {
+    flex: 0 0 auto;
+    width: auto;
+}
+.application-workspace .content-panel :is(.confirmation, .fhir-card, .aql-card, .help-topic) {
+    border-radius: 5px;
+    padding: 16px;
+}
+.application-workspace .content-panel :is(pre, code) {
+    overflow-wrap: anywhere;
+}
+@media (min-width: 801px) and (pointer: fine) {
+    .application-workspace .content-panel button:not(.artifact-item):not(.review-item),
+    .application-workspace .identity-form button,
+    .application-workspace.integration-page main button {
+        min-height: 34px;
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+    .application-workspace .content-panel :is(input:not([type="checkbox"]):not([type="radio"]), select) {
+        min-height: 36px;
+        padding: 7px 10px;
+    }
+    .application-workspace .content-panel textarea {
+        padding: 8px 10px;
+    }
+    .application-workspace .content-panel :is(input[type="checkbox"], input[type="radio"]) {
+        min-height: 0;
+    }
+    .application-workspace .identity-form > label {
+        margin: 5px 0;
+    }
+    .application-workspace .content-panel :is(th, td) {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+    .application-workspace .workspace-tabs button {
+        min-height: 38px;
+        padding-block: 8px;
+    }
+}
+@media (min-width: 1500px) {
+    .application-workspace #panel-accounts:not([hidden]) {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.2fr);
+        gap: 16px;
+        align-content: start;
+    }
+    .application-workspace #panel-accounts > * {
+        grid-column: 1 / -1;
+        max-width: none;
+        margin: 0;
+    }
+    .application-workspace #invite-user-form {
+        grid-column: 1;
+        grid-row: 4;
+    }
+    .application-workspace #identity-user-section {
+        grid-column: 2;
+        grid-row: 4;
+    }
+    .application-workspace #service-account-form {
+        grid-column: 1;
+        grid-row: 6;
+    }
+    .application-workspace #identity-service-section {
+        grid-column: 2;
+        grid-row: 6;
+    }
+}
+html[data-theme="dark"] .sign-in {
+    background: #005eb8;
+    color: white;
+}
+html[data-theme="dark"] :is(.text-button, .icon-button) {
+    color: var(--ui-primary);
+}
+html[data-theme="dark"] .settings-scope {
+    background: var(--application-chrome);
+    color: var(--ui-ink);
+}
+
+@media (max-width: 800px) {
+    .application-workspace .workspace-tabs {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 4px;
+    }
+    .application-workspace .workspace-tabs button {
+        font-size: 0;
+        min-width: 0;
+        min-height: 44px;
+        padding: 6px 4px;
+        gap: 4px;
+    }
+    .application-workspace .workspace-tabs button::after {
+        content: attr(data-short-label);
+        font-size: 10px;
+    }
+}

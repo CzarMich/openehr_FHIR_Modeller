@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
     <head>
+        <script src="/chat/appearance.js"></script>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#005eb8" />
@@ -22,6 +23,8 @@
         <link rel="stylesheet" href="/chat/michael.css" />
         <script type="module" src="/chat/michael.js"></script>
         <link rel="stylesheet" href="/chat/design-system.css" />
+        <link rel="stylesheet" href="/chat/app-shell.css" />
+        <script type="module" src="/chat/app-shell.js"></script>
     </head>
     <body data-section="chat">
         <a class="skip-link" href="#workspace-content">Skip to workspace</a>
@@ -2990,7 +2993,7 @@ Help the user model openEHR artefacts in the browser workspace. Use OpenEhrWorks
                         ><textarea id="identity-link" readonly rows="2"></textarea
                         ><button id="copy-identity-link" type="button" class="secondary-button">Copy link</button>
                     </div>
-                    <section class="identity-admin-section">
+                    <section class="identity-admin-section" id="identity-user-section">
                         <h2>Workspace users</h2>
                         <div id="identity-users" aria-live="polite"></div>
                     </section>
@@ -3010,7 +3013,7 @@ Help the user model openEHR artefacts in the browser workspace. Use OpenEhrWorks
                         </fieldset>
                         <button type="submit" class="primary-button">Create service credential</button>
                     </form>
-                    <section class="identity-admin-section">
+                    <section class="identity-admin-section" id="identity-service-section">
                         <h2>Service credentials</h2>
                         <div id="identity-services"></div>
                     </section>
