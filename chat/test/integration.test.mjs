@@ -137,7 +137,12 @@ test("channels pin the confirmed mapping and cannot silently change while runnin
             /Stop and reload/,
         );
         assert.equal(f.workspace.listChannels({ identity: "another" }).items.length, 0);
-        channel.activeJob = "d".repeat(64);
+        const interrupted = f.workspace.createJob(hash(f.session.identity), {
+            ...channel,
+            file: "source.bin",
+            sourceSha256: upload.sha256,
+        });
+        channel.activeJob = interrupted.id;
         f.workspace.persist(channel);
         f.workspace.close();
         const restarted = new ProcessingWorkspace({ dataDir: f.root }, f.core);
@@ -145,9 +150,9 @@ test("channels pin the confirmed mapping and cannot silently change while runnin
             const restored = restarted.listChannels(f.session).items[0];
             assert.equal(restored.status, "INTERRUPTED");
             assert.equal(restored.activeJob, null);
-            assert.equal(restored.interruptedJob, "d".repeat(64));
+            assert.equal(restored.interruptedJob, interrupted.id);
             await restarted.controlChannel(f.session, restored.id, "start");
-            assert.equal(restored.status, "RUNNING");
+            assert.equal(restarted.listChannels(f.session).items[0].status, "RUNNING");
             assert.equal(restored.activeJob, null);
         } finally {
             restarted.close();
@@ -561,6 +566,163 @@ test("source trust review fingerprints Unicode connection metadata exactly", asy
         });
         await f.workspace.commitSourceTrust(f.session, ticket.confirmation);
     } finally {
+        f.close();
+    }
+});
+
+test("strict FIFO preserves held head; channel concurrency and memory are explicitly bounded", async () => {
+    const f = fixture();
+    try {
+        clearInterval(f.workspace.timer);
+        let now = 100000;
+        f.workspace.clock = () => now;
+        const folder = join(f.root, "fifo-inputs");
+        mkdirSync(folder);
+        writeFileSync(join(folder, "first.json"), '[{"synthetic":"first"}]');
+        writeFileSync(join(folder, "second.json"), '[{"synthetic":"second"}]');
+        const connections = join(f.root, "connections.json");
+        writeFileSync(
+            connections,
+            JSON.stringify({
+                sources: [
+                    {
+                        id: "folder",
+                        root: folder,
+                        format: "json",
+                        projects: ["lab"],
+                        owners: [hash(f.session.identity)],
+                        identityDomain: "hospital",
+                    },
+                ],
+                destinations: [],
+            }),
+        );
+        f.workspace.config.integrationConnectionsFile = connections;
+        const input = {
+            name: "FIFO",
+            projectId: "lab",
+            subject: f.subject,
+            sourceId: "folder",
+            mode: "export",
+            pollSeconds: 5,
+            failurePolicy: "pause",
+            processingMode: "fifo",
+            maxConcurrent: 1,
+            memoryMiB: 128,
+            maxQueued: 10,
+            retryLimit: 2,
+        };
+        await assert.rejects(f.workspace.previewChannel(f.session, { ...input, maxConcurrent: 2 }));
+        await assert.rejects(f.workspace.previewChannel(f.session, { ...input, memoryMiB: 4096 }));
+        const preview = await f.workspace.previewChannel(f.session, input),
+            channel = await f.workspace.commitChannel(f.session, preview.confirmation);
+        let calls = [];
+        f.workspace.launcher = (exe, args, options) => {
+            const child = new EventEmitter();
+            child.stdout = new PassThrough();
+            child.stderr = new PassThrough();
+            child.kill = () => true;
+            queueMicrotask(() => {
+                const request = JSON.parse(readFileSync(join(args[2], "request.json")));
+                calls.push(request.file);
+                assert.equal(options.env.DOTNET_GCHeapHardLimit, "0x8000000");
+                assert.ok(readFileSync(join(args[2], "source-snapshot.bin")).length);
+                writeFileSync(join(args[2], "state.json"), JSON.stringify({ status: "WAITING_DEPENDENCIES" }));
+                child.emit("exit", 0);
+            });
+            return child;
+        };
+        await f.workspace.controlChannel(f.session, channel.id, "start");
+        for (let i = 0; i < 5; i++) {
+            now += 6000;
+            await f.workspace.tick();
+            await new Promise((resolve) => setImmediate(resolve));
+        }
+        assert.ok(calls.length > 0);
+        assert.ok(calls.every((file) => file === "first.json"));
+        assert.equal(f.workspace.listChannels(f.session).items[0].intake.counts.QUEUED, 1);
+    } finally {
+        f.close();
+    }
+});
+
+test("concurrent channel admits two workers and retains a third input until a slot completes", async () => {
+    const f = fixture();
+    const pending = [];
+    try {
+        clearInterval(f.workspace.timer);
+        let now = 100000;
+        f.workspace.clock = () => now;
+        const folder = join(f.root, "concurrent");
+        mkdirSync(folder);
+        for (const name of ["a", "b", "c"])
+            writeFileSync(join(folder, name + ".json"), JSON.stringify([{ synthetic: name }]));
+        const connections = join(f.root, "connections.json");
+        writeFileSync(
+            connections,
+            JSON.stringify({
+                sources: [
+                    {
+                        id: "folder",
+                        root: folder,
+                        format: "json",
+                        projects: ["lab"],
+                        owners: [hash(f.session.identity)],
+                        identityDomain: "hospital",
+                    },
+                ],
+                destinations: [],
+            }),
+        );
+        f.workspace.config.integrationConnectionsFile = connections;
+        const preview = await f.workspace.previewChannel(f.session, {
+            name: "Parallel",
+            projectId: "lab",
+            subject: f.subject,
+            sourceId: "folder",
+            mode: "export",
+            pollSeconds: 5,
+            failurePolicy: "pause",
+            processingMode: "concurrent",
+            maxConcurrent: 2,
+            memoryMiB: 192,
+            maxQueued: 10,
+            retryLimit: 1,
+        });
+        const channel = await f.workspace.commitChannel(f.session, preview.confirmation);
+        f.workspace.launcher = (exe, args) => {
+            const child = new EventEmitter();
+            child.stdout = new PassThrough();
+            child.stderr = new PassThrough();
+            child.kill = () => true;
+            pending.push(() => {
+                writeFileSync(join(args[2], "state.json"), JSON.stringify({ status: "COMPLETED" }));
+                child.emit("exit", 0);
+            });
+            return child;
+        };
+        await f.workspace.controlChannel(f.session, channel.id, "start");
+        for (let i = 0; i < 3; i++) {
+            now += 6000;
+            await f.workspace.tick();
+        }
+        assert.equal(pending.length, 2);
+        await f.workspace.controlChannel(f.session, channel.id, "start");
+        assert.equal(channel.activeJobs.length, 2);
+        assert.equal(f.workspace.active.size, 2);
+        assert.equal(f.workspace.listChannels(f.session).items[0].intake.counts.QUEUED, 1);
+        pending.shift()();
+        await new Promise((r) => setImmediate(r));
+        await f.workspace.tick();
+        assert.equal(pending.length, 2);
+        assert.equal(f.workspace.active.size, 2);
+        for (const finish of pending.splice(0)) finish();
+        await new Promise((r) => setImmediate(r));
+        const state = f.workspace.listChannels(f.session).items[0];
+        assert.equal(state.intake.counts.COMPLETED, 3);
+    } finally {
+        for (const finish of pending.splice(0)) finish();
+        await new Promise((r) => setImmediate(r));
         f.close();
     }
 });

@@ -33,7 +33,12 @@ flowchart TB
     Runtime --> Standards
     Runtime --> Export[Private validated export]
     Runtime --> Quarantine[Private reconciliation and quarantine]
-    Runtime -->|Separately authorised FHIR HTTPS API| Destination[Registered destination FHIR server]
+    Kafka[Reviewed Kafka topic] -->|TLS read committed, exact offsets| Intake[Private .NET Kafka consumer]
+    Intake -->|Durable records before broker acknowledgment| Inbox[Private snapshots and durable channel inbox]
+    Files --> Inbox
+    Inbox -->|FIFO, dependency-aware or bounded concurrency| Runtime
+    Runtime -->|Persist intent and receipts| Fence[Durable destination write reservations]
+    Runtime -->|Separately authorised HTTPS APIs| Destination[Registered FHIR server or openEHR CDR]
 ```
 
 Clinical records and validator findings belong in the private processing boundary. They are excluded from general MCP discovery, model Git, reusable guidance and model-provider context. The optional browser can send chosen conversation content and modelling tool results to its configured provider; users must keep patient records out of that conversation. Metadata and dictionaries can themselves be sensitive and require disclosure authorisation.
@@ -47,6 +52,7 @@ Clinical records and validator findings belong in the private processing boundar
 | `Modeller.Database` | Native/ODBC database and approved vendor API adapters, effective read-only checks, bounded metadata and closed query-plan compiler. No arbitrary SQL or clinical-row MCP operation is exposed. |
 | `Modeller.Mcp` | Primary MCP/REST transport, authentication, request bounds, Host/Origin checks, session binding and purpose-bound browser assertions. Its integration workspace mode adapts the existing private model/job workflow. |
 | `Modeller.Processing` | Deterministic private file processing, validation, quarantine, export and authorised delivery. Database drivers are outside this worker's dependency graph. |
+| `Modeller.Kafka` | Isolated bounded TLS/SASL topic consumer; source identity and exact offsets pinned; commits only after durable private intake. No producer or clinical SQL driver. |
 | Node browser backend | Human sessions, private workspace, provider connections, write confirmation and request-bound calls to review/integration adapters. |
 | Java openEHR engine | Fixed private content-only inspection, supported ADL/OET compilation, OPT checks and AQL grammar operations. |
 | Node/Java FHIR engine | Pinned packages, SUSHI, FHIRPath and actual FHIR validator operations. |
@@ -124,7 +130,7 @@ flowchart LR
     FHIRInput[Provided FHIR resource] -->|Independent FHIR-to-openEHR mapping| EHR
 ```
 
-`Modeller.Operational` owns bounded HL7 parsing/projection, supplied source-profile checks, encrypted internal patient identities, stable pseudonyms and durable dependency state. Its SQLite store is private platform storage, never a clinical source database. Source connections remain read-only without an override. Private workers require an exact confirmed source contract and patient policy. Source registration requires separate explicit trust; a patient number in an arbitrary record is insufficient. Verified destination reads establish Patient/Encounter relationships before dependent delivery. Held channels retain their original encrypted input and continue accepting later messages. An uncertain write requires reconciliation rather than automatic repetition.
+`Modeller.Operational` owns bounded HL7 parsing/projection, supplied source-profile checks, encrypted internal patient identities, stable pseudonyms and durable dependency state. Its SQLite store is private platform storage, never a clinical source database. Source connections remain read-only without an override. Private workers require an exact confirmed source contract and patient policy. Source registration requires separate explicit trust; a patient number in an arbitrary record is insufficient. Verified destination reads establish Patient/Encounter relationships before dependent delivery. Held inputs retain their encrypted originals; dependency-aware channels can accept eligible later messages, whereas strict FIFO blocks behind the held head. An uncertain write requires reconciliation rather than automatic repetition.
 
 The feature branch's runtime/adapter and installation acceptance must pass before these changes are described as deployed. [HL7 and identity operations](HL7_AND_IDENTITY.md) records the tested formats, profile scope and transport limitations.
 
@@ -133,3 +139,9 @@ The feature branch's runtime/adapter and installation acceptance must pass befor
 The separate C# `Modeller.Extraction` executable owns native/ODBC clinical-source drivers and approved HTTP read adapters. Browser `VendorSources` protects encrypted owner/project-scoped profiles, fresh human review, immutable read-plan/runtime pins and atomic private intake publication. General MCP exposes metadata only. A source read is independent of model/mapping confirmation and destination delivery. SQL Server private extraction requires existing snapshot isolation; the platform never enables it or changes source permissions. SAP HANA requires the installed licensed, checksum-pinned client.
 
 Read-only database snapshots and explicitly reviewed append-only streams feed the existing private processing worker. Exact cursor JSON avoids JavaScript numeric rounding; cursor advancement follows durable captured bytes and manifests. API response pages are encrypted and hash-linked. Foreign-origin/unapproved paging, incomplete windows, drift and unsupported permissions fail closed. The four mapping routes and mandatory patient/dependency policy remain unchanged. See [vendor integrations](VENDOR_INTEGRATIONS.md) for actual scope, setup, acceptance and limits.
+
+## Durable integration execution
+
+The private inbox uses SQLite WAL/synchronous commits and retained per-input snapshots. Transport identity (file content hash or Kafka cluster/topic UUID/partition/offset) is separate from clinical business identity and source version. Strict FIFO can block behind missing patients; dependency-aware mode lets eligible later inputs proceed; bounded concurrency admits at most two private compute workers globally. Managed heap settings do not bound total RSS.
+
+Internal target reservations serialize openEHR writes across platform profiles sharing a stable physical-CDR namespace. AQL detects existing business identities; qualified client-assigned UUIDs protect creation; PUT requires explicit authorisation and exact If-Match. An unknown mutation remains fenced across restart until human reconciliation. FHIR conditional-create semantics remain separate. Clinical/source databases remain strictly read-only; Kafka commits change group coordination metadata only. See [the integration runbook](INTEGRATION_ENGINE.md) and [ADR-0033](decisions/0033-durable-clinical-integration.md).

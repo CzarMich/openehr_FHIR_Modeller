@@ -3208,3 +3208,39 @@ test("account types stay compact and organisation administration uses server-aut
         "https://identity.example.org/admin/openfhir/console/",
     );
 });
+
+test("mapping prompt brings narrative constraints and optional safe sample into agent chat without sending", async ({
+    page,
+}) => {
+    await page.goto("/chat/#mappings");
+    await page.locator("#mapping-prompt-direction").selectOption("fhir-to-openehr");
+    await page
+        .locator("#mapping-prompt-narrative")
+        .fill("Keep the original laboratory units; hold observations without a verified patient.");
+    await page.locator("#mapping-prompt-sample").fill('{"synthetic":true,"value":12}');
+    await page.locator("#mapping-prompt-open").click();
+    await expect(page.locator("#mapping-prompt-status")).toContainText("Confirm");
+    await page.locator("#mapping-prompt-safe").check();
+    await page.locator("#mapping-prompt-open").click();
+    await expect(page.locator("#message")).toHaveValue(/fhir-to-openehr/);
+    await expect(page.locator("#message")).toHaveValue(/Keep the original laboratory units/);
+    await expect(page.locator("#message")).toHaveValue(/Never confirm as the human/);
+    expect(browserErrors).toEqual([]);
+});
+
+test("integration narrative handoff preserves direction and prepares the same agent workflow", async ({ page }) => {
+    await page.route("**/chat/api/session", (route) =>
+        route.fulfill({ json: { authenticated: true, enabled: false, csrf: "synthetic" } }),
+    );
+    await page.goto("/chat/integration/#mapping-step");
+    await page.locator("#mapping-prompt-direction").selectOption("source-to-openehr");
+    await page
+        .locator("#mapping-prompt-narrative")
+        .fill("Map the supplied source into the exact approved blood pressure template.");
+    await page.locator("#mapping-prompt-open").click();
+    await expect(page).toHaveURL(/\/chat\/#chat$/);
+    await expect(page.locator("#message")).toHaveValue(/source-to-openehr/);
+    await expect(page.locator("#message")).toHaveValue(/blood pressure template/);
+    expect(await page.evaluate(() => sessionStorage.getItem("mapping-agent-request"))).toBeNull();
+    expect(browserErrors).toEqual([]);
+});

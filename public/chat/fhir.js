@@ -1,4 +1,5 @@
-"use strict";
+import { mappingRequest } from "./mapping-prompt.js";
+("use strict");
 const $ = (id) => document.getElementById(id);
 const element = (tag, text, className) => {
     const node = document.createElement(tag);
@@ -781,7 +782,7 @@ $("mapping-discuss").onclick = () =>
             ($("mapping-project").value || "selected project") +
             ", inspect the exact openEHR model and analyse FHIR candidates for: " +
             $("mapping-requirement").value +
-            ". Retrieve source semantics, paths, cardinalities, terminology, units, context and repeating structures. Search configured FHIR packages. Produce versioned mapping proposals, transformation requirements and semantic gaps. Do not claim lossless conversion or equivalence from similar names.",
+            ". Retrieve source semantics, paths, cardinalities, terminology, units, context and repeating structures. Search configured FHIR packages. Translate the user’s ordinary-language constraints into explicit proposed rules, preserve original wording and interpretations, and ask about ambiguities. Produce versioned mapping proposals, transformation requirements and semantic gaps. Do not claim lossless conversion or equivalence from similar names.",
     );
 $("mapping-git").onclick = () =>
     discuss(
@@ -926,3 +927,11 @@ $("fhir-external-import").onclick = () =>
         await loadProject(project.id);
         output("fhir-external-result", { ...imported, content: undefined, resource: undefined });
     });
+
+$("mapping-prompt-open").onclick = () => {
+    try {
+        discuss(mappingRequest($("mapping-project").value || "not yet selected"));
+    } catch (error) {
+        $("mapping-prompt-status").textContent = error.message;
+    }
+};

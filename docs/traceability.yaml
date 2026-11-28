@@ -1144,6 +1144,36 @@
       "adr": [
         "0032"
       ]
+    },
+    {
+      "id": "REQ-F46",
+      "title": "Durable clinical integration intake, execution and delivery",
+      "canonical": "docs/requirements.md",
+      "status": "draft",
+      "implementation": "partial",
+      "packages": [
+        "chat/src/channel-inbox.mjs",
+        "chat/src/processing.mjs",
+        "chat/src/kafka-sources.mjs",
+        "chat/src/clinical-destinations.mjs",
+        "dotnet/Modeller.Kafka/Program.cs",
+        "dotnet/Modeller.Core/OpenEhrDelivery.cs",
+        "dotnet/Modeller.Operational/DestinationWriteLease.cs"
+      ],
+      "tests": [
+        "chat/test/channel-inbox.test.mjs",
+        "chat/test/integration.test.mjs",
+        "chat/test/kafka-sources.test.mjs",
+        "dotnet/Modeller.Kafka.Tests/Program.cs",
+        "dotnet/tests/kafka-fixture.py",
+        "dotnet/Modeller.Processing.Tests/OpenEhrDeliveryTests.cs",
+        "dotnet/Modeller.Operational.Tests/DestinationLeaseTests.cs",
+        "dotnet/tests/worker-snapshot-fixture.py"
+      ],
+      "verification": "Synthetic functional acceptance is separate from actual source/CDR qualification, throughput and deferred security testing. Release evidence must establish packaged/deployed availability.",
+      "adr": [
+        "0033"
+      ]
     }
   ]
 }

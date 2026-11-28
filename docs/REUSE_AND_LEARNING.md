@@ -46,3 +46,7 @@ This feature does not fine-tune provider models, share learned rules across cust
 A reuse response records `providerCalls: 0` for that lookup. It does not invent a number of credits, tokens or currency saved: the counterfactual generation cost is unknown. Existing task usage/context budgets remain separate. Future cost reporting must use actual provider usage and make estimates identifiable as estimates.
 
 Tests cover finding drafts, confirmed reuse, immutable re-provision, changed context/narrative/schema/terminology/model invalidation, live revocation, project rights, read-session versus fresh-write boundaries, and finding/loading work in the browser without generation or a new decision.
+
+## Narrative constraints to executable proposals
+
+Users describe requirements in ordinary language. The agent drafts the cross-standard mapping and converts those constraints into proposed rules; users are not expected to hand-author mapping JSON. Preserve each original statement, interpretation, assumptions and basis. A user-supplied synthetic/de-identified sample supports proposed input/output tests. Ambiguous clinical meaning blocks confirmation until resolved. Human corrections create a new version for review. Exact model selection and executable mapping remain human-confirmed; deterministic execution does not call an AI for each record. Real clinical sample processing stays in the private runtime, outside agent/model context.

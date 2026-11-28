@@ -50,12 +50,12 @@ public static class WorkspaceHttp
                         policy = operational.ChangePolicy(scope, args["expectedRevision"]!.GetValue<int>(), args["pseudonymisePatientIdentifiers"]!.GetValue<bool>(), args["pseudonymSystem"]?.GetValue<string>(), actor.Id);
                     }
                     result = System.Text.Json.JsonSerializer.SerializeToNode(policy, Data.Json)!.AsObject();
-                } else if(parts.Length==3 && parts[0]=="projects" && parts[2]=="source-access" && context.Request.Method=="POST") {
+                } else if(parts.Length==3 && parts[0]=="projects" && (parts[2]=="source-access"||parts[2]=="destination-access") && context.Request.Method=="POST") {
                     _=protocol.Workspace.Models.GetProject(parts[1],actor);Data.Keys(args,"action");var action=Data.Required(args,"action");
                     if(action is not("inspect" or "discover" or "configure" or "extract"))throw new ProcessingException("SOURCE_ACTION_INVALID");
                     actor.Project(parts[1],action!="inspect");
                     if(!actor.Human || !actor.Roles.Intersect(["modelling-administrator","modelling-approver"],StringComparer.Ordinal).Any())throw new ProcessingException("HUMAN_SOURCE_REVIEW_REQUIRED");
-                    result=new(){["authorised"]=true,["readOnly"]=true,["patientRowsInMcp"]=false};
+                    result=new(){["authorised"]=true,["readOnly"]=parts[2]=="source-access",["patientRowsInMcp"]=false};
                 } else if (parts.Length == 3 && parts[0] == "projects" && parts[2] == "source-trust" && context.Request.Method == "POST") {
                     _ = protocol.Workspace.Models.GetProject(parts[1], actor); actor.Decision(parts[1]);
                     Data.Keys(args, "sourceSystem", "destinationId", "connectionSha256", "comment");

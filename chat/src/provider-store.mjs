@@ -1,5 +1,14 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync, renameSync, unlinkSync } from "node:fs";
+import {
+    mkdirSync,
+    readFileSync,
+    writeFileSync,
+    renameSync,
+    unlinkSync,
+    openSync,
+    closeSync,
+    fsyncSync,
+} from "node:fs";
 import { join } from "node:path";
 
 // Credentials are bound to both the verified browser identity and provider.
@@ -49,7 +58,19 @@ export class ProviderStore {
                 }),
                 { mode: 0o600, flag: "wx" },
             );
+            const fd = openSync(temp, "r");
+            try {
+                fsyncSync(fd);
+            } finally {
+                closeSync(fd);
+            }
             renameSync(temp, path);
+            const directory = openSync(this.directory, "r");
+            try {
+                fsyncSync(directory);
+            } finally {
+                closeSync(directory);
+            }
         } finally {
             try {
                 unlinkSync(temp);

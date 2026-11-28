@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using Modeller.Core;
 using Modeller.Operational;
 
+DestinationLeaseTests.Run();
 var checks = 0;
 void Check(bool valid, string reason) { if (!valid) throw new Exception(reason); checks++; }
 void Reject(Action action, string code) { try { action(); } catch (ProcessingException error) when (error.Code == code) { checks++; return; } throw new Exception("Expected " + code); }

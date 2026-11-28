@@ -192,13 +192,61 @@
                     <div id="models"></div>
                 </section>
                 <section id="mapping-step" role="tabpanel" aria-labelledby="tab-mapping" tabindex="0" hidden>
-                    <h2 id="mapping-heading">3. Prepare and review mapping rules</h2>
+                    <h2 id="mapping-heading">3. Review the agent’s mapping proposal</h2>
                     <p>
-                        The agent can draft a mapping using the C# MCP tools. Original user instructions,
-                        interpretations, assumptions and synthetic examples belong in the mapping. Resolve all questions
-                        before confirmation. Changing the model selection, instructions or rules requires a new mapping
-                        version and a new confirmation.
+                        Describe your constraints in ordinary language in the modelling chat. The agent drafts the
+                        mapping proposal and translates your narrative into explicit rules; you review and confirm them.
+                        Provide a synthetic or de-identified sample input when available so the agent can prepare
+                        expected output and test cases. Original user instructions, interpretations, assumptions and
+                        synthetic examples belong in the mapping. Resolve all questions before confirmation. Changing
+                        the model selection, instructions or rules requires a new mapping version and a new
+                        confirmation.
                     </p>
+
+                    <section class="mapping-prompt-panel" aria-labelledby="mapping-prompt-heading">
+                        <h2 id="mapping-prompt-heading">Draft with the agent</h2>
+                        <p>
+                            Describe the clinical mapping in ordinary language. The agent proposes rules, explains
+                            assumptions and prepares sample output when a suitable input is available. You review and
+                            confirm the result.
+                        </p>
+                        <label
+                            >Mapping direction
+                            <select id="mapping-prompt-direction">
+                                <option value="source-direct-to-fhir">Source to FHIR</option>
+                                <option value="source-to-openehr">Source to openEHR</option>
+                                <option value="openehr-to-fhir">openEHR to FHIR</option>
+                                <option value="fhir-to-openehr">FHIR to openEHR</option>
+                            </select></label
+                        >
+                        <label
+                            >Your requirements and constraints
+                            <textarea
+                                id="mapping-prompt-narrative"
+                                rows="5"
+                                maxlength="4000"
+                                placeholder="Describe the source meaning, target profiles/templates, identifiers, terminology, units, missing values and rules you want."
+                            ></textarea>
+                        </label>
+                        <label
+                            >Optional synthetic or de-identified sample input
+                            <textarea
+                                id="mapping-prompt-sample"
+                                rows="4"
+                                maxlength="2000"
+                                spellcheck="false"
+                            ></textarea>
+                        </label>
+                        <label
+                            ><input id="mapping-prompt-safe" type="checkbox" /> Any sample I provide is synthetic or
+                            de-identified and approved for the configured AI provider. It contains no
+                            credentials.</label
+                        >
+                        <button id="mapping-prompt-open" type="button">Continue in modelling chat</button>
+                        <p id="mapping-prompt-status" role="status">
+                            The request is prepared for your review in chat. Nothing is sent automatically.
+                        </p>
+                    </section>
                     <details>
                         <summary>Reuse verified work and save AI calls</summary>
                         <p>
@@ -339,6 +387,76 @@
                 </section>
                 <section id="vendor-step" role="tabpanel" aria-labelledby="tab-vendor" tabindex="0" hidden>
                     <h2>Vendor source connections</h2>
+                    <details id="kafka-setup">
+                        <summary>Kafka topic intake</summary>
+                        <p>
+                            Consume a reviewed topic into durable private intake. Broker offsets are committed only
+                            after private records and checkpoints are saved. Topic data is never written. Mapping and
+                            exact model confirmation are separate.
+                        </p>
+                        <label>Connection name <input id="kafka-name" maxlength="100" /></label>
+                        <label>Patient identity domain <input id="kafka-domain" maxlength="256" /></label>
+                        <label
+                            >Bootstrap brokers, comma separated
+                            <input id="kafka-brokers" placeholder="broker.example.org:9093"
+                        /></label>
+                        <label>Exact topic <input id="kafka-topic" maxlength="249" /></label>
+                        <label
+                            >Authentication
+                            <select id="kafka-auth">
+                                <option value="scram-sha-512">SASL SCRAM SHA-512 over TLS</option>
+                                <option value="scram-sha-256">SASL SCRAM SHA-256 over TLS</option>
+                                <option value="plain">SASL PLAIN over TLS</option>
+                                <option value="tls">TLS client certificate</option>
+                            </select></label
+                        >
+                        <label>Username <input id="kafka-username" autocomplete="off" /></label>
+                        <label
+                            >Password <input id="kafka-password" type="password" autocomplete="new-password"
+                        /></label>
+                        <label
+                            >Trusted CA PEM, optional for public CA <textarea id="kafka-ca" rows="2"></textarea>
+                        </label>
+                        <label>Client certificate PEM, optional <textarea id="kafka-cert" rows="2"></textarea></label>
+                        <label
+                            >Client private key PEM, optional
+                            <textarea id="kafka-key" rows="2" autocomplete="off"></textarea>
+                        </label>
+                        <label
+                            >Value contract
+                            <select id="kafka-format">
+                                <option value="json-envelope">Lossless JSON envelope with transport metadata</option>
+                                <option value="json">JSON array</option>
+                                <option value="fhir-json">FHIR JSON</option>
+                                <option value="openehr-json">openEHR JSON</option>
+                                <option value="hl7-v2">HL7 v2 ER7</option>
+                                <option value="hl7-v2-xml">HL7 v2 XML</option>
+                                <option value="hl7-v3">HL7 v3 XML</option>
+                                <option value="cda">CDA XML</option>
+                                <option value="csv">CSV</option>
+                                <option value="xml">XML</option>
+                            </select></label
+                        >
+                        <label
+                            >Messages per capture <input id="kafka-batch" type="number" min="1" max="100" value="16"
+                        /></label>
+                        <p>
+                            New profiles start at the earliest retained offset. Each topic partition keeps its order;
+                            different partitions have no global source order. Binary payloads are retained, not
+                            automatically decoded as Avro or Protobuf.
+                        </p>
+                        <label>Authorisation reason <input id="kafka-reason" maxlength="2000" /></label>
+                        <button id="kafka-preview">Review topic connection</button>
+                        <label
+                            >Configured topic
+                            <select id="kafka-connection"></select
+                        ></label>
+                        <button id="kafka-refresh-list">Refresh topic connections</button>
+                        <button id="kafka-capture">Capture next bounded batch</button>
+                        <button id="kafka-enable">Enable topic</button><button id="kafka-disable">Disable topic</button>
+                        <pre id="kafka-status" role="status"></pre>
+                    </details>
+
                     <p>
                         Clinical databases are strictly READ ONLY. Credentials are encrypted and never sent to an agent.
                         An administrator or approver must review each private read plan. Use the actual vendor
@@ -599,6 +717,87 @@
                     </details>
                 </section>
                 <section id="run-step" role="tabpanel" aria-labelledby="tab-run" tabindex="0" hidden>
+                    <details id="destination-setup">
+                        <summary>Configure an authorised FHIR or openEHR destination</summary>
+                        <p>
+                            Credentials are stored in your encrypted vault. Delivery remains a separate authorised
+                            operation. Clinical source databases are always read-only.
+                        </p>
+                        <label>Destination name<input id="destination-name" /></label>
+                        <label
+                            >Target standard<select id="destination-standard">
+                                <option value="fhir">FHIR</option>
+                                <option value="openehr">openEHR</option>
+                            </select></label
+                        >
+                        <label>Exact HTTPS API base URL<input id="destination-url" type="url" /></label>
+                        <label
+                            >Bearer credential<input id="destination-token" type="password" autocomplete="new-password"
+                        /></label>
+                        <label
+                            >Allowed resource types (comma separated)<input
+                                id="destination-types"
+                                value="Patient,Encounter,Observation,Condition"
+                        /></label>
+                        <label
+                            >Allowed reference reads (comma separated)<input
+                                id="destination-read-types"
+                                value="Patient,Encounter,Observation,Condition"
+                        /></label>
+                        <div id="openehr-destination-options" hidden>
+                            <label
+                                >Exact allowed template IDs (one per line)<textarea
+                                    id="destination-templates"
+                                    rows="3"
+                                ></textarea>
+                            </label>
+                            <label
+                                >Stable CDR identity namespace (URI)<input
+                                    id="destination-namespace"
+                                    placeholder="urn:your-organisation:production-cdr"
+                            /></label>
+                            <label>Source business identifier issuer<input id="destination-identifier-issuer" /></label>
+                            <label
+                                >Business identifier type in feeder_audit<input
+                                    id="destination-identifier-type"
+                                    value="source-record"
+                            /></label>
+                            <label
+                                >Source version identifier type in feeder_audit<input
+                                    id="destination-version-type"
+                                    value="source-version"
+                            /></label>
+                            <label
+                                >Declared source version format<select id="destination-version-kind">
+                                    <option value="integer">Monotonically increasing integer</option>
+                                    <option value="utc-timestamp">Monotonic ISO 8601 timestamp with UTC/offset</option>
+                                </select></label
+                            >
+                            <label
+                                ><input id="destination-update-existing" type="checkbox" /> Authorise
+                                version-conditional updates to existing compositions</label
+                            >
+                            <label
+                                ><input id="destination-qualified-ids" type="checkbox" /> The CDR has been qualified to
+                                preserve client-assigned composition UUIDs and enforce their uniqueness</label
+                            >
+                            <p>
+                                Provide business identity and the declared source version in
+                                feeder_audit.originating_system_item_ids. Existing patient EHRs and deployed approved
+                                templates are required. Missing/ambiguous identities or uncertain writes block delivery.
+                                An AQL check alone is not an atomic duplicate-prevention guarantee.
+                            </p>
+                        </div>
+                        <label
+                            >Destination authorisation reason<textarea id="destination-comment" rows="2"></textarea>
+                        </label>
+                        <button id="destination-preview">Review destination configuration</button>
+                        <label>Manage an existing destination<select id="managed-destination"></select></label>
+                        <button id="destination-rotate">Review credential rotation for selected destination</button>
+                        <button id="destination-disable">Disable selected destination</button>
+                        <button id="destination-enable">Enable selected destination</button>
+                        <pre id="destination-status" aria-live="polite"></pre>
+                    </details>
                     <h2 id="run-heading">5. Run or configure a channel</h2>
                     <label
                         >Mode
@@ -607,7 +806,7 @@
                             <option value="deliver">Validate and deliver FHIR</option>
                         </select></label
                     ><label
-                        >Authorised FHIR destination
+                        >Authorised clinical destination
                         <select id="destination"></select></label
                     ><button id="run-preview">Review one file run</button>
                     <details>
@@ -627,7 +826,58 @@
                                 <option value="pause">Pause</option>
                                 <option value="quarantine-and-continue">Quarantine and continue</option>
                             </select></label
-                        ><button id="channel-preview">Review new channel assignment</button>
+                        >
+                        <label
+                            >Processing order<select id="channel-processing-mode">
+                                <option value="fifo">Strict FIFO: finish one item before the next</option>
+                                <option value="ready" selected>
+                                    One at a time: allow later items past held dependencies
+                                </option>
+                                <option value="concurrent">Bounded concurrent processing</option>
+                            </select></label
+                        >
+                        <p>
+                            Strict FIFO blocks on a missing Patient or Encounter. Supply prerequisite registrations on a
+                            separate channel, or choose ready-order processing. Files enter the queue by modification
+                            time, then filename; committed queue order survives restart. Concurrent completion order is
+                            not guaranteed.
+                        </p>
+                        <label
+                            >Maximum simultaneous jobs on this channel<input
+                                id="channel-concurrency"
+                                type="number"
+                                min="1"
+                                max="2"
+                                value="1"
+                        /></label>
+                        <label
+                            >Managed worker heap per job<select id="channel-memory">
+                                <option value="128">128 MiB</option>
+                                <option value="192">192 MiB</option>
+                                <option value="256" selected>256 MiB</option>
+                            </select></label
+                        >
+                        <p>
+                            The installation admits at most two workers. These are .NET managed-heap limits, not total
+                            process RAM. Pending inputs stay on disk, subject to storage limits.
+                        </p>
+                        <label
+                            >Maximum queued inputs<input
+                                id="channel-queue-limit"
+                                type="number"
+                                min="1"
+                                max="5000"
+                                value="1000"
+                        /></label>
+                        <label
+                            >Transient worker retry limit<input
+                                id="channel-retries"
+                                type="number"
+                                min="0"
+                                max="10"
+                                value="3"
+                        /></label>
+                        <button id="channel-preview">Review new channel assignment</button>
                     </details>
                     <div id="confirmation" hidden>
                         <h3>Review this operation</h3>

@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using Modeller.Core;
 
+await OpenEhrDeliveryTests.Run();
 var count = 0;
 void Check(bool value, string code) { if (!value) throw new Exception(code); count++; }
 void Reject(Action action, string? code = null) { try { action(); } catch (Exception error) { if (code is null || error is ProcessingException problem && problem.Code == code) { count++; return; } throw; } throw new Exception("Expected rejection: " + code); }

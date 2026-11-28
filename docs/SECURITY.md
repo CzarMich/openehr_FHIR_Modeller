@@ -98,3 +98,11 @@ The private extractor rejects unverified permissions, invalid TLS, unknown types
 ### Proxy runtime log privacy
 
 The ingress runtime logger deletes the complete request object before encoding errors. This covers custom service-key header names, cookies, identity assertions, addresses and request targets without relying on a fixed list of credentials. Diagnostic events retain the upstream, duration and error category. Access logging is not enabled by this setting. Rotate a service credential if an older unfiltered diagnostic exposed it; identity, approval-signing and encryption keys have separate purposes and must not be replaced as part of that rotation.
+
+## Durable clinical integration storage
+
+Clinical/source databases remain strictly **READ ONLY** for MCP, agents and workers, without an administrator override. Internal inbox/receipt/cursor writes are application storage, not source-database writes. Kafka consumers require topic read/describe and group-offset permissions only; broker commits acknowledge durably saved private intake and never modify source-topic data. Delivery uses separately authorised HTTPS FHIR/openEHR APIs.
+
+Source credentials, exact cursors and Kafka retained originals are encrypted under purpose-derived keys from the preserved operational key. Admitted mapping snapshots and generated clinical outputs are private operational files; volume/backup encryption and retention remain mandatory installation responsibilities. Destination tokens are materialised only in private ephemeral runtime files for the worker and removed at shutdown. Human review responses and group monitoring omit credentials and patient values.
+
+An unknown destination write remains reserved across restart. Do not clear reservations or delete duplicate receipts to force reprocessing. Restore keys, input snapshots, cursors and receipts consistently; broker offsets alone cannot recover the application. Heap/queue/prefetch caps are admission controls, not a security-scan or throughput claim. Security/intrusion/load testing remains deferred. See [integration operations](INTEGRATION_ENGINE.md).

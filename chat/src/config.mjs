@@ -43,6 +43,7 @@ export function loadConfig(env = process.env) {
             .filter(Boolean),
         reviewEnabled: env.CHAT_REVIEW_ENABLED === "true",
         cdrEnabled: env.CHAT_CDR_ENABLED === "true",
+        integrationKafkaReader: env.CHAT_INTEGRATION_KAFKA_READER || "/app/integration/kafka/Modeller.Kafka",
         integrationEnabled: env.CHAT_INTEGRATION_ENABLED === "true",
         integrationApprovalKeys: env.CHAT_INTEGRATION_APPROVAL_KEYS
             ? JSON.parse(env.CHAT_INTEGRATION_APPROVAL_KEYS)

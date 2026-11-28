@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Add durable channel intake, FIFO/dependency-aware/concurrent execution and bounded processing memory.
+- Add reviewed Kafka intake and recoverable openEHR destination delivery with version-conditional updates.
+- Document integration polling, duplicate prevention, retries, recovery and qualification boundaries.
+
+
 - Simplify account administration to Administrator and User, with signed Keycloak role mapping and registration-only domain controls.
 - Omit request objects from proxy runtime logs so custom authentication headers remain private.
 

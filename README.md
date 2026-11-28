@@ -19,7 +19,7 @@ Independently maintained and developed by Michael Anywar. Licensed under the
 **Every direct clinical/source database connection is read-only.** The MCP, agents,
 workers and channels must never insert, update, delete, alter schemas, run source
 migrations or invoke write-capable procedures. Use database-enforced read-only permissions and closed connector operations; fail closed when the connector cannot verify the required restrictions.
-FHIR delivery uses a separately authorised FHIR API, never its backing database.
+FHIR and openEHR delivery use separately authorised HTTP APIs, never their backing databases.
 See [the clinical database policy](docs/CLINICAL_DATA_READ_ONLY.md).
 
 Database metadata discovery and private source extraction are separate operations. The vendor adapters support SQL Server, Oracle, PostgreSQL, MySQL, MariaDB and SAP HANA, plus Epic Clarity/FHIR and approved clinical/BW APIs. Private reads require a separately reviewed source configuration and plan; metadata tools never return clinical rows. See [database discovery and driver qualification](docs/DATABASE_DISCOVERY.md).
@@ -40,9 +40,9 @@ The clinical runtime provides bounded HL7 v2 ER7/XML and supplied-profile HL7 v3
 
 ## Reuse work and reduce AI calls
 
-The feature branch provides a deterministic **Find existing work without AI** action in the Integration workspace. It searches saved drafts and currently confirmed mappings using the source identity/meaning version, schema, purpose, original requirements, exact models, terminology pins and runtime. Loading an existing mapping requires no new generation. Human corrections become new versioned proposals for confirmation; they are not silently promoted into approved rules.
+The workspace provides a deterministic **Find existing work without AI** action in the Integration workspace. It searches saved drafts and currently confirmed mappings using the source identity/meaning version, schema, purpose, original requirements, exact models, terminology pins and runtime. Loading an existing mapping requires no new generation. Human corrections become new versioned proposals for confirmation; they are not silently promoted into approved rules.
 
-Encrypted model-read caching and private task checkpoints also reduce repeated retrieval and recovery work. Reuse never caches an approval decision: access, exact models and current confirmation are checked again. Patient records and credentials do not belong in project memory or AI training. See [reuse, learning and credit controls](docs/REUSE_AND_LEARNING.md) for the workflow, invalidation rules, privacy and implementation status. These source changes require release/deployment before they are available in an environment.
+Encrypted model-read caching and private task checkpoints also reduce repeated retrieval and recovery work. Reuse never caches an approval decision: access, exact models and current confirmation are checked again. Patient records and credentials do not belong in project memory or AI training. See [reuse, learning and credit controls](docs/REUSE_AND_LEARNING.md) for the workflow, invalidation rules, privacy and implementation status. Check the deployed revision before relying on a source-tree capability.
 
 ## What you can use it for
 
@@ -58,7 +58,13 @@ Encrypted model-read caching and private task checkpoints also reduce repeated r
 - Define a separate FHIR → openEHR mapping and check declared round-trip invariants.
 - Browse projects, discuss proposals with an agent and submit models for human review.
 
-The optional C#/.NET integration workspace adds private file processing, versioned channel assignments, validation, export and authorised FHIR delivery. It runs deterministic confirmed rules; it does not call a language model for each record. See the [integration guide](docs/INTEGRATION_ENGINE.md) for configuration, use and limits.
+## Run clinical integrations
+
+Use **Integration** to configure a reviewed database/API source, private files or Kafka topic, then have the agent draft rules from your plain-language constraints and supplied models. Suitable sample inputs support proposed test cases and expected outputs. A human reviews and confirms the proposal before assigning it to a channel. Choose strict FIFO, dependency-aware sequential execution or bounded concurrency, and set queue, managed-memory and retry limits. Durable input receipts, private snapshots, dependency holding and output checkpoints survive restarts and prevent completed inputs from being processed again on that channel.
+
+Deliver validated outputs to a separately authorised FHIR or openEHR HTTPS destination. FHIR uses conditional create. openEHR uses patient-EHR verification, parameterised AQL business-identity lookup, qualified stable-UUID creation and authorised version-conditional PUT. Unknown delivery outcomes require reconciliation rather than blind retry. Deterministic processing and exact-context mapping checkpoints avoid language-model calls per record.
+
+Read the [integration configuration and operations guide](docs/INTEGRATION_ENGINE.md) for **polling, Kafka acknowledgment, duplicate prevention, FIFO/concurrency, memory, retries, recovery and monitoring**, including installation qualification limits. This is not a claim of universal exactly-once delivery or parity with mature integration-engine products.
 
 ## Open the workspace or connect your agent
 

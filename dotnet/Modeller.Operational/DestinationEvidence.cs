@@ -34,7 +34,7 @@ public sealed class DestinationEvidence(IdentityRegistry registry, DependencyQue
         return reference == "Patient/" + patient["id"]?.GetValue<string>() || reference is null && identifier?["system"]?.GetValue<string>() == outbound.System && identifier?["value"]?.GetValue<string>() == outbound.Value;
     }
     public async Task Publish(ProcessingLease lease, string resourceType, ClinicalIdentity sourceIdentity, DeliveryReceipt receipt, CancellationToken cancellation) {
-        if (receipt.State is not ("CREATED" or "ALREADY_PRESENT") || receipt.DestinationSha256 != destination.DestinationHash || receipt.DestinationReference is null) throw new ProcessingException("VERIFIED_DESTINATION_RECEIPT_REQUIRED");
+        if (receipt.State is not ("CREATED" or "ALREADY_PRESENT" or "UPDATED" or "SUPERSEDED") || receipt.DestinationSha256 != destination.DestinationHash || receipt.DestinationReference is null) throw new ProcessingException("VERIFIED_DESTINATION_RECEIPT_REQUIRED");
         var actual = await destination.ReadExact(receipt.DestinationReference, cancellation) ?? throw new ProcessingException("DESTINATION_RECEIPT_RESOURCE_UNAVAILABLE");
         var outboundIdentity = resourceType == "Patient" ? lease.OutboundPatientIdentity : sourceIdentity;
         if (actual["resourceType"]?.GetValue<string>() != resourceType || !Identifier(actual, outboundIdentity)) throw new ProcessingException("DESTINATION_RECEIPT_IDENTITY_MISMATCH");

@@ -520,3 +520,15 @@ input[type="radio"] {
         padding: 12px 16px;
     }
 }
+
+.mapping-prompt-panel {
+    margin: 12px 0;
+    padding: 12px;
+    border: 1px solid var(--border, #b8c5d5);
+    border-radius: 4px;
+    min-width: 0;
+}
+.mapping-prompt-panel textarea {
+    width: 100%;
+    box-sizing: border-box;
+}

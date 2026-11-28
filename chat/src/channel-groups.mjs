@@ -270,6 +270,14 @@ export class ChannelGroups {
             ? channel.status
             : "UNKNOWN";
         summary.hasFailure = !!channel.error;
+        summary.processingMode = channel.processingMode || "ready";
+        summary.maximumConcurrentJobs = channel.maxConcurrent || 1;
+        summary.managedHeapMiB = channel.memoryMiB || 256;
+        summary.activeWorkerCount = Math.min(2, channel.activeJobs?.length || (channel.activeJob ? 1 : 0));
+        summary.backpressure = !!channel.backpressure;
+        if (this.processing.channelResources) summary.resources = this.processing.channelResources(channel);
+        if (this.processing.inbox)
+            summary.intakeCounts = this.processing.inbox.summary(binding.owner + ":" + binding.channel).counts;
         summary.waitingJobs = Math.min(1000000, channel.waitingJobs?.length || 0);
         summary.completedFiles = Math.min(1000000, Object.keys(channel.completedFiles || {}).length);
         if (channel.activeJob) {

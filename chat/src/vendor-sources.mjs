@@ -53,6 +53,7 @@ export class VendorSources {
                         .join("\n"),
                 ));
         this.active = new Map();
+        this.captures = new Map();
         this.root = join(config.dataDir, "vendor-adapters");
         mkdirSync(this.root, { recursive: true, mode: 0o700 });
         for (const name of readdirSync(this.root).filter((name) => /^request-[A-Za-z0-9]{6}$/.test(name)))
@@ -538,6 +539,7 @@ export class VendorSources {
                 owners: [owner],
                 displayName: item.displayName,
                 vendor: true,
+                incremental: !!item.cursor,
                 profileId: item.id,
             }));
     }
@@ -555,7 +557,14 @@ export class VendorSources {
             }),
         );
     }
-    async materialise(owner, project, sourceId) {
+    materialise(owner, project, sourceId) {
+        const key = owner + ":" + sourceId;
+        if (this.captures.has(key)) return this.captures.get(key);
+        const promise = this.capture(owner, project, sourceId).finally(() => this.captures.delete(key));
+        this.captures.set(key, promise);
+        return promise;
+    }
+    async capture(owner, project, sourceId) {
         const item = this.all(owner).find((x) => x.sourceId === sourceId && x.projectId === project && x.enabled);
         if (!item) throw problem("Source connection or approved read plan changed.", 403);
         if (this.canOperateOwner && !this.canOperateOwner(owner, item.identityIssuer))
