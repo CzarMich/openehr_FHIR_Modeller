@@ -27,6 +27,9 @@ jobs:
           dotnet build Modeller.Processing -c Release --no-restore
           dotnet run --project Modeller.Operational.Tests -c Release -p:NuGetAudit=false
           dotnet run --project Modeller.Processing.Tests -c Release -p:NuGetAudit=false
+          dotnet restore Modeller.Extraction --locked-mode -p:NuGetAudit=false
+          dotnet build Modeller.Extraction -c Release --no-restore
+          dotnet run --project Modeller.Vendor.Tests -c Release -p:NuGetAudit=false
           dotnet run --project Modeller.Database.Tests -c Release -p:NuGetAudit=false
       - name: Verify HTTP and stdio contracts, guide content and security boundaries
         run: |

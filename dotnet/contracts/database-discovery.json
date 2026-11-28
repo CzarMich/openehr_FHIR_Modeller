@@ -134,6 +134,13 @@
                   "field": {
                     "type": "string",
                     "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$"
+                  },
+                  "representation": {
+                    "type": "string",
+                    "enum": [
+                      "native",
+                      "string"
+                    ]
                   }
                 },
                 "required": [
@@ -247,6 +254,8 @@
           "type": "string",
           "enum": [
             "sqlserver",
+            "epic-clarity-sqlserver",
+            "epic-clarity-oracle",
             "oracle",
             "postgresql",
             "mysql",

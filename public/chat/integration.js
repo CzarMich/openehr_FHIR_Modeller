@@ -429,7 +429,13 @@ $("commit").onclick = () =>
         const value = pending;
         pending = null;
         $("confirmation").hidden = true;
-        await api(value.kind + "/commit", { confirmation: value.token });
+        await api(value.kind + (value.kind.startsWith("vendor-sources/") ? "-commit" : "/commit"), {
+            confirmation: value.token,
+        });
+        if (value.kind.startsWith("vendor-sources/")) {
+            await vendorList();
+            await load();
+        }
         $("confirmation-detail").textContent = "";
         if (value.kind === "patient-resolution") {
             $("resolve-patient-value").value = "";
@@ -901,4 +907,223 @@ $("resolve-relation-preview").onclick = () =>
         });
         reviewOperation("relationship-resolution", result);
         activateTab($("tab-run"));
+    });
+
+// Vendor credentials never enter model requests, saved mapping JSON or review summaries.
+let vendorConnections = [];
+async function vendorList() {
+    const response = await api("vendor-sources?projectId=" + encodeURIComponent(project()));
+    vendorConnections = response.items;
+    options(
+        $("vendor-connector"),
+        response.connectors,
+        (item) => item.id,
+        (item) => item.label,
+    );
+    options(
+        $("vendor-connection"),
+        vendorConnections,
+        (item) => item.id,
+        (item) => item.displayName + " · " + item.connector + " · " + (item.enabled ? "enabled" : "disabled"),
+    );
+    vendorShow();
+    vendorKind();
+}
+function vendorShow() {
+    const item = vendorConnections.find((item) => item.id === $("vendor-connection").value);
+    $("vendor-status").textContent = pretty(item || { notice: "Configure a source connection." });
+    $("vendor-agent-metadata").checked = !!item?.allowAgentMetadata;
+}
+function vendorKind() {
+    const connector = $("vendor-connector").value,
+        apiSource = ["epic-fhir", "fhir-api", "sap-bw", "clinical-rest-api"].includes(connector);
+    $("vendor-database").hidden = apiSource;
+    $("vendor-api").hidden = !apiSource;
+    $("vendor-hana-driver").hidden = connector !== "sap-hana";
+    for (const id of ["vendor-records-pointer", "vendor-next-pointer"])
+        $(id).closest("label").hidden = connector !== "clinical-rest-api";
+    $("vendor-analytics").closest("label").hidden = connector !== "sap-bw";
+    $("vendor-fhir-release").closest("label").hidden = !["epic-fhir", "fhir-api"].includes(connector);
+    vendorAuth();
+}
+function vendorInput() {
+    const connector = $("vendor-connector").value;
+    const lines = (id) =>
+        $(id)
+            .value.split(/\r?\n/)
+            .map((s) => s.trim())
+            .filter(Boolean);
+    let profile;
+    if (["epic-fhir", "fhir-api", "sap-bw", "clinical-rest-api"].includes(connector))
+        profile = {
+            connector,
+            baseUrl: $("vendor-base").value,
+            recordsPointer: $("vendor-records-pointer").value,
+            nextPointer: $("vendor-next-pointer").value || null,
+            readPaths: lines("vendor-read-paths"),
+            fhirVersion: $("vendor-fhir-release").value,
+            analytics: connector === "sap-bw" ? JSON.parse($("vendor-analytics").value) : null,
+            authentication: {
+                mode: $("vendor-auth").value,
+                token: $("vendor-token").value || null,
+                user: $("vendor-api-user").value || null,
+                password: $("vendor-api-password").value || null,
+                tokenEndpoint: $("vendor-token-endpoint").value || null,
+                clientId: $("vendor-client-id").value || null,
+                clientSecret: $("vendor-client-secret").value || null,
+                scopes: $("vendor-scopes").value.split(/\s+/).filter(Boolean),
+                keyId: $("vendor-key-id").value || null,
+                privateKeyPem: $("vendor-private-key").value || null,
+                algorithm: $("vendor-algorithm").value,
+            },
+        };
+    else
+        profile = {
+            connector,
+            host: $("vendor-host").value,
+            port: Number($("vendor-port").value),
+            database: $("vendor-database-name").value,
+            user: $("vendor-user").value,
+            password: $("vendor-password").value,
+            schemas: lines("vendor-schemas"),
+            driverSha256: $("vendor-driver-sha").value || null,
+        };
+    return {
+        projectId: project(),
+        displayName: $("vendor-name").value,
+        identityDomain: $("vendor-domain").value,
+        profile,
+        allowAgentMetadata: $("vendor-agent-metadata").checked,
+    };
+}
+$("vendor-refresh").onclick = () => run(vendorList);
+$("vendor-connection").onchange = vendorShow;
+$("vendor-connector").onchange = () => {
+    vendorKind();
+    const ports = {
+        sqlserver: 1433,
+        "epic-clarity-sqlserver": 1433,
+        oracle: 2484,
+        "epic-clarity-oracle": 2484,
+        postgresql: 5432,
+        mysql: 3306,
+        mariadb: 3306,
+        "sap-hana": 30015,
+    };
+    $("vendor-port").value = ports[$("vendor-connector").value] || 443;
+};
+$("vendor-profile-preview").onclick = () =>
+    run(async () => {
+        const ticket = await api("vendor-sources/profile-preview", vendorInput());
+        for (const id of [
+            "vendor-password",
+            "vendor-token",
+            "vendor-api-password",
+            "vendor-client-secret",
+            "vendor-private-key",
+        ])
+            $(id).value = "";
+        reviewOperation("vendor-sources/profile", ticket);
+    });
+$("vendor-discover").onclick = () =>
+    run(async () => {
+        const result = await api("vendor-sources/discover", {
+            projectId: project(),
+            id: $("vendor-connection").value,
+            query: $("vendor-query").value,
+            afterTableId: Number($("vendor-after-table").value),
+            tableId: $("vendor-table-id").value ? Number($("vendor-table-id").value) : null,
+            afterColumnId: Number($("vendor-after-column").value),
+        });
+        $("vendor-metadata").textContent = pretty(result.metadata);
+        await vendorList();
+    });
+$("vendor-plan-preview").onclick = () =>
+    run(async () => {
+        const item = vendorConnections.find((item) => item.id === $("vendor-connection").value);
+        if (!item) throw new Error("Choose a connection.");
+        const isApi = ["epic-fhir", "fhir-api", "sap-bw", "clinical-rest-api"].includes(item.connector);
+        const ticket = await api("vendor-sources/plan-preview", {
+            projectId: project(),
+            id: item.id,
+            plan: isApi ? null : JSON.parse($("vendor-plan").value),
+            readPath: isApi ? $("vendor-read-path").value : null,
+            cursor: $("vendor-capture-mode").value === "append" ? JSON.parse($("vendor-cursor").value) : null,
+            appendOnlyAcknowledged: $("vendor-append-ack").checked,
+            comment: $("vendor-plan-comment").value,
+        });
+        reviewOperation("vendor-sources/plan", ticket);
+    });
+$("vendor-capture").onclick = () =>
+    run(async () => {
+        const result = await api("vendor-sources/refresh", { projectId: project(), id: $("vendor-connection").value });
+        $("vendor-status").textContent = pretty(result);
+        await load();
+    });
+$("vendor-disable").onclick = () =>
+    run(async () => {
+        const item = vendorConnections.find((item) => item.id === $("vendor-connection").value);
+        if (!item) throw new Error("Choose a connection.");
+        await api("vendor-sources/disable", { projectId: project(), id: item.id, expectedRevision: item.revision });
+        await vendorList();
+        await load();
+    });
+
+$("vendor-enable").onclick = () =>
+    run(async () => {
+        const item = vendorConnections.find((item) => item.id === $("vendor-connection").value);
+        if (!item) throw new Error("Choose a connection.");
+        await api("vendor-sources/enable", { projectId: project(), id: item.id, expectedRevision: item.revision });
+        await vendorList();
+        await load();
+    });
+
+function vendorAuth() {
+    const mode = $("vendor-auth").value;
+    const shown =
+        {
+            bearer: ["vendor-token"],
+            basic: ["vendor-api-user", "vendor-api-password"],
+            "oauth-client-secret": [
+                "vendor-token-endpoint",
+                "vendor-client-id",
+                "vendor-client-secret",
+                "vendor-scopes",
+            ],
+            "smart-private-key-jwt": [
+                "vendor-token-endpoint",
+                "vendor-client-id",
+                "vendor-scopes",
+                "vendor-key-id",
+                "vendor-algorithm",
+                "vendor-private-key",
+            ],
+        }[mode] || [];
+    for (const id of [
+        "vendor-token",
+        "vendor-api-user",
+        "vendor-api-password",
+        "vendor-token-endpoint",
+        "vendor-client-id",
+        "vendor-client-secret",
+        "vendor-scopes",
+        "vendor-key-id",
+        "vendor-algorithm",
+        "vendor-private-key",
+    ])
+        $(id).closest("label").hidden = !shown.includes(id);
+}
+$("vendor-auth").onchange = vendorAuth;
+
+$("vendor-metadata-access").onclick = () =>
+    run(async () => {
+        const item = vendorConnections.find((item) => item.id === $("vendor-connection").value);
+        if (!item) throw new Error("Choose a connection.");
+        await api("vendor-sources/metadata-access", {
+            projectId: project(),
+            id: item.id,
+            expectedRevision: item.revision,
+            allow: $("vendor-agent-metadata").checked,
+        });
+        await vendorList();
     });

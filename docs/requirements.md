@@ -114,7 +114,7 @@ a shared workspace, not per-browser-user isolation.
 
 ## Discovery, collaboration and governed reuse
 
-- **REQ-F35** — Explicit read-only source discovery jobs and connector qualification. SQL Server metadata is implemented; other selectable source types remain qualification-gated. No clinical-row extraction or database polling is implied.
+- **REQ-F35** — Explicit read-only source discovery jobs, database/platform selection and per-installation qualification. Keep metadata-only MCP discovery separate from protected private extraction, source credentials and patient records.
 - **REQ-F36** — Human-managed channel groups, teams and separate view/monitor grants. View/monitor sharing only; no shared edit, operate, clinical approval or patient-result access.
 - **REQ-F37** — Deterministic mapping reuse and human-confirmed project learning. Exact-context lookup makes no provider call; current authorisation and confirmation are rechecked. Corrections require a new version and human confirmation.
 - **REQ-F38** — Routine post-install configuration through protected browser controls. Existing personal/account/group controls are delivered; general source, terminology and destination profile forms remain pending.
@@ -130,3 +130,5 @@ a shared workspace, not per-browser-user isolation.
 - **REQ-F44** — Support explicit four independent source-to-openEHR, source-to-FHIR, openEHR-to-FHIR and FHIR-to-openEHR routes. Require the exact applicable input/output templates and profiles, protected human confirmation and real output validation. OpenEHR-only output does not require an unrelated FHIR model and is not sent to a FHIR endpoint.
 
 
+
+- **REQ-F45** — Provide explicitly selected native/ODBC database and vendor/API adapters, encrypted UI-managed profiles, bounded metadata discovery, human-confirmed immutable source read plans, verified read-only/TLS controls and atomic private intake for mapping channels. Cover SQL Server, Oracle, PostgreSQL, MySQL, MariaDB, SAP HANA, Epic Clarity on both engines, Epic FHIR, SAP BW and approved clinical APIs. Preserve exact cursor values, original API evidence, source semantics and configuration/runtime/schema pins; fail closed on incomplete windows or unqualified installation dependencies.

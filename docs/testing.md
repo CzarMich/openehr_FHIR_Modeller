@@ -36,3 +36,5 @@ Keep protocol contracts and original model bytes separate from generated output.
 The user has deferred vulnerability scanning and attack/load testing. The optional source write-denial fixture and dependency scan jobs are gated by `MODELLER_RUN_SECURITY_VALIDATION`; leave that setting disabled until the user resumes the work. Ordinary functional authentication, permissions, immutable evidence and read-only enforcement still run. Never attack or write-test a real clinical database or production endpoint.
 
 Historical evidence in Git is tied to its recorded revision. Current test counts, assertions and deployment state must come from a current run. Passing tests do not constitute clinical certification or a guarantee that all vulnerabilities have been found.
+
+Vendor adapters add `Modeller.Vendor.Tests`, `chat/test/vendor-sources.test.mjs` and `dotnet/tests/vendor-database-functional.py`. The latter runs disposable official PostgreSQL/MySQL/MariaDB images with synthetic records, actual TLS and private reads; it performs no source-write denial probes. Driver-specific and hospital acceptance remain separate.

@@ -78,6 +78,16 @@
                         Mapping &amp; review
                     </button>
                     <button
+                        id="tab-vendor"
+                        type="button"
+                        role="tab"
+                        aria-selected="false"
+                        aria-controls="vendor-step"
+                        tabindex="-1"
+                    >
+                        Vendor connections
+                    </button>
+                    <button
                         type="button"
                         role="tab"
                         id="tab-source"
@@ -324,6 +334,217 @@
                     ><button class="danger-button" id="revoke">Revoke confirmation</button>
                     <p>Mapping confirmation does not constitute clinical approval or successful instance validation.</p>
                 </section>
+                <section id="vendor-step" role="tabpanel" aria-labelledby="tab-vendor" tabindex="0" hidden>
+                    <h2>Vendor source connections</h2>
+                    <p>
+                        Clinical databases are strictly READ ONLY. Credentials are encrypted and never sent to an agent.
+                        An administrator or approver must review each private read plan. Use the actual vendor
+                        dictionary; table names are not assumed.
+                    </p>
+                    <button id="vendor-refresh">Refresh connections</button>
+                    <label
+                        >Connection
+                        <select id="vendor-connection"></select
+                    ></label>
+                    <pre id="vendor-status"></pre>
+                    <details>
+                        <summary>1. Configure a connection</summary>
+                        <label
+                            >Connector
+                            <select id="vendor-connector"></select
+                        ></label>
+                        <label>Connection name <input id="vendor-name" maxlength="128" /></label>
+                        <label>Patient identity domain <input id="vendor-domain" maxlength="256" /></label>
+                        <fieldset id="vendor-database">
+                            <legend>Database connection</legend>
+                            <label>Server hostname <input id="vendor-host" maxlength="253" autocomplete="off" /></label>
+                            <label
+                                >Port <input id="vendor-port" type="number" min="1" max="65535" value="1433"
+                            /></label>
+                            <label
+                                >Database or Oracle service <input id="vendor-database-name" maxlength="128"
+                            /></label>
+                            <label
+                                >Read-only database user <input id="vendor-user" maxlength="128" autocomplete="off"
+                            /></label>
+                            <label
+                                >Password
+                                <input
+                                    id="vendor-password"
+                                    type="password"
+                                    autocomplete="new-password"
+                                    maxlength="4096"
+                            /></label>
+                            <label
+                                >Allowed schemas (one per line) <textarea id="vendor-schemas" rows="3"></textarea>
+                            </label>
+                            <label id="vendor-hana-driver"
+                                >Installed HANA ODBC driver SHA-256 <input id="vendor-driver-sha" maxlength="64"
+                            /></label>
+                            <p>
+                                Native SQL Server, Oracle, PostgreSQL and MySQL/MariaDB drivers are included. HANA
+                                requires the licensed SAP client installed during deployment and its exact checksum.
+                                Certificate validation cannot be disabled.
+                            </p>
+                        </fieldset>
+                        <fieldset id="vendor-api" hidden>
+                            <legend>Read-only API connection</legend>
+                            <label>Approved HTTPS base URL <input id="vendor-base" type="url" /></label>
+                            <label
+                                >FHIR release
+                                <select id="vendor-fhir-release">
+                                    <option value="4.0.1">R4</option>
+                                    <option value="4.3.0">R4B</option>
+                                    <option value="5.0.0">R5</option>
+                                </select></label
+                            >
+                            <label
+                                >Approved read paths, including fixed filters (one per line)
+                                <textarea
+                                    id="vendor-read-paths"
+                                    rows="3"
+                                    placeholder="Observation?_count=100"
+                                ></textarea>
+                            </label>
+                            <label>REST records JSON Pointer <input id="vendor-records-pointer" value="/items" /></label
+                            ><label>REST next-page JSON Pointer <input id="vendor-next-pointer" value="/next" /></label>
+                            <label
+                                >Authentication
+                                <select id="vendor-auth">
+                                    <option value="bearer">Bearer token</option>
+                                    <option value="basic">Basic over HTTPS</option>
+                                    <option value="oauth-client-secret">OAuth client credentials</option>
+                                    <option value="smart-private-key-jwt">SMART backend private key JWT</option>
+                                </select></label
+                            >
+                            <label
+                                >Bearer token <input id="vendor-token" type="password" autocomplete="new-password"
+                            /></label>
+                            <label>API username <input id="vendor-api-user" autocomplete="off" /></label>
+                            <label
+                                >API password
+                                <input id="vendor-api-password" type="password" autocomplete="new-password"
+                            /></label>
+                            <label>Token endpoint <input id="vendor-token-endpoint" type="url" /></label>
+                            <label>Client ID <input id="vendor-client-id" /></label>
+                            <label
+                                >Client secret
+                                <input id="vendor-client-secret" type="password" autocomplete="new-password"
+                            /></label>
+                            <label
+                                >Read scopes (space separated)
+                                <input id="vendor-scopes" placeholder="system/Observation.rs system/Patient.rs"
+                            /></label>
+                            <label>Registered key ID <input id="vendor-key-id" /></label>
+                            <label
+                                >JWT signing algorithm
+                                <select id="vendor-algorithm">
+                                    <option>RS384</option>
+                                    <option>RS256</option>
+                                </select></label
+                            >
+                            <label
+                                >Private signing key PEM
+                                <textarea
+                                    id="vendor-private-key"
+                                    rows="3"
+                                    autocomplete="off"
+                                    spellcheck="false"
+                                ></textarea>
+                            </label>
+                            <label
+                                >SAP BW analytic contract JSON
+                                <textarea
+                                    id="vendor-analytics"
+                                    rows="5"
+                                    placeholder='{"grain":"Explain each row","dimensions":[],"measures":[],"units":{},"filters":{}}'
+                                ></textarea>
+                            </label>
+                            <p>
+                                Only the explicitly approved read contract is used. Redirects, foreign-origin paging and
+                                stateful export/subscription operations are refused. BW analytic grain, measures,
+                                dimensions and units must be supplied.
+                            </p>
+                        </fieldset>
+                        <label
+                            ><input id="vendor-agent-metadata" type="checkbox" /> Allow my modelling agent to read this
+                            source's schema/capability metadata. Never patient rows or credentials. Metadata may itself
+                            be sensitive.</label
+                        >
+                        <button id="vendor-metadata-access">Apply metadata access to selected connection</button>
+                        <button id="vendor-profile-preview">Review encrypted connection</button>
+                    </details>
+                    <details>
+                        <summary>2. Discover source metadata</summary>
+                        <p>
+                            Discovery returns schemas, declared keys or API capabilities without clinical rows. Metadata
+                            can still be sensitive. Review permission to share it with an agent.
+                        </p>
+                        <label>Search tables or columns <input id="vendor-query" maxlength="128" /></label>
+                        <label>After table ID <input id="vendor-after-table" type="number" min="0" value="0" /></label>
+                        <label>Specific table ID (optional) <input id="vendor-table-id" type="number" min="1" /></label>
+                        <label
+                            >After column ID <input id="vendor-after-column" type="number" min="0" value="0"
+                        /></label>
+                        <button id="vendor-discover">Connect and discover</button>
+                        <pre id="vendor-metadata"></pre>
+                    </details>
+                    <details>
+                        <summary>3. Review a private read plan</summary>
+                        <label
+                            >Database plan JSON
+                            <textarea
+                                id="vendor-plan"
+                                rows="10"
+                                spellcheck="false"
+                                placeholder='{"schemaFingerprint":"Use discovered fingerprint","root":1,"fields":[{"table":1,"column":1,"field":"patientId"}],"joins":[],"filters":[],"limit":1000}'
+                            ></textarea>
+                        </label>
+                        <label>Approved API read path <input id="vendor-read-path" /></label>
+                        <label
+                            >Database capture mode
+                            <select id="vendor-capture-mode">
+                                <option value="snapshot">Complete bounded snapshot</option>
+                                <option value="append">
+                                    Append-only stream with a reviewed committed-key contract
+                                </option>
+                            </select></label
+                        >
+                        <label
+                            >Append cursor JSON
+                            <textarea
+                                id="vendor-cursor"
+                                rows="3"
+                                placeholder='{"table":1,"column":1,"field":"recordId"}'
+                            ></textarea>
+                        </label>
+                        <label
+                            ><input id="vendor-append-ack" type="checkbox" /> The source guarantees strictly increasing
+                            visibility of committed numeric keys. Updates, deletions and late commits below the cursor
+                            require a separate change-feed or reconciliation contract. A sequence/identity column alone
+                            does not establish this guarantee.</label
+                        >
+                        <label
+                            >Read window, clinical grain and selection rationale
+                            <textarea id="vendor-plan-comment" rows="4" maxlength="4000"></textarea>
+                        </label>
+                        <button id="vendor-plan-preview">Review private read plan</button>
+                        <p>
+                            Only compiler-generated SELECT statements or approved API reads are executed. Over-limit or
+                            incomplete windows fail without publishing partial records. The source contract, target
+                            models and mapping still require separate confirmation.
+                        </p>
+                        <button id="vendor-capture">Read approved window into private intake</button>
+                        <button id="vendor-disable">Disable connection</button
+                        ><button id="vendor-enable">Enable connection</button>
+                        <p>
+                            After capture, select the vendor source under Source data and assign its confirmed mapping
+                            to a channel. Channels repeat the approved bounded read and process new snapshot files
+                            without AI calls. Credentials and source plans stay outside shared monitoring.
+                        </p>
+                    </details>
+                </section>
+
                 <section id="source-step" role="tabpanel" aria-labelledby="tab-source" tabindex="0" hidden>
                     <h2 id="source-heading">4. Inspect a private source</h2>
                     <p>

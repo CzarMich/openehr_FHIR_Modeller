@@ -2888,3 +2888,95 @@ test("held-patient review opens its confirmation tab and requires an explicit de
     await page.getByRole("tab", { name: "Jobs & monitoring", exact: true }).click();
     await expect(page.locator("#resolve-patient-value")).toHaveValue("");
 });
+
+test("vendor connection settings stay private and require explicit reviewed confirmation", async ({ page }) => {
+    let previews = 0,
+        commits = 0;
+    const items = [];
+    await page.route("**/chat/api/session", (route) =>
+        route.fulfill({ json: { authenticated: true, csrf: "synthetic", integrationReady: true } }),
+    );
+    await page.route("**/chat/api/integration/**", async (route) => {
+        const url = new URL(route.request().url()),
+            target = url.searchParams.get("target");
+        let result = { items: [] };
+        if (target === "/api/v1/integration/projects")
+            result = { items: [{ id: "lab", name: "Synthetic source lab", fhirVersion: "4.0.1" }] };
+        else if (url.pathname.endsWith("/connections"))
+            result = { sources: [], destinations: [], clinicalDatabasePolicy: "READ ONLY" };
+        else if (url.pathname.endsWith("/vendor-sources"))
+            result = {
+                connectors: [
+                    { id: "sqlserver", label: "Microsoft SQL Server" },
+                    { id: "epic-fhir", label: "Epic FHIR API" },
+                    { id: "clinical-rest-api", label: "Clinical REST API" },
+                ],
+                items,
+            };
+        else if (url.pathname.endsWith("/vendor-sources/profile-preview")) {
+            previews++;
+            const input = route.request().postDataJSON();
+            expect(input.profile.password).toBe("SYNTHETIC-secret-never-in-review");
+            expect(input.profile.schemas).toEqual(["vendor"]);
+            result = {
+                confirmation: "synthetic-profile-ticket",
+                summary: {
+                    connector: input.profile.connector,
+                    connection: { host: input.profile.host, database: input.profile.database },
+                    credentials: "ENCRYPTED_NOT_RETURNED",
+                },
+            };
+        } else if (url.pathname.endsWith("/vendor-sources/profile-commit")) {
+            commits++;
+            items.push({
+                id: "a".repeat(64),
+                revision: 1,
+                projectId: "lab",
+                displayName: "Clinical reader",
+                connector: "sqlserver",
+                enabled: true,
+                planConfirmed: false,
+            });
+            result = items[0];
+        }
+        await route.fulfill({ json: result });
+    });
+    await page.goto("/chat/integration/");
+    await page.getByRole("tab", { name: "Vendor connections", exact: true }).click();
+    await page.locator("#vendor-refresh").click();
+    await page.getByText("1. Configure a connection", { exact: true }).click();
+    await page.locator("#vendor-name").fill("Clinical reader");
+    await page.locator("#vendor-domain").fill("hospital-patient-domain");
+    await page.locator("#vendor-host").fill("clinical.example.internal");
+    await page.locator("#vendor-database-name").fill("Clinical");
+    await page.locator("#vendor-user").fill("reader");
+    await page.locator("#vendor-password").fill("SYNTHETIC-secret-never-in-review");
+    await page.locator("#vendor-schemas").fill("vendor");
+    await page.locator("#vendor-profile-preview").click();
+    await expect(page.locator("#confirmation")).toBeVisible();
+    await expect(page.locator("#confirmation-detail")).toContainText("clinical.example.internal");
+    await expect(page.locator("#confirmation-detail")).not.toContainText("SYNTHETIC-secret-never-in-review");
+    expect(commits).toBe(0);
+    await page.locator("#dismiss").click();
+    expect(commits).toBe(0);
+    await page.getByRole("tab", { name: "Vendor connections", exact: true }).click();
+    await expect(page.locator("#vendor-password")).toHaveValue("");
+    await page.locator("#vendor-password").fill("SYNTHETIC-secret-never-in-review");
+    await page.locator("#vendor-profile-preview").click();
+    await page.locator("#commit").click();
+    await expect(page.locator("#notice")).toContainText("Operation confirmed");
+    expect(previews).toBe(2);
+    expect(commits).toBe(1);
+    await page.getByRole("tab", { name: "Vendor connections", exact: true }).click();
+    await page.locator("#vendor-connector").selectOption("epic-fhir");
+    await expect(page.locator("#vendor-api")).toBeVisible();
+    await expect(page.locator("#vendor-database")).toBeHidden();
+    await page.locator("#vendor-auth").selectOption("smart-private-key-jwt");
+    await expect(page.locator("#vendor-private-key")).toBeVisible();
+    await expect(page.locator("#vendor-token")).toBeHidden();
+    await page.locator("#vendor-connector").selectOption("clinical-rest-api");
+    await expect(page.locator("#vendor-records-pointer")).toBeVisible();
+    await expect(page.locator("#vendor-fhir-release")).toBeHidden();
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBeTruthy();
+});

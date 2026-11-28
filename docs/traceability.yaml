@@ -692,7 +692,7 @@
         "dotnet/Modeller.Database.Tests/Program.cs",
         "dotnet/tests/application-contracts.py"
       ],
-      "verification": "SQL Server metadata is implemented; other selectable source types remain qualification-gated. No clinical-row extraction or database polling is implied."
+      "verification": "Metadata-only source selection/discovery and private vendor extraction are separate; per-installation qualification remains required. See REQ-F45."
     },
     {
       "id": "REQ-F36",
@@ -1111,6 +1111,30 @@
       "verification": "Four independent routes pass synthetic acceptance against actual installed openEHR/FHIR engines. Retired combined definitions fail explicitly; hosted/package and production release acceptance remain pending.",
       "adr": [
         "0031"
+      ]
+    },
+    {
+      "id": "REQ-F45",
+      "title": "Reviewed vendor adapters and private source capture",
+      "canonical": "docs/requirements.md",
+      "status": "draft",
+      "implementation": "partial",
+      "packages": [
+        "dotnet/Modeller.Database/VendorDatabase.cs",
+        "dotnet/Modeller.Database/ApiSource.cs",
+        "dotnet/Modeller.Extraction/Program.cs",
+        "chat/src/vendor-sources.mjs",
+        "public/chat/integration.html"
+      ],
+      "tests": [
+        "dotnet/Modeller.Vendor.Tests/Program.cs",
+        "dotnet/tests/vendor-database-functional.py",
+        "chat/test/vendor-sources.test.mjs",
+        "chat/test/browser.spec.mjs"
+      ],
+      "verification": "Native/ODBC/API adapters, UI review, exact private cursor and bounded intake are implemented. Synthetic and disposable native-provider acceptance is separate from actual Oracle/HANA/Epic/BW installation qualification.",
+      "adr": [
+        "0032"
       ]
     }
   ]

@@ -135,9 +135,13 @@ export class ProcessingWorkspace {
                     uploaded: true,
                 });
             }
+        if (this.vendor) sources.push(...this.vendor.connections(owner, project));
         return { sources, destinations, requireTerminology: configured.requireTerminology !== false };
     }
     checkQuota(session) {
+        return this.checkOwnerQuota(this.owner(session));
+    }
+    checkOwnerQuota(owner) {
         let total = 0,
             entries = 0;
         const walk = (directory) => {
@@ -155,7 +159,7 @@ export class ProcessingWorkspace {
                     );
             }
         };
-        const root = join(this.root, this.owner(session));
+        const root = join(this.root, owner);
         if (existsSync(root)) walk(root);
     }
     async upload(session, input, bytes) {
@@ -1063,6 +1067,7 @@ export class ProcessingWorkspace {
                 throw problem("FHIR destination delivery is disabled.", 403);
             await this.selection(session, channel.projectId, channel.subject);
             this.source(owner, channel.projectId, channel.sourceId);
+            channel.vendorExtracting = false;
             channel.status = "RUNNING";
             channel.error = null;
             channel.nextPoll = 0;
@@ -1140,6 +1145,27 @@ export class ProcessingWorkspace {
                             .filter((name) => this.matches(source, name))
                             .sort();
                     if (names.length > 10000) throw problem("Source discovery limit reached.");
+                    if (source.vendor && !channel.vendorSnapshotReady) {
+                        if (!channel.vendorExtracting && this.vendor.active.size<2) {
+                            channel.vendorExtracting = true;
+                            this.vendor
+                                .materialise(channel.owner, channel.projectId, channel.sourceId)
+                                .then(() => {
+                                    channel.vendorExtracting = false;
+                                    channel.vendorSnapshotReady = true;
+                                    channel.nextPoll = 0;
+                                    this.persist(channel);
+                                })
+                                .catch((error) => {
+                                    channel.vendorExtracting = false;
+                                    channel.status = "PAUSED";
+                                    channel.error = error.message;
+                                    this.persist(channel);
+                                });
+                        }
+                        continue;
+                    }
+                    channel.vendorSnapshotReady = false;
                     for (const name of names) {
                         const stat = lstatSync(join(source.root, name));
                         if (!stat.isFile() || stat.isSymbolicLink() || stat.size > LIMIT) continue;

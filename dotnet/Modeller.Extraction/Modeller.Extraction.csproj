@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+<PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><RuntimeIdentifiers>linux-x64</RuntimeIdentifiers><RestorePackagesWithLockFile>true</RestorePackagesWithLockFile><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><TreatWarningsAsErrors>true</TreatWarningsAsErrors><InvariantGlobalization>true</InvariantGlobalization></PropertyGroup>
+<ItemGroup><ProjectReference Include="../Modeller.Database/Modeller.Database.csproj" /></ItemGroup>
+</Project>

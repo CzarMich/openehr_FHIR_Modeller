@@ -5,13 +5,15 @@ COPY deploy/postgres/001-governance.sql /src/deploy/postgres/001-governance.sql
 
 RUN dotnet restore Modeller.Mcp -r linux-x64 --locked-mode -p:NuGetAudit=false \
     && dotnet restore Modeller.Processing -r linux-x64 --locked-mode -p:NuGetAudit=false \
+    && dotnet restore Modeller.Extraction -r linux-x64 --locked-mode -p:NuGetAudit=false \
     && dotnet publish Modeller.Mcp -c Release -r linux-x64 --self-contained true --no-restore -o /out/server \
-    && dotnet publish Modeller.Processing -c Release -r linux-x64 --self-contained true --no-restore -o /out/worker
+    && dotnet publish Modeller.Processing -c Release -r linux-x64 --self-contained true --no-restore -o /out/worker \
+    && dotnet publish Modeller.Extraction -c Release -r linux-x64 --self-contained true --no-restore -o /out/extractor
 
 RUN sh /src/dotnet/notices/collect-notices.sh /root/.nuget/packages /out/server/notices/nuget
 
 FROM node:22.22.1-bookworm-slim AS dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libicu72 libssl3 libstdc++6 zlib1g \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libicu72 libssl3 libstdc++6 zlib1g libodbc2 \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app/chat
 COPY --from=integration-build /out/ /app/integration/

@@ -150,6 +150,11 @@
           "Microsoft.Extensions.AI.Abstractions": "10.11.0"
         }
       },
+      "MySqlConnector": {
+        "type": "Transitive",
+        "resolved": "3.0.0",
+        "contentHash": "ioYpdWl4xa9iVNsnWzIsYUuSr5MJ3KRZJ69QvzQdfDd1ax6s6GDXs65gCTt/eY/fzG4IiYxCgiu5urWUfk3AwQ=="
+      },
       "nhapi": {
         "type": "Transitive",
         "resolved": "3.2.4",
@@ -275,8 +280,18 @@
       },
       "Npgsql": {
         "type": "Transitive",
-        "resolved": "10.0.1",
-        "contentHash": "XyUcxEfqlFomhNTG/ZdGlec+uSOQArKz0Mzz8jYKP/Jj9GM2YabU5CVZtp0yiC4f9hRp+tRZTnHMatJeJ3rwgw=="
+        "resolved": "10.0.4",
+        "contentHash": "m2VCpcU9MKD8lLxTn+YaNIRWd+Gz3y/9wIaM+2ifDF24xZ2Kvvjx4CDB2BIgobr1Gj6a/gsdmfz1sQ+kmd7liw=="
+      },
+      "Oracle.ManagedDataAccess.Core": {
+        "type": "Transitive",
+        "resolved": "23.26.401",
+        "contentHash": "Cdl0yviHUbmDyHvKHft8r6z44Xm6pY6esHnNXRXXBqImDanuMzapXWxRZu68pNw59X8v/qso+r9wYBibBe/VXw==",
+        "dependencies": {
+          "System.Diagnostics.PerformanceCounter": "8.0.0",
+          "System.DirectoryServices.Protocols": "8.0.2",
+          "System.Security.Cryptography.Pkcs": "10.0.13"
+        }
       },
       "SQLitePCLRaw.bundle_e_sqlite3": {
         "type": "Transitive",
@@ -313,6 +328,24 @@
           "System.Security.Cryptography.ProtectedData": "9.0.21"
         }
       },
+      "System.Data.Odbc": {
+        "type": "Transitive",
+        "resolved": "10.0.15",
+        "contentHash": "uSiK3C4Nf54hB1p8jSOTfo4dIfub4I0BDDDWWWm0LTz5JMC2TWDd3OsuUlfyjFRwf2NjEoakuAmWlT/I4wX7tw=="
+      },
+      "System.Diagnostics.PerformanceCounter": {
+        "type": "Transitive",
+        "resolved": "8.0.0",
+        "contentHash": "lX6DXxtJqVGWw7N/QmVoiCyVQ+Q/Xp+jVXPr3gLK1jJExSn1qmAjJQeb8gnOYeeBTG3E3PmG1nu92eYj/TEjpg==",
+        "dependencies": {
+          "System.Configuration.ConfigurationManager": "8.0.0"
+        }
+      },
+      "System.DirectoryServices.Protocols": {
+        "type": "Transitive",
+        "resolved": "8.0.2",
+        "contentHash": "7pSU+qkmdkwbikAvn4kpvClfyffaR7dYJw7ucBtO5d6m/7wgKZIULOZAGFLMIMOFFmg7xC67TYKptHxcbqQm+Q=="
+      },
       "System.IdentityModel.Tokens.Jwt": {
         "type": "Transitive",
         "resolved": "8.19.2",
@@ -324,8 +357,8 @@
       },
       "System.Security.Cryptography.Pkcs": {
         "type": "Transitive",
-        "resolved": "9.0.21",
-        "contentHash": "KD+oHoYIxwNCajjVe58WVwq9cRpum+Pg3tRveDRtkcaw6w3oc7sNBoMRtb5P5OehI3bgv1ucMpgjf8lpj5J96A=="
+        "resolved": "10.0.13",
+        "contentHash": "a+EovgC1fBnwdlQ6cn3j4JFBfKqiFaFvoAhjisOoSvazLAcIznaBzPQP0oYnvccmeXfqUH1KebVZOxSeH6rMaw=="
       },
       "System.Security.Cryptography.ProtectedData": {
         "type": "Transitive",
@@ -338,7 +371,7 @@
           "Microsoft.Data.Sqlite": "[10.0.15, )",
           "Modeller.Core": "[1.0.0, )",
           "Modeller.Database": "[1.0.0, )",
-          "Npgsql": "[10.0.1, )"
+          "Npgsql": "[10.0.4, )"
         }
       },
       "modeller.core": {
@@ -348,7 +381,11 @@
         "type": "Project",
         "dependencies": {
           "Microsoft.Data.SqlClient": "[7.1.2, )",
-          "Modeller.Core": "[1.0.0, )"
+          "Modeller.Core": "[1.0.0, )",
+          "MySqlConnector": "[3.0.0, )",
+          "Npgsql": "[10.0.4, )",
+          "Oracle.ManagedDataAccess.Core": "[23.26.401, )",
+          "System.Data.Odbc": "[10.0.15, )"
         }
       },
       "modeller.operational": {
@@ -387,10 +424,28 @@
         "resolved": "2.1.13",
         "contentHash": "D2UAuiGxFYBqeRXjjjGgvJ5UQifzn6wefmSqeKU7XcNGKLbJRP6X7kcPZ6opOBJGdCIlgbSxTvDpBbLvsN594A=="
       },
+      "System.Data.Odbc": {
+        "type": "Transitive",
+        "resolved": "10.0.15",
+        "contentHash": "uSiK3C4Nf54hB1p8jSOTfo4dIfub4I0BDDDWWWm0LTz5JMC2TWDd3OsuUlfyjFRwf2NjEoakuAmWlT/I4wX7tw=="
+      },
+      "System.Diagnostics.PerformanceCounter": {
+        "type": "Transitive",
+        "resolved": "8.0.0",
+        "contentHash": "lX6DXxtJqVGWw7N/QmVoiCyVQ+Q/Xp+jVXPr3gLK1jJExSn1qmAjJQeb8gnOYeeBTG3E3PmG1nu92eYj/TEjpg==",
+        "dependencies": {
+          "System.Configuration.ConfigurationManager": "8.0.0"
+        }
+      },
+      "System.DirectoryServices.Protocols": {
+        "type": "Transitive",
+        "resolved": "8.0.2",
+        "contentHash": "7pSU+qkmdkwbikAvn4kpvClfyffaR7dYJw7ucBtO5d6m/7wgKZIULOZAGFLMIMOFFmg7xC67TYKptHxcbqQm+Q=="
+      },
       "System.Security.Cryptography.Pkcs": {
         "type": "Transitive",
-        "resolved": "9.0.21",
-        "contentHash": "KD+oHoYIxwNCajjVe58WVwq9cRpum+Pg3tRveDRtkcaw6w3oc7sNBoMRtb5P5OehI3bgv1ucMpgjf8lpj5J96A=="
+        "resolved": "10.0.13",
+        "contentHash": "a+EovgC1fBnwdlQ6cn3j4JFBfKqiFaFvoAhjisOoSvazLAcIznaBzPQP0oYnvccmeXfqUH1KebVZOxSeH6rMaw=="
       }
     }
   }
