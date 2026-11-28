@@ -33,7 +33,7 @@ public sealed partial class DependencyQueue
         var item = registry.Read<PendingMessage>(token, "pending", lease.Id, transaction) ?? throw new ProcessingException("PENDING_INPUT_UNAVAILABLE");
         var plan = registry.Read<PlannedDelivery>(token, "delivery-plan", lease.Id, transaction) ?? throw new ProcessingException("DELIVERY_PLAN_REQUIRED");
         if (item.State != "LEASED" || item.LeaseId != lease.LeaseId || item.LeaseUntil <= now || index < 0 || index >= plan.Outputs.Length) throw new ProcessingException("PROCESSING_LEASE_CONFLICT");
-        if (receipt.State is not ("CREATED" or "ALREADY_PRESENT") || receipt.DestinationSha256 != plan.DestinationSha256 || receipt.ResourceSha256 != FhirDelivery.PayloadHash(plan.Outputs[index]) || receipt.DestinationReference is null) throw new ProcessingException("DELIVERY_RECEIPT_MISMATCH");
+        if (receipt.State is not ("CREATED" or "ALREADY_PRESENT" or "UPDATED" or "SUPERSEDED") || receipt.DestinationSha256 != plan.DestinationSha256 || receipt.ResourceSha256 != ClinicalDelivery.Hash(plan.Outputs[index]) || receipt.DestinationReference is null) throw new ProcessingException("DELIVERY_RECEIPT_MISMATCH");
         var receipts = plan.Receipts.ToArray(); receipts[index] = receipt;
         registry.Write(token, "delivery-plan", lease.Id, 1, plan with { Receipts = receipts }, transaction); transaction.Commit();
     }
@@ -61,7 +61,7 @@ public sealed partial class DependencyQueue
         var plan = registry.Read<PlannedDelivery>(token, "delivery-plan", lease.Id, transaction);
         if (receipts.Length != (plan?.Outputs.Length ?? 0)) throw new ProcessingException("RECOVERY_PLAN_MISMATCH");
         if (plan is not null) {
-            for (var i = 0; i < receipts.Length; i++) if (receipts[i] is { } receipt && (receipt.State is not ("CREATED" or "ALREADY_PRESENT") || receipt.ResourceSha256 != FhirDelivery.PayloadHash(plan.Outputs[i]) || receipt.DestinationSha256 != plan.DestinationSha256 || receipt.DestinationReference is null))
+            for (var i = 0; i < receipts.Length; i++) if (receipts[i] is { } receipt && (receipt.State is not ("CREATED" or "ALREADY_PRESENT" or "UPDATED" or "SUPERSEDED") || receipt.ResourceSha256 != (plan.Outputs[i]["_type"]?.GetValue<string>()=="COMPOSITION"?OpenEhrDelivery.PayloadHash(plan.Outputs[i]):FhirDelivery.PayloadHash(plan.Outputs[i])) || receipt.DestinationSha256 != plan.DestinationSha256 || receipt.DestinationReference is null))
                 throw new ProcessingException("RECOVERY_EVIDENCE_MISMATCH");
             registry.Write(token, "delivery-plan", lease.Id, 1, plan with { Receipts = receipts }, transaction);
         }
@@ -96,7 +96,7 @@ public static class RecoveryDestination
                 if (value["id"]?.GetValue<string>() != id || !owners.Contains(owner, StringComparer.Ordinal) || !projects.Contains(project, StringComparer.Ordinal)) continue;
                 destinations.Add(new(Data.Required(value, "id"), Data.Required(value, "baseUrl"), Data.Required(value, "tokenFile"), projects, owners,
                     value["resourceTypes"]!.AsArray().Select(item => item!.GetValue<string>()).ToArray(),
-                    value["readResourceTypes"]?.AsArray().Select(item => item!.GetValue<string>()).ToArray()));
+                    value["readResourceTypes"]?.AsArray().Select(item => item!.GetValue<string>()).ToArray(), value["standard"]?.GetValue<string>() ?? "fhir", value["openEhr"] is JsonObject options ? System.Text.Json.JsonSerializer.Deserialize<OpenEhrDestination>(options,Data.Json) : null));
             }
         }
         return destinations.SingleOrDefault(destination => destination.Id == id && destination.Owners.Contains(owner, StringComparer.Ordinal) && destination.Projects.Contains(project, StringComparer.Ordinal)) ?? throw new ProcessingException("DESTINATION_ACCESS_REJECTED");
@@ -113,7 +113,7 @@ public static class DeliveryRecovery
         if (pending.Input.MappingSubject != definition["subject"]?.GetValue<string>() || pending.Input.MappingSha256 != definition["mappingSha256"]?.GetValue<string>()) throw new ProcessingException("HELD_MAPPING_CHANGED");
         var plan = queue.DeliveryPlan(scope, id);
         var destination = plan is null ? null : RecoveryDestination.Resolve(configuration, scope.Owner, scope.ProjectId, scope.DestinationId);
-        using var client = destination is null ? null : new FhirDelivery(configuration, destination);
+        using var client = destination is null ? null : new ClinicalDelivery(configuration, destination);
         if (client is not null && client.DestinationHash != plan!.DestinationSha256) throw new ProcessingException("DELIVERY_DESTINATION_CHANGED");
         var lease = queue.BeginRecovery(scope, id, expectedRevision, sourceSha256, actorId, comment, DateTimeOffset.UtcNow, action);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation); deadline.CancelAfter(TimeSpan.FromMinutes(10));
@@ -121,14 +121,22 @@ public static class DeliveryRecovery
         try {
             var receipts = new DeliveryReceipt?[plan?.Outputs.Length ?? 0];
             if (client is not null) {
-                if (!await new DestinationEvidence(registry, queue, scope, client).Refresh(pending, cancellation)) throw new ProcessingException("WAITING_DEPENDENCIES");
+                if (client.Fhir is not null && !await new DestinationEvidence(registry, queue, scope, client.Fhir).Refresh(pending, cancellation)) throw new ProcessingException("WAITING_DEPENDENCIES");
                 await client.Check(Data.Required((JsonObject)definition["projectConfiguration"]!, "fhirVersion"), cancellation);
                 for (var index = 0; index < plan!.Outputs.Length; index++) {
                     cancellation.ThrowIfCancellationRequested();
                     var output = plan.Outputs[index];
+                    if(client.OpenEhr is not null) {
+                        var patient=pending.Input.PatientIdentity??throw new ProcessingException("PATIENT_IDENTITY_REQUIRED");
+                        var outbound=registry.OutboundPatientIdentity(scope,patient,pending.Input.PrivacyPolicyRevision);
+                        receipts[index]=await client.OpenEhr.CheckExisting(output,outbound.System,outbound.Value,cancellation);
+                        if(receipts[index] is not null && action is "confirm" or "retry-missing") DestinationWriteLease.Reconciled(registry,client.OpenEhr.TargetKey(output,outbound.System,outbound.Value),client.PayloadHash(output));
+                        if(receipts[index] is null && action=="retry-missing") DestinationWriteLease.Reconciled(registry,client.OpenEhr.TargetKey(output,outbound.System,outbound.Value),client.PayloadHash(output));
+                        continue;
+                    }
                     var identifiers = output["identifier"] as JsonArray;
                     if (identifiers?.Count != 1 || identifiers[0] is not JsonObject identifier) throw new ProcessingException("RECOVERY_SINGLE_IDENTIFIER_REQUIRED");
-                    var actual = await client.FindExact(Data.Required(output, "resourceType"), Data.Required(identifier, "system"), Data.Required(identifier, "value"), cancellation);
+                    var actual = await client.Fhir!.FindExact(Data.Required(output, "resourceType"), Data.Required(identifier, "system"), Data.Required(identifier, "value"), cancellation);
                     if (actual is null) continue;
                     var payload = (JsonObject)output.DeepClone(); payload.Remove("id");
                     if (!FhirDelivery.Equivalent(payload, actual)) throw new ProcessingException("DESTINATION_EXISTING_CONTENT_CONFLICT");

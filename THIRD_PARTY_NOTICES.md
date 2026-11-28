@@ -67,3 +67,7 @@ The .NET application uses the official [C# MCP SDK](https://github.com/modelcont
 Source adapters use the locked Microsoft.Data.SqlClient, Npgsql, MySqlConnector, Oracle.ManagedDataAccess.Core and System.Data.Odbc packages. Their package licenses and notices are retained by the NuGet notice collector; the application license does not replace them. MySqlConnector and System.Data.Odbc retain their MIT terms; Npgsql retains its PostgreSQL license. Oracle.ManagedDataAccess.Core is distributed unmodified with the [Oracle Free Distribution, Hosting, and Use Terms and Conditions](dotnet/notices/licenses/Oracle.ManagedDataAccess.Core.LICENSE.txt). That complete license is included in the distributed notices.
 
 The proprietary SAP HANA ODBC client is not included in this repository or its default images. Operators must install an appropriately licensed client and pin its checksum. The adapter never downloads or loads an agent-supplied driver. Oracle and SAP product names identify compatibility, not ownership or endorsement.
+
+## Kafka client
+
+The private Kafka intake uses Confluent.Kafka and librdkafka.redist (locked NuGet packages). Preserve their Apache-2.0/BSD notices and transitive license material collected in the runtime notice directory. The disposable acceptance fixture uses the prebuilt Apache Kafka image under Apache-2.0; it is not bundled as a broker in the application. See the pinned lockfiles and upstream package notices for complete terms.

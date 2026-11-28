@@ -1,3 +1,4 @@
+import { mappingRequest } from "./mapping-prompt.js";
 const $ = (id) => document.getElementById(id);
 // Tabs change presentation only. Hidden forms keep their values and review state.
 const workflowTabs = [...document.querySelectorAll('[role="tab"]')];
@@ -418,6 +419,12 @@ $("channel-preview").onclick = () =>
                 ...value,
                 name: $("channel-name").value,
                 pollSeconds: Number($("poll").value),
+                processingMode: $("channel-processing-mode").value,
+                maxConcurrent:
+                    $("channel-processing-mode").value === "concurrent" ? Number($("channel-concurrency").value) : 1,
+                memoryMiB: Number($("channel-memory").value),
+                maxQueued: Number($("channel-queue-limit").value),
+                retryLimit: Number($("channel-retries").value),
                 failurePolicy: $("failure-policy").value,
             }),
         );
@@ -443,6 +450,11 @@ $("commit").onclick = () =>
         if (value.kind === "relationship-resolution") {
             $("resolve-relation-value").value = "";
             $("resolve-relation-comment").value = "";
+        }
+        if (value.kind === "kafka-sources") await kafkaList();
+        if (value.kind === "destinations") {
+            await destinationList();
+            await load();
         }
         await jobs();
         notice("Operation confirmed. Review status in Jobs & monitoring.");
@@ -1177,3 +1189,184 @@ $("vendor-detail").onclick = () =>
         $("vendor-append-ack").checked = false;
         vendorKind();
     });
+
+let managedDestinations = [];
+async function destinationList() {
+    const result = await api("destinations?projectId=" + encodeURIComponent(project()));
+    managedDestinations = result.items;
+    options(
+        $("managed-destination"),
+        result.items,
+        (item) => item.id,
+        (item) => item.displayName + " · " + item.standard + (item.enabled ? "" : " · disabled"),
+    );
+}
+function destinationInput() {
+    const standard = $("destination-standard").value;
+    return {
+        projectId: project(),
+        displayName: $("destination-name").value.trim(),
+        standard,
+        baseUrl: $("destination-url").value.trim(),
+        token: $("destination-token").value,
+        resourceTypes:
+            standard === "openehr"
+                ? ["COMPOSITION"]
+                : $("destination-types")
+                      .value.split(",")
+                      .map((value) => value.trim())
+                      .filter(Boolean),
+        readResourceTypes:
+            standard === "openehr"
+                ? ["COMPOSITION"]
+                : $("destination-read-types")
+                      .value.split(",")
+                      .map((value) => value.trim())
+                      .filter(Boolean),
+        openEhr:
+            standard === "openehr"
+                ? {
+                      templateIds: $("destination-templates")
+                          .value.split("\n")
+                          .map((value) => value.trim())
+                          .filter(Boolean),
+                      identifierIssuer: $("destination-identifier-issuer").value.trim(),
+                      identifierType: $("destination-identifier-type").value.trim(),
+                      versionType: $("destination-version-type").value.trim(),
+                      versionKind: $("destination-version-kind").value,
+                      updateExisting: $("destination-update-existing").checked,
+                      clientAssignedIdsQualified: $("destination-qualified-ids").checked,
+                      targetNamespace: $("destination-namespace").value.trim(),
+                  }
+                : null,
+        comment: $("destination-comment").value.trim(),
+    };
+}
+$("destination-standard").onchange = () => {
+    $("openehr-destination-options").hidden = $("destination-standard").value !== "openehr";
+};
+$("destination-setup").addEventListener("toggle", () => {
+    if ($("destination-setup").open) run(destinationList);
+});
+$("destination-preview").onclick = () =>
+    run(async () => {
+        reviewOperation("destinations", await api("destinations/preview", destinationInput()));
+        $("destination-token").value = "";
+    });
+$("destination-rotate").onclick = () =>
+    run(async () => {
+        const item = managedDestinations.find((item) => item.id === $("managed-destination").value);
+        if (!item) throw new Error("Choose an existing destination.");
+        reviewOperation(
+            "destinations",
+            await api("destinations/preview", {
+                id: item.id,
+                expectedRevision: item.revision,
+                projectId: project(),
+                displayName: item.displayName,
+                standard: item.standard,
+                baseUrl: item.baseUrl,
+                resourceTypes: item.resourceTypes,
+                readResourceTypes: item.readResourceTypes,
+                openEhr: item.openEhr,
+                token: $("destination-token").value,
+                comment: $("destination-comment").value.trim(),
+            }),
+        );
+        $("destination-token").value = "";
+    });
+for (const [button, enabled] of [
+    ["destination-disable", false],
+    ["destination-enable", true],
+])
+    $(button).onclick = () =>
+        run(async () => {
+            const item = managedDestinations.find((item) => item.id === $("managed-destination").value);
+            if (!item) throw new Error("Choose an existing destination.");
+            await api("destinations/state", {
+                id: item.id,
+                expectedRevision: item.revision,
+                projectId: project(),
+                enabled,
+                comment: $("destination-comment").value.trim(),
+            });
+            await destinationList();
+            await load();
+            notice("Destination access updated. Active workers observe revocation; reconcile any uncertain write.");
+        });
+
+let kafkaProfiles = [];
+async function kafkaList() {
+    const result = await api("kafka-sources?projectId=" + encodeURIComponent(project()));
+    kafkaProfiles = result.items;
+    options(
+        $("kafka-connection"),
+        result.items,
+        (item) => item.id,
+        (item) => item.displayName + " · " + item.topic + (item.enabled ? "" : " · disabled"),
+    );
+    $("kafka-status").textContent = JSON.stringify(result, null, 2);
+    await load();
+}
+$("kafka-setup").addEventListener("toggle", () => {
+    if ($("kafka-setup").open) run(kafkaList);
+});
+$("kafka-refresh-list").onclick = () => run(kafkaList);
+$("kafka-preview").onclick = () =>
+    run(async () => {
+        const input = {
+            projectId: project(),
+            displayName: $("kafka-name").value.trim(),
+            identityDomain: $("kafka-domain").value.trim(),
+            valueFormat: $("kafka-format").value,
+            brokers: $("kafka-brokers")
+                .value.split(",")
+                .map((v) => v.trim())
+                .filter(Boolean),
+            topic: $("kafka-topic").value.trim(),
+            authentication: $("kafka-auth").value,
+            username: $("kafka-username").value,
+            password: $("kafka-password").value,
+            caPem: $("kafka-ca").value,
+            certificatePem: $("kafka-cert").value,
+            keyPem: $("kafka-key").value,
+            maximumMessages: Number($("kafka-batch").value),
+            comment: $("kafka-reason").value,
+        };
+        reviewOperation("kafka-sources", await api("kafka-sources/preview", input));
+        for (const field of ["kafka-password", "kafka-key"]) $(field).value = "";
+    });
+$("kafka-capture").onclick = () =>
+    run(async () => {
+        const source = kafkaProfiles.find((p) => p.id === $("kafka-connection").value);
+        if (!source) throw new Error("Choose a Kafka topic.");
+        const result = await api("kafka-sources/refresh", { projectId: project(), sourceId: source.sourceId });
+        $("kafka-status").textContent = JSON.stringify(result, null, 2);
+        await load();
+    });
+for (const [button, enabled] of [
+    ["kafka-enable", true],
+    ["kafka-disable", false],
+])
+    $(button).onclick = () =>
+        run(async () => {
+            const source = kafkaProfiles.find((p) => p.id === $("kafka-connection").value);
+            if (!source) throw new Error("Choose a Kafka topic.");
+            await api("kafka-sources/state", {
+                projectId: project(),
+                id: source.id,
+                expectedRevision: source.revision,
+                enabled,
+            });
+            await kafkaList();
+        });
+
+$("mapping-prompt-open").onclick = () => {
+    try {
+        const prompt = mappingRequest($("project").value || "not yet selected");
+        sessionStorage.setItem("mapping-agent-request", JSON.stringify({ prompt, at: Date.now() }));
+        location.assign("/chat/#chat");
+    } catch (error) {
+        $("mapping-prompt-status").textContent = error.message;
+    }
+};

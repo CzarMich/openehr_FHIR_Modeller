@@ -12,11 +12,13 @@ install: ## Restore locked .NET dependencies; install browser test dependencies
 	$(SDK) dotnet restore Modeller.Mcp --locked-mode -p:NuGetAudit=false
 	$(SDK) dotnet restore Modeller.Processing --locked-mode -p:NuGetAudit=false
 	$(SDK) dotnet restore Modeller.Extraction --locked-mode -p:NuGetAudit=false
+	$(SDK) dotnet restore Modeller.Kafka --locked-mode -p:NuGetAudit=false
 	npm ci --prefix chat --ignore-scripts --no-audit
 compile: ## Compile application and private worker in the pinned SDK container
 	$(SDK) dotnet build Modeller.Mcp -c Release --no-restore
 	$(SDK) dotnet build Modeller.Processing -c Release --no-restore
 	$(SDK) dotnet build Modeller.Extraction -c Release --no-restore
+	$(SDK) dotnet build Modeller.Kafka -c Release --no-restore
 unit: ## Verify application, mapping/delivery and source-plan behaviour on synthetic data
 	$(SDK) dotnet run --project Modeller.Application.Tests -c Release -p:NuGetAudit=false
 	$(SDK) dotnet run --project Modeller.Processing.Tests -c Release -p:NuGetAudit=false

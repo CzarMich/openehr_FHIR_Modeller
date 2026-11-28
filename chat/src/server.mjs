@@ -1,3 +1,5 @@
+import { KafkaSources } from "./kafka-sources.mjs";
+import { ClinicalDestinations } from "./clinical-destinations.mjs";
 import { VendorSources } from "./vendor-sources.mjs";
 import { ChannelGroups } from "./channel-groups.mjs";
 import { createHash } from "node:crypto";
@@ -61,6 +63,7 @@ const assets = {
     "/chat/aql.js": ["aql.js", "text/javascript"],
     "/chat/aql.css": ["aql.css", "text/css"],
     "/chat/fhir.js": ["fhir.js", "text/javascript"],
+    "/chat/mapping-prompt.js": ["mapping-prompt.js", "text/javascript"],
     "/chat/integration.js": ["integration.js", "text/javascript"],
     "/chat/integration/": ["integration.html", "text/html"],
     "/chat/integration.css": ["integration.css", "text/css"],
@@ -141,6 +144,12 @@ export function createApplication(
         );
     };
     processing.vendor = vendorSources;
+    const clinicalDestinations = new ClinicalDestinations(config, integrationCore, processing);
+    clinicalDestinations.canOperateOwner = vendorSources.canOperateOwner;
+    processing.destinations = clinicalDestinations;
+    const kafkaSources = new KafkaSources(config, integrationCore, processing);
+    kafkaSources.canOperateOwner = vendorSources.canOperateOwner;
+    processing.kafka = kafkaSources;
     const channelGroups = new ChannelGroups(config, processing);
     mcpFactory ||= (signal) => new ModellingClients(config, integrationCore, signal);
     provider.canUseGlobal = (identity) => identityCanUseGlobal(auth.identityStore, identity);
@@ -703,6 +712,30 @@ export function createApplication(
                     throw Object.assign(new Error("Integration mode is not configured."), { status: 503 });
                 const suffix = path.slice("/chat/api/integration/".length);
                 const url = new URL(req.url, config.origin);
+                if (suffix === "kafka-sources" && req.method === "GET")
+                    return json(res, 200, await kafkaSources.list(session, url.searchParams.get("projectId")));
+                if (
+                    [
+                        "kafka-sources/preview",
+                        "kafka-sources/commit",
+                        "kafka-sources/refresh",
+                        "kafka-sources/state",
+                    ].includes(suffix) &&
+                    req.method === "POST"
+                ) {
+                    if (!config.allowWrites)
+                        throw Object.assign(new Error("Workspace changes are disabled."), { status: 403 });
+                    const input = await body(req, null, "Invalid Kafka source configuration.", 262144);
+                    const method = suffix.split("/")[1];
+                    return json(
+                        res,
+                        200,
+                        await kafkaSources[method === "state" ? "setEnabled" : method](
+                            session,
+                            method === "commit" ? input.confirmation : input,
+                        ),
+                    );
+                }
                 if (suffix === "vendor-sources" && req.method === "GET")
                     return json(res, 200, await vendorSources.list(session, url.searchParams.get("projectId")));
                 if (suffix.startsWith("vendor-sources/") && req.method === "POST") {
@@ -798,6 +831,25 @@ export function createApplication(
                             ),
                         );
                     }
+                }
+                if (suffix === "destinations" && req.method === "GET")
+                    return json(res, 200, await clinicalDestinations.list(session, url.searchParams.get("projectId")));
+                if (
+                    ["destinations/preview", "destinations/commit", "destinations/state"].includes(suffix) &&
+                    req.method === "POST"
+                ) {
+                    if (!config.allowWrites)
+                        throw Object.assign(new Error("Workspace changes are disabled."), { status: 403 });
+                    const input = await body(req, null, "Invalid destination configuration.", 262144);
+                    return json(
+                        res,
+                        200,
+                        suffix.endsWith("/preview")
+                            ? await clinicalDestinations.preview(session, input)
+                            : suffix.endsWith("/state")
+                              ? await clinicalDestinations.setEnabled(session, input)
+                              : await clinicalDestinations.commit(session, input.confirmation),
+                    );
                 }
                 if (suffix === "connections" && req.method === "GET")
                     return json(
@@ -1916,8 +1968,11 @@ export function createApplication(
     });
     server.on("close", () => {
         vendorSources.close();
-        processing.close();
-        integrationCore.stop();
+        kafkaSources.close();
+        Promise.resolve(processing.close()).finally(() => {
+            clinicalDestinations.close();
+            integrationCore.stop();
+        });
         clearInterval(cleanup);
         provider.close?.();
         for (const turn of active.values()) turn.controller.abort();

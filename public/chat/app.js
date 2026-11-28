@@ -1201,6 +1201,24 @@ loadSession()
         } else if (location.hash.startsWith("#share=")) {
             sessionStorage.setItem("pending-share", location.hash);
         }
+        if (session.authenticated) {
+            const mappingRequest = sessionStorage.getItem("mapping-agent-request");
+            sessionStorage.removeItem("mapping-agent-request");
+            if (mappingRequest)
+                try {
+                    const request = JSON.parse(mappingRequest);
+                    if (
+                        typeof request.prompt === "string" &&
+                        request.prompt.length <= 8000 &&
+                        Date.now() - request.at < 600000
+                    ) {
+                        $("message").value = request.prompt;
+                        controls();
+                        $("message").focus();
+                        notice("Mapping request prepared. Review it and send when ready.");
+                    }
+                } catch {}
+        }
     })
     .catch(() => notice("The chat service is currently unavailable. Please try again shortly."));
 

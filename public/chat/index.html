@@ -1602,6 +1602,51 @@
                             <option value="">Select a project</option>
                         </select></label
                     >
+
+                    <section class="mapping-prompt-panel" aria-labelledby="mapping-prompt-heading">
+                        <h2 id="mapping-prompt-heading">Draft with the agent</h2>
+                        <p>
+                            Describe the clinical mapping in ordinary language. The agent proposes rules, explains
+                            assumptions and prepares sample output when a suitable input is available. You review and
+                            confirm the result.
+                        </p>
+                        <label
+                            >Mapping direction
+                            <select id="mapping-prompt-direction">
+                                <option value="source-direct-to-fhir">Source to FHIR</option>
+                                <option value="source-to-openehr">Source to openEHR</option>
+                                <option value="openehr-to-fhir">openEHR to FHIR</option>
+                                <option value="fhir-to-openehr">FHIR to openEHR</option>
+                            </select></label
+                        >
+                        <label
+                            >Your requirements and constraints
+                            <textarea
+                                id="mapping-prompt-narrative"
+                                rows="5"
+                                maxlength="4000"
+                                placeholder="Describe the source meaning, target profiles/templates, identifiers, terminology, units, missing values and rules you want."
+                            ></textarea>
+                        </label>
+                        <label
+                            >Optional synthetic or de-identified sample input
+                            <textarea
+                                id="mapping-prompt-sample"
+                                rows="4"
+                                maxlength="2000"
+                                spellcheck="false"
+                            ></textarea>
+                        </label>
+                        <label
+                            ><input id="mapping-prompt-safe" type="checkbox" /> Any sample I provide is synthetic or
+                            de-identified and approved for the configured AI provider. It contains no
+                            credentials.</label
+                        >
+                        <button id="mapping-prompt-open" type="button">Continue in modelling chat</button>
+                        <p id="mapping-prompt-status" role="status">
+                            The request is prepared for your review in chat. Nothing is sent automatically.
+                        </p>
+                    </section>
                     <section class="fhir-card" aria-labelledby="mapping-confirmation-heading">
                         <h2 id="mapping-confirmation-heading">Confirm models for mapping</h2>
                         <p>
@@ -1664,7 +1709,14 @@
                         <pre id="mapping-analysis" class="fhir-output" tabindex="0" hidden></pre>
                     </section>
                     <section class="fhir-card">
-                        <h2>Versioned mapping proposal</h2>
+                        <h2>Agent-drafted mapping proposal</h2>
+                        <p>
+                            Describe your constraints in ordinary language in chat. The agent proposes explicit rules
+                            with your original wording, its interpretation, assumptions and unresolved questions. Supply
+                            a synthetic or de-identified sample input when available to prepare test cases and expected
+                            output. Review and confirm the proposal before execution; changed instructions require a new
+                            version.
+                        </p>
                         <label
                             >Mapping document (JSON)<textarea
                                 id="mapping-document"

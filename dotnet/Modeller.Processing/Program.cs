@@ -41,6 +41,11 @@ try {
     }
     byte[] bytes;
     if (retained is not null) bytes = retained;
+    else if (File.Exists(Path.Combine(directory, "source-snapshot.bin"))) {
+        var snapshot = new FileInfo(Path.Combine(directory,"source-snapshot.bin"));
+        if (snapshot.LinkTarget is not null || snapshot.Length is <1 or >Sources.Limit) throw new ProcessingException("PRIVATE_SOURCE_SNAPSHOT_INVALID");
+        bytes = File.ReadAllBytes(snapshot.FullName);
+    }
     else {
         var file = Sources.FileWithin(source.Root, request.File);
         using var stream = Sources.Open(source.Root, file);
@@ -91,10 +96,9 @@ try {
         if (mapping.Direction == "fhir-to-openehr" && source.Format != "fhir-json") throw new ProcessingException("DECLARED_FHIR_SOURCE_REQUIRED");
         if (mapping.RequiresOpenEhrInput && source.Format != "openehr-json") throw new ProcessingException("DECLARED_OPENEHR_SOURCE_REQUIRED");
         if (source.Format == "openehr-json" && !mapping.RequiresOpenEhrInput) throw new ProcessingException("DECLARED_OPENEHR_MAPPING_REQUIRED");
-        if (mapping.Direction == "fhir-to-openehr" && request.Mode != "export") throw new ProcessingException("REVERSE_MAPPING_EXPORT_ONLY");
-        if (mapping.Direction == "source-to-openehr" && request.Mode != "export") throw new ProcessingException("OPENEHR_OUTPUT_EXPORT_ONLY");
         var destination = request.Mode == "deliver" ? config.Destinations.SingleOrDefault(d => d.Id == request.DestinationId && d.Projects.Contains(request.ProjectId, StringComparer.Ordinal) && d.Owners.Contains(request.Owner, StringComparer.Ordinal)) ?? throw new ProcessingException("DESTINATION_ACCESS_REJECTED") : null;
-        using var delivery = destination is null ? null : new FhirDelivery(config, destination);
+        if(destination is not null && (mapping.ProducesOpenEhr ? destination.Standard!="openehr" : destination.Standard!="fhir")) throw new ProcessingException("MAPPING_DESTINATION_STANDARD_MISMATCH");
+        using var delivery = destination is null ? null : new ClinicalDelivery(config, destination);
         if (delivery is not null) await delivery.Check(Data.Required(models.Project, "fhirVersion"), cancellation.Token);
         using var validation = new Validation(config, request, models);
         var clinicalPolicy = mapping.ClinicalPolicy;
@@ -103,8 +107,10 @@ try {
         var scope = new OperationalScope(request.Owner!, request.ProjectId!, clinicalPolicy.IdentityDomain, clinicalPolicy.DestinationId);
         var clinical = new ClinicalPipeline(identities, scope, clinicalPolicy, sourceContract);
         var dependencyQueue = new DependencyQueue(identities);
-        var destinationEvidence = delivery is null ? null : new DestinationEvidence(identities, dependencyQueue, scope, delivery);
-        var configurationHash = Data.Hash(Data.Canonical(System.Text.Json.JsonSerializer.SerializeToNode(new { source, destination }, Data.Json)));
+        var destinationEvidence = delivery?.Fhir is null ? null : new DestinationEvidence(identities, dependencyQueue, scope, delivery.Fhir);
+        var pinnedDestination=System.Text.Json.JsonSerializer.SerializeToNode(destination,Data.Json) as JsonObject;
+        if(destination?.Standard=="fhir" && destination.OpenEhr is null){pinnedDestination!.Remove("standard");pinnedDestination.Remove("openEhr");}
+        var configurationHash=Data.Hash(Data.Canonical(new JsonObject{["source"]=System.Text.Json.JsonSerializer.SerializeToNode(source,Data.Json),["destination"]=pinnedDestination}));
         var stateFile = Path.Combine(directory, "state.json");
         if (File.Exists(stateFile) && Data.Read<JobState>(stateFile).ConfigurationSha256 != configurationHash) throw new ProcessingException("JOB_CONNECTION_CONFIGURATION_CHANGED");
         var state = new JobState { ConfigurationSha256 = configurationHash, Status = "RUNNING", MappingSha256 = Data.Hash(models.MappingJson), SourceSchemaSha256 = mapping.SchemaHash };
@@ -124,12 +130,15 @@ try {
             var rows = Directory.EnumerateFiles(directory, "row-*.json").Select(file => Data.Read<Row>(file)).ToArray();
             state.Checkpoint = rows.Count(r => r.Complete); state.Read = rows.Sum(r => r.SourceCount); state.Transformed = rows.Where(r => r.Transformed).Sum(r => r.SourceCount);
             state.Rejected = rows.Where(r => r.Rejected).Sum(r => r.SourceCount); state.Exported = rows.Sum(r => r.ExportCount);
-            state.Emitted = rows.Sum(r => r.Receipts.Count(v => v.State is "CREATED" or "ALREADY_PRESENT"));
-            state.DeliveryFailed = rows.Sum(r => r.Receipts.Count(v => v.State is not ("CREATED" or "ALREADY_PRESENT" or "UNCERTAIN")));
+            state.Emitted = rows.Sum(r => r.Receipts.Count(v => v.State is "CREATED" or "UPDATED"));
+            state.Created=rows.Sum(r=>r.Receipts.Count(v=>v.State=="CREATED"));state.UpdatedResources=rows.Sum(r=>r.Receipts.Count(v=>v.State=="UPDATED"));state.AlreadyPresent=rows.Sum(r=>r.Receipts.Count(v=>v.State=="ALREADY_PRESENT"));state.Superseded=rows.Sum(r=>r.Receipts.Count(v=>v.State=="SUPERSEDED"));
+            state.DeliveryFailed = rows.Sum(r => r.Receipts.Count(v => v.State is not ("CREATED" or "ALREADY_PRESENT" or "UPDATED" or "SUPERSEDED" or "UNCERTAIN")));
             state.Held = rows.Count(row => row.Held);
+            state.MappingReused=rows.Count(row=>row.MappingReused);
             state.Uncertain = rows.Sum(r => r.Receipts.Count(v => v.State == "UNCERTAIN")); state.Updated = DateTimeOffset.UtcNow;
             Data.Write(Path.Combine(directory, "state.json"), state);
         }
+        var recordFailurePaused=false;
         try {
             Progress();
             await validation.Profiles(Path.Combine(directory, "evidence", "models"), cancellation.Token);
@@ -138,14 +147,14 @@ try {
                 if (Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories).Sum(file => new FileInfo(file).Length) > 256L * 1048576) throw new ProcessingException("JOB_STORAGE_LIMIT");
                 var rowFile = Path.Combine(directory, $"row-{index:D6}.json");
                 var row = File.Exists(rowFile) ? Data.Read<Row>(rowFile) : new Row { SourceCount = groups[index].SourceCount };
-                if (row.Complete && (row.Rejected || row.Receipts.All(r => r.State is "CREATED" or "ALREADY_PRESENT"))) {
+                if (row.Complete && (row.Rejected || row.Receipts.All(r => r.State is "CREATED" or "ALREADY_PRESENT" or "UPDATED" or "SUPERSEDED"))) {
                     if (delivery is not null && row.Receipts.Any(r => r.DestinationSha256 != delivery.DestinationHash)) throw new ProcessingException("DELIVERY_RECEIPT_MISMATCH");
                     continue;
                 }
                 row.Complete = false;
                 Data.Write(rowFile, row);
                 var envelope = sourceEnvelopes[index];
-                var controlId = envelope.MessageId ?? request.SourceSha256 + ":" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var controlId = envelope.MessageId ?? (request.SourceEventId??request.SourceSha256) + ":" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 var pendingItem = clinical.Admit(source, request.IntakeId ?? request.Subject!, request.Subject!, state.MappingSha256!, envelope, controlId, bytes, DateTimeOffset.UtcNow);
                 row.PendingId = pendingItem.Id;
                 var priorPlan = dependencyQueue.DeliveryPlan(scope, pendingItem.Id);
@@ -164,7 +173,7 @@ try {
                 if (pendingItem.State == "DELIVERED") { row.Complete = true; row.Held = false; row.Error = null; Data.Write(rowFile, row); Progress(); continue; }
                 if (destinationEvidence is not null) await destinationEvidence.Refresh(pendingItem, cancellation.Token);
                 var lease = clinical.Acquire(pendingItem.Id, request.Subject!, state.MappingSha256!, DateTimeOffset.UtcNow);
-                if (lease is null) { row.Held = true; row.Error = clinical.Inspect(pendingItem.Id, DateTimeOffset.UtcNow).State; Data.Write(rowFile, row); Progress(); continue; }
+                if (lease is null) { row.Held = true; row.Error = clinical.Inspect(pendingItem.Id, DateTimeOffset.UtcNow).State; Data.Write(rowFile, row); Progress(); if(request.StrictOrder)break; continue; }
                 row.Held = false; row.Error = null;
                 var writeStarted = false;
                 using var recordDeadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation.Token);
@@ -179,9 +188,19 @@ try {
                         var inputs = envelope.InputResources ?? throw new ProcessingException("VALIDATED_INPUT_RESOURCE_REQUIRED");
                         for (var inputIndex = 0; inputIndex < inputs.Count; inputIndex++) await validation.Composition((JsonObject)inputs[inputIndex]!, Path.Combine(directory, "evidence", $"input-openehr-{index:D6}-{inputIndex:D6}.json"), recordCancellation);
                     }
-                    var mapped = mapping.Transform(clinical.MappingInput(lease));
-                    if (mapping.ProducesFhir) mapped = mapped.Select(item => item with { Output = clinical.ApplyReferences(lease, item.Output) }).ToList();
-                    else foreach (var item in mapped) clinical.CheckPrivacy(lease, item.Output);
+                    var input=clinical.MappingInput(lease);
+                    var mappingContext=Data.Hash(Data.Canonical(System.Text.Json.JsonSerializer.SerializeToNode(new{input,lease.OutboundPatientIdentity,lease.Dependencies,lease.Input.PrivacyPolicyRevision,lease.Input.IdentityResolutionEvidenceSha256,mapping=state.MappingSha256,sourceContract=sourceContract.Sha256},Data.Json)));
+                    var mappingCache=Path.Combine(directory,"evidence",$"{index:D6}-mapped-checkpoint.json");
+                    List<MappedRecord> mapped;
+                    if(File.Exists(mappingCache) && Data.Read<MappedCheckpoint>(mappingCache,8*1048576) is {} cached && cached.ContextSha256==mappingContext) {
+                        if(cached.OutputSha256!=Data.Hash(Data.Canonical(System.Text.Json.JsonSerializer.SerializeToNode(cached.Records,Data.Json))))throw new ProcessingException("MAPPED_CHECKPOINT_INTEGRITY_FAILED");
+                        mapped=cached.Records;row.MappingReused=true;
+                    } else {
+                        mapped=mapping.Transform(input);
+                        if(mapping.ProducesFhir)mapped=mapped.Select(item=>item with{Output=clinical.ApplyReferences(lease,item.Output)}).ToList();
+                        else foreach(var item in mapped)clinical.CheckPrivacy(lease,item.Output);
+                        Data.Write(mappingCache,new MappedCheckpoint(mappingContext,Data.Hash(Data.Canonical(System.Text.Json.JsonSerializer.SerializeToNode(mapped,Data.Json))),mapped));
+                    }
                     // Validate the complete source record's outputs before the first destination write.
                     for (var output = 0; output < mapped.Count; output++) {
                         var prefix = Path.Combine(directory, "evidence", $"{index:D6}-{output:D3}");
@@ -205,28 +224,39 @@ try {
                         else {
                             var receiptFile = outputFile + ".receipt";
                             var receipt = File.Exists(receiptFile) ? Data.Read<DeliveryReceipt>(receiptFile) : null;
-                            if (receipt is not null && (receipt.ResourceSha256 != FhirDelivery.PayloadHash(resource) || receipt.DestinationSha256 != delivery.DestinationHash)) throw new ProcessingException("DELIVERY_RECEIPT_MISMATCH");
-                            if (receipt?.State is not ("CREATED" or "ALREADY_PRESENT")) {
-                                writeStarted = true;
-                                receipt = await delivery.Send(resource, recordCancellation); Data.Write(receiptFile, receipt);
+                            if (receipt is not null && (receipt.ResourceSha256 != delivery!.PayloadHash(resource) || receipt.DestinationSha256 != delivery.DestinationHash)) throw new ProcessingException("DELIVERY_RECEIPT_MISMATCH");
+                            if (receipt?.State is not ("CREATED" or "ALREADY_PRESENT" or "UPDATED" or "SUPERSEDED")) {
+                                using var target = delivery.OpenEhr is null ? null : DestinationWriteLease.Acquire(identities,delivery.OpenEhr.TargetKey(resource,lease.OutboundPatientIdentity.System,lease.OutboundPatientIdentity.Value),delivery.PayloadHash(resource),DateTimeOffset.UtcNow);
+                                receipt = await delivery.Send(resource,lease.OutboundPatientIdentity.System,lease.OutboundPatientIdentity.Value,()=>{target?.BeforeWrite();writeStarted=true;},(body,ct)=>validation.Composition(body,Path.Combine(directory,"evidence",$"{index:D6}-{output:D3}-outbound-openehr.json"),ct),recordCancellation);
+                                Data.Write(receiptFile, receipt);
+                                if(receipt.State is "CREATED" or "ALREADY_PRESENT" or "UPDATED" or "SUPERSEDED") {
+                                    dependencyQueue.RecordDeliveryReceipt(scope,lease,output,receipt,DateTimeOffset.UtcNow);
+                                    target?.Confirm();writeStarted=false;
+                                }
+                                else if(receipt.State is "REJECTED" or "VERSION_CONFLICT" or "RETRYABLE_NOT_SENT") {target?.KnownRejected();writeStarted=false;}
+                                if(receipt.State=="RETRYABLE_NOT_SENT")throw new ProcessingException("DESTINATION_THROTTLED");
                             }
-                            if (receipt.State is "CREATED" or "ALREADY_PRESENT") dependencyQueue.RecordDeliveryReceipt(scope, lease, output, receipt, DateTimeOffset.UtcNow);
+                            if (receipt.State is "CREATED" or "ALREADY_PRESENT" or "UPDATED" or "SUPERSEDED") dependencyQueue.RecordDeliveryReceipt(scope, lease, output, receipt, DateTimeOffset.UtcNow);
                             if (row.Receipts.Count <= output) row.Receipts.Add(receipt); else row.Receipts[output] = receipt;
                             Data.Write(rowFile, row); Progress();
-                            if (receipt.State is "CREATED" or "ALREADY_PRESENT" && clinical.PublicationIdentity(lease, Data.Required(resource, "resourceType")) is { } publicationIdentity)
+                            if (destinationEvidence is not null && (receipt.State is "CREATED" or "ALREADY_PRESENT" or "UPDATED" or "SUPERSEDED") && clinical.PublicationIdentity(lease, Data.Required(resource, "resourceType")) is { } publicationIdentity)
                                 await destinationEvidence!.Publish(lease, Data.Required(resource, "resourceType"), publicationIdentity, receipt, recordCancellation);
                             if (receipt.State == "UNCERTAIN") { clinical.Complete(lease, Data.Hash(System.Text.Json.JsonSerializer.Serialize(receipt, Data.Json)), true, DateTimeOffset.UtcNow); state.Status = "DELIVERY_UNCERTAIN"; state.Error = "RETRY_REQUIRES_RECONCILIATION"; Progress(); Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(state, Data.Json)); return; }
                         }
                         Data.Write(rowFile, row); Progress();
                     }
-                    if (row.Receipts.Any(receipt => receipt.State is not ("CREATED" or "ALREADY_PRESENT"))) throw new ProcessingException("CLINICAL_DELIVERY_INCOMPLETE");
+                    if (row.Receipts.Any(receipt => receipt.State is not ("CREATED" or "ALREADY_PRESENT" or "UPDATED" or "SUPERSEDED"))) throw new ProcessingException("CLINICAL_DELIVERY_INCOMPLETE");
                     clinical.Complete(lease, Data.Hash(Data.Canonical(System.Text.Json.JsonSerializer.SerializeToNode(new { row.ExportCount, row.Receipts }, Data.Json))), false, DateTimeOffset.UtcNow);
                     row.Complete = true; Data.Write(rowFile, row); Progress();
+                } catch (ProcessingException error) when(error.Code is "DESTINATION_PATIENT_EHR_REQUIRED" or "DESTINATION_TARGET_BUSY") {
+                    dependencyQueue.Fail(scope,lease,Data.Hash(error.Code),writeStarted,DateTimeOffset.UtcNow);
+                    row.Held=true;row.Error=error.Code;Data.Write(rowFile,row);Progress();if(request.StrictOrder)break;
                 } catch (ProcessingException error) when (error.Code.StartsWith("RECORD_", StringComparison.Ordinal)) {
                     dependencyQueue.Fail(scope, lease, Data.Hash(error.Code), writeStarted, DateTimeOffset.UtcNow);
                     row.Rejected = true; row.Complete = true; row.Error = error.Code;
                     Data.Write(Path.Combine(directory, "quarantine", $"{index:D6}.json"), new { group = index, code = error.Code, sourceId = request.SourceId, record = groups[index].Record });
                     Data.Write(rowFile, row); Progress();
+                    if(request.StopOnRejected){recordFailurePaused=true;break;}
                 } catch {
                     dependencyQueue.Fail(scope, lease, Data.Hash("PROCESSING_INTERRUPTED"), writeStarted, DateTimeOffset.UtcNow);
                     throw;
@@ -241,7 +271,7 @@ try {
             var quarantineFile = Path.Combine(directory, "quarantine.ndjson");
             using (var writer = new StreamWriter(quarantineFile + ".tmp", false, new System.Text.UTF8Encoding(false))) foreach (var rejected in Directory.EnumerateFiles(Path.Combine(directory, "quarantine"), "*.json").Order(StringComparer.Ordinal)) writer.WriteLine(File.ReadAllText(rejected));
             File.Move(quarantineFile + ".tmp", quarantineFile, true);
-            state.Status = state.Held > 0 ? "WAITING_DEPENDENCIES" : state.Rejected > 0 || state.DeliveryFailed > 0 ? "COMPLETED_WITH_FAILURES" : "COMPLETED"; state.Error = null; Progress();
+            state.Status = recordFailurePaused?"PAUSED_RECORD_FAILURE":state.Held > 0 ? "WAITING_DEPENDENCIES" : state.Rejected > 0 || state.DeliveryFailed > 0 ? "COMPLETED_WITH_FAILURES" : "COMPLETED"; state.Error = recordFailurePaused?"RECORD_FAILURE_REVIEW_REQUIRED":null; Progress();
         } catch (OperationCanceledException) { state.Status = "CANCELLED"; state.Error = null; Progress(); }
         catch (ProcessingException error) { state.Status = "BLOCKED"; state.Error = error.Code; Progress(); }
         catch { state.Status = "INTERRUPTED"; state.Error = "PROCESSING_INTERRUPTED"; Progress(); }
@@ -250,7 +280,9 @@ try {
 } catch (ProcessingException error) { Console.Error.WriteLine(error.Code); Environment.ExitCode = 1; }
 catch { Console.Error.WriteLine("PROCESSING_FAILED"); Environment.ExitCode = 1; }
 
+public sealed record MappedCheckpoint(string ContextSha256,string OutputSha256,List<MappedRecord> Records);
 public sealed class Row {
+    public bool MappingReused {get;set;}
     public int SourceCount { get; set; }
     public string? PendingId { get; set; }
     public bool Held { get; set; }

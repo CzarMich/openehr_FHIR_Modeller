@@ -1,3 +1,4 @@
+import { ChannelInbox } from "./channel-inbox.mjs";
 import { spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import {
@@ -10,6 +11,9 @@ import {
     existsSync,
     lstatSync,
     unlinkSync,
+    openSync,
+    closeSync,
+    fsyncSync,
 } from "node:fs";
 import { open } from "node:fs/promises";
 import { join, resolve, basename } from "node:path";
@@ -45,7 +49,19 @@ function json(file) {
 function save(file, value) {
     const temp = file + "." + randomBytes(8).toString("hex") + ".tmp";
     writeFileSync(temp, JSON.stringify(value), { mode: 0o600 });
+    const fd = openSync(temp, "r");
+    try {
+        fsyncSync(fd);
+    } finally {
+        closeSync(fd);
+    }
     renameSync(temp, file);
+    const parent = openSync(resolve(file, ".."), "r");
+    try {
+        fsyncSync(parent);
+    } finally {
+        closeSync(parent);
+    }
 }
 function fields(value, allowed) {
     if (
@@ -73,6 +89,7 @@ export class ProcessingWorkspace {
         this.stable = new Map();
         this.ticking = false;
         mkdirSync(this.root, { recursive: true, mode: 0o700 });
+        this.inbox = new ChannelInbox(join(this.root, "channel-inbox.sqlite"));
         this.timer = setInterval(() => this.tick().catch(() => {}), 1000);
         this.timer.unref();
         for (const owner of readdirSync(this.root).filter((name) => ids.test(name))) {
@@ -86,6 +103,7 @@ export class ProcessingWorkspace {
                 if (channel.status === "RUNNING" || channel.status === "STOPPING" || channel.activeJob) {
                     if (channel.activeJob) channel.interruptedJob = channel.activeJob;
                     channel.activeJob = null;
+                    channel.activeJobs = [];
                     channel.status = "INTERRUPTED";
                     save(join(directory, name), channel);
                 }
@@ -135,7 +153,9 @@ export class ProcessingWorkspace {
                     uploaded: true,
                 });
             }
+        if (this.kafka) sources.push(...this.kafka.connections(owner, project));
         if (this.vendor) sources.push(...this.vendor.connections(owner, project));
+        if (this.destinations) destinations.push(...this.destinations.connections(owner, project));
         return { sources, destinations, requireTerminology: configured.requireTerminology !== false };
     }
     checkQuota(session) {
@@ -228,8 +248,16 @@ export class ProcessingWorkspace {
                 uploaded: !!s.uploaded,
                 identityDomain: s.identityDomain || null,
                 trustPatientRegistration: !!s.trustPatientRegistration,
+                captureMode: s.kafka
+                    ? "kafka-durable-offsets"
+                    : s.vendor
+                      ? s.incremental
+                          ? "incremental"
+                          : "admitted-snapshots-only"
+                      : "folder",
             })),
             destinations: result.destinations.map((d) => ({
+                standard: d.standard || "fhir",
                 id: d.id,
                 displayName: d.displayName || d.id,
                 resourceTypes: d.resourceTypes,
@@ -264,7 +292,7 @@ export class ProcessingWorkspace {
                       }[source.format] || source.format),
               );
     }
-    async file(source, name) {
+    async file(source, name, capture = false) {
         if (
             typeof name !== "string" ||
             !this.matches(source, name) ||
@@ -282,7 +310,8 @@ export class ProcessingWorkspace {
             if (!stat.isFile() || stat.size < 1 || stat.size > LIMIT)
                 throw problem("The source file exceeds its limit.");
             const digest = createHash("sha256"),
-                buffer = Buffer.alloc(16384);
+                buffer = Buffer.alloc(16384),
+                chunks = [];
             let length = 0;
             for (;;) {
                 const { bytesRead } = await handle.read(buffer, 0, buffer.length, null);
@@ -290,8 +319,14 @@ export class ProcessingWorkspace {
                 length += bytesRead;
                 if (length > LIMIT) throw problem("The source file changed or exceeds its limit.");
                 digest.update(buffer.subarray(0, bytesRead));
+                if (capture) chunks.push(Buffer.from(buffer.subarray(0, bytesRead)));
             }
-            return { name, sha256: digest.digest("hex"), size: length };
+            return {
+                name,
+                sha256: digest.digest("hex"),
+                size: length,
+                ...(capture ? { bytes: Buffer.concat(chunks) } : {}),
+            };
         } finally {
             await handle.close();
         }
@@ -384,7 +419,7 @@ export class ProcessingWorkspace {
                             LANG: "C.UTF-8",
                             HTTP_CA_BUNDLE: process.env.HTTP_CA_BUNDLE,
                             DOTNET_EnableDiagnostics: "0",
-                            DOTNET_GCHeapHardLimit: "0x20000000",
+                            DOTNET_GCHeapHardLimit: "0x10000000",
                             MODELLER_APPROVAL_KEYS: JSON.stringify(this.core.keys),
                             MODELLER_APPROVAL_KEY_ID: this.config.reviewKeyId,
                         },
@@ -630,17 +665,23 @@ export class ProcessingWorkspace {
             mapping = await this.selection(session, input.projectId, input.subject),
             source = this.source(owner, input.projectId, input.sourceId);
         if (input.mode === "deliver" && !this.config.integrationAllowDelivery)
-            throw problem("FHIR destination delivery is disabled.", 403);
+            throw problem("Destination delivery is disabled.", 403);
         if (
             !["export", "deliver"].includes(input.mode) ||
             (input.mode === "deliver" &&
                 !this.connections(owner, input.projectId).destinations.some((d) => d.id === input.destinationId))
         )
-            throw problem("Choose an authorised export or FHIR destination.", 403);
-        if (input.mode === "deliver" && ["fhir-to-openehr", "source-to-openehr"].includes(mapping.direction))
-            throw problem(
-                "This mapping exports openEHR compositions. Select a FHIR-producing mapping for FHIR delivery.",
+            throw problem("Choose an authorised export or clinical destination.", 403);
+        if (input.mode === "deliver") {
+            const target = this.connections(owner, input.projectId).destinations.find(
+                (d) => d.id === input.destinationId,
             );
+            if (
+                (["fhir-to-openehr", "source-to-openehr"].includes(mapping.direction) ? "openehr" : "fhir") !==
+                (target.standard || "fhir")
+            )
+                throw problem("Choose a destination matching the mapping's target standard.", 409);
+        }
         const file = await this.file(source, input.file);
         return this.ticket(owner, "job", { ...input, sourceSha256: file.sha256, mappingSha256: mapping.mappingSha256 });
     }
@@ -666,6 +707,8 @@ export class ProcessingWorkspace {
                 owners: d.owners,
                 resourceTypes: d.resourceTypes,
                 readResourceTypes: d.readResourceTypes || null,
+                standard: d.standard || "fhir",
+                openEhr: d.openEhr || null,
             })),
         };
     }
@@ -699,10 +742,33 @@ export class ProcessingWorkspace {
             mode: input.mode,
             destinationId: input.destinationId || null,
             intakeId: input.id || input.subject,
+            ...(input.processingMode === "fifo"
+                ? { strictOrder: true, stopOnRejected: input.failurePolicy === "pause" }
+                : {}),
+            ...(input.sourceEventId ? { sourceEventId: input.sourceEventId } : {}),
         };
         const id = hash(JSON.stringify({ ...request, file: undefined })),
             directory = this.jobDirectory(owner, id, true);
         if (!existsSync(join(directory, "request.json"))) save(join(directory, "request.json"), request);
+        if (input.sourceBytes && !existsSync(join(directory, "source-snapshot.bin"))) {
+            if (hash(input.sourceBytes) !== request.sourceSha256)
+                throw problem("The source changed before durable receipt.", 409);
+            const file = join(directory, "source-snapshot.bin");
+            writeFileSync(file, input.sourceBytes, { mode: 0o600, flag: "wx" });
+            const fd = openSync(file, "r");
+            try {
+                fsyncSync(fd);
+            } finally {
+                closeSync(fd);
+            }
+            const parent = openSync(directory, "r");
+            try {
+                fsyncSync(parent);
+            } finally {
+                closeSync(parent);
+            }
+        }
+        if (input.memoryMiB) save(join(directory, "runtime.json"), { memoryMiB: input.memoryMiB });
         save(join(directory, "configuration.json"), this.configuration(owner, input.projectId));
         return { id, directory, request };
     }
@@ -712,10 +778,8 @@ export class ProcessingWorkspace {
         const input = this.take(session, token, "job"),
             owner = this.owner(session);
         await this.selection(session, input.projectId, input.subject);
-        if (
-            (await this.file(this.source(owner, input.projectId, input.sourceId), input.file)).sha256 !==
-            input.sourceSha256
-        )
+        const received = await this.file(this.source(owner, input.projectId, input.sourceId), input.file, true);
+        if (received.sha256 !== input.sourceSha256)
             throw problem("The source changed. Inspect and confirm it again.", 409);
         if (
             input.mode === "deliver" &&
@@ -723,7 +787,7 @@ export class ProcessingWorkspace {
                 !this.connections(owner, input.projectId).destinations.some((d) => d.id === input.destinationId))
         )
             throw problem("Destination access changed. Review the run again.", 403);
-        const job = this.createJob(owner, input);
+        const job = this.createJob(owner, { ...input, sourceBytes: received.bytes });
         this.launch(job).catch(() => {});
         return { id: job.id, ...this.status(owner, job.id) };
     }
@@ -761,7 +825,13 @@ export class ProcessingWorkspace {
             HTTP_CA_BUNDLE: process.env.HTTP_CA_BUNDLE,
             DOTNET_ENVIRONMENT: "Production",
             DOTNET_EnableDiagnostics: "0",
-            DOTNET_GCHeapHardLimit: "0x20000000",
+            DOTNET_GCHeapHardLimit:
+                "0x" +
+                (
+                    (existsSync(join(job.directory, "runtime.json"))
+                        ? json(join(job.directory, "runtime.json")).memoryMiB
+                        : 256) * 1048576
+                ).toString(16),
             MODELLER_APPROVAL_KEYS: JSON.stringify(this.core.keys),
             MODELLER_APPROVAL_KEY_ID: this.config.reviewKeyId,
         };
@@ -870,7 +940,7 @@ export class ProcessingWorkspace {
                         LANG: "C.UTF-8",
                         HTTP_CA_BUNDLE: process.env.HTTP_CA_BUNDLE,
                         DOTNET_EnableDiagnostics: "0",
-                        DOTNET_GCHeapHardLimit: "0x20000000",
+                        DOTNET_GCHeapHardLimit: "0x10000000",
                         MODELLER_APPROVAL_KEYS: JSON.stringify(this.core.keys),
                         MODELLER_APPROVAL_KEY_ID: this.config.reviewKeyId,
                     },
@@ -953,12 +1023,39 @@ export class ProcessingWorkspace {
         mkdirSync(directory, { recursive: true, mode: 0o700 });
         return directory;
     }
+    channelResources(channel) {
+        let rss = 0,
+            measured = 0;
+        for (const id of channel.activeJobs || []) {
+            const child = this.active.get(channel.owner + ":" + id)?.child;
+            if (!Number.isInteger(child?.pid)) continue;
+            try {
+                const match = readFileSync("/proc/" + child.pid + "/status", "utf8").match(/^VmRSS:\s+(\d+)\s+kB$/m);
+                if (match) {
+                    rss += Number(match[1]) / 1024;
+                    measured++;
+                }
+            } catch {
+                /* Process may have finished. */
+            }
+        }
+        return {
+            activeWorkers: channel.activeJobs?.length || 0,
+            measuredWorkers: measured,
+            workerRssMiB: measured ? Math.round(rss * 10) / 10 : null,
+            managedHeapLimitMiB: channel.memoryMiB || 256,
+        };
+    }
     listChannels(session) {
         const owner = this.owner(session);
         return {
             items: [...this.channels.entries()]
                 .filter(([key]) => key.startsWith(owner + ":"))
-                .map(([, value]) => value),
+                .map(([, value]) => ({
+                    ...value,
+                    intake: this.inbox.summary(value.owner + ":" + value.id),
+                    resources: this.channelResources(value),
+                })),
         };
     }
     async previewChannel(session, input) {
@@ -973,7 +1070,28 @@ export class ProcessingWorkspace {
             "pollSeconds",
             "failurePolicy",
             "expectedRevision",
+            "processingMode",
+            "maxConcurrent",
+            "memoryMiB",
+            "maxQueued",
+            "retryLimit",
         ]);
+        input = { processingMode: "ready", maxConcurrent: 1, memoryMiB: 256, maxQueued: 1000, retryLimit: 3, ...input };
+        if (
+            !["fifo", "ready", "concurrent"].includes(input.processingMode) ||
+            !Number.isInteger(input.maxConcurrent) ||
+            input.maxConcurrent < 1 ||
+            input.maxConcurrent > 2 ||
+            (input.processingMode !== "concurrent" && input.maxConcurrent !== 1) ||
+            ![128, 192, 256].includes(input.memoryMiB) ||
+            !Number.isInteger(input.maxQueued) ||
+            input.maxQueued < 1 ||
+            input.maxQueued > 5000 ||
+            !Number.isInteger(input.retryLimit) ||
+            input.retryLimit < 0 ||
+            input.retryLimit > 10
+        )
+            throw problem("Choose bounded channel ordering, memory, queue and retry settings.");
         if (
             typeof input.name !== "string" ||
             !input.name.trim() ||
@@ -988,13 +1106,23 @@ export class ProcessingWorkspace {
             mapping = await this.selection(session, input.projectId, input.subject);
         this.source(owner, input.projectId, input.sourceId);
         if (input.mode === "deliver" && !this.config.integrationAllowDelivery)
-            throw problem("FHIR destination delivery is disabled.", 403);
+            throw problem("Destination delivery is disabled.", 403);
         if (
             !["export", "deliver"].includes(input.mode) ||
             (input.mode === "deliver" &&
                 !this.connections(owner, input.projectId).destinations.some((d) => d.id === input.destinationId))
         )
             throw problem("Choose an authorised destination.", 403);
+        if (input.mode === "deliver") {
+            const target = this.connections(owner, input.projectId).destinations.find(
+                (d) => d.id === input.destinationId,
+            );
+            if (
+                (["fhir-to-openehr", "source-to-openehr"].includes(mapping.direction) ? "openehr" : "fhir") !==
+                (target.standard || "fhir")
+            )
+                throw problem("Choose a destination matching the confirmed mapping direction.", 409);
+        }
         if (input.id) {
             if (!ids.test(input.id)) throw problem("Invalid channel.");
             const previous = this.channels.get(owner + ":" + input.id);
@@ -1062,19 +1190,34 @@ export class ProcessingWorkspace {
             channel = this.channels.get(owner + ":" + id);
         if (!channel) throw problem("Channel not found.", 404);
         if (action === "start") {
+            if (channel.status === "RUNNING") return channel;
             if (channel.status === "STOPPING" && channel.activeJob && this.active.has(owner + ":" + channel.activeJob))
                 throw problem("Wait for the active job to stop before restarting the channel.", 409);
             if (channel.mode === "deliver" && !this.config.integrationAllowDelivery)
-                throw problem("FHIR destination delivery is disabled.", 403);
+                throw problem("Destination delivery is disabled.", 403);
             await this.selection(session, channel.projectId, channel.subject);
             this.source(owner, channel.projectId, channel.sourceId);
+            this.migrateInbox(channel);
+            for (const entry of this.inbox.entries(owner + ":" + id, "BLOCKED")) {
+                const state = this.status(owner, entry.job);
+                if (state.status === "COMPLETED") this.inbox.finish(owner + ":" + id, entry.digest, "COMPLETED");
+                else if (
+                    state.status === "COMPLETED_WITH_FAILURES" &&
+                    channel.failurePolicy === "quarantine-and-continue"
+                )
+                    this.inbox.finish(owner + ":" + id, entry.digest, "QUARANTINED");
+                else throw problem("Resume or reconcile the blocked job before restarting its channel.", 409);
+            }
+            this.inbox.recover(owner + ":" + id);
+            channel.activeJobs = [];
             channel.vendorExtracting = false;
             channel.status = "RUNNING";
             channel.error = null;
             channel.nextPoll = 0;
         } else if (action === "pause") {
-            channel.status = channel.activeJob ? "STOPPING" : "STOPPED";
-            if (channel.activeJob) this.cancel(session, channel.activeJob);
+            channel.status = channel.activeJobs?.length || channel.activeJob ? "STOPPING" : "STOPPED";
+            for (const job of new Set([...(channel.activeJobs || []), channel.activeJob].filter(Boolean)))
+                this.cancel(session, job);
         } else throw problem("Unsupported channel action.");
         this.persist(channel);
         return channel;
@@ -1115,41 +1258,142 @@ export class ProcessingWorkspace {
             });
         return true;
     }
+    migrateInbox(channel) {
+        const scope = channel.owner + ":" + channel.id;
+        channel.processingMode ||= "ready";
+        channel.maxConcurrent ||= 1;
+        channel.memoryMiB ||= 256;
+        channel.maxQueued ||= 1000;
+        channel.retryLimit ??= 3;
+        for (const digest of channel.acknowledged || []) {
+            if (!this.inbox.find(scope, digest)) {
+                this.inbox.enqueue(scope, digest, "legacy", this.clock());
+                this.inbox.finish(scope, digest, "COMPLETED");
+            }
+        }
+        for (const id of [...(channel.waitingJobs || []), channel.interruptedJob].filter(Boolean)) {
+            const directory = this.jobDirectory(channel.owner, id),
+                request = json(join(directory, "request.json"));
+            const digest = request.sourceEventId || request.sourceSha256;
+            if (!this.inbox.find(scope, digest)) {
+                this.inbox.enqueue(scope, digest, id, this.clock());
+                this.inbox.finish(scope, digest, "HELD");
+            }
+        }
+        channel.waitingJobs = [];
+        channel.interruptedJob = null;
+    }
+    dispatch(channel) {
+        const maximum = channel.processingMode === "concurrent" ? channel.maxConcurrent : 1;
+        const scope = channel.owner + ":" + channel.id;
+        channel.activeJobs ||= [];
+        while (
+            channel.status === "RUNNING" &&
+            channel.activeJobs.length < maximum &&
+            this.active.size + this.inspectionRequests < 2
+        ) {
+            const item = this.inbox.claim(
+                scope,
+                channel.processingMode === "fifo" ? "fifo" : channel.preferHeld ? "held-first" : "ready",
+                this.clock(),
+            );
+            if (!item) break;
+            channel.preferHeld = item.previousState !== "HELD";
+            const directory = this.jobDirectory(channel.owner, item.job),
+                request = json(join(directory, "request.json"));
+            if (
+                request.subject !== channel.subject ||
+                request.sourceId !== channel.sourceId ||
+                request.destinationId !== (channel.destinationId || null)
+            ) {
+                this.inbox.finish(scope, item.digest, "BLOCKED", "ASSIGNMENT_CHANGED");
+                channel.status = "PAUSED";
+                channel.error = "ASSIGNMENT_CHANGED";
+                this.persist(channel);
+                break;
+            }
+            save(join(directory, "configuration.json"), this.configuration(channel.owner, channel.projectId));
+            channel.waitingJobs = (channel.waitingJobs || []).filter((id) => id !== item.job);
+            channel.activeJobs.push(item.job);
+            channel.activeJob = channel.activeJobs[0];
+            this.persist(channel);
+            this.launch({ id: item.job, directory, request })
+                .then((state) => {
+                    channel.activeJobs = channel.activeJobs.filter((id) => id !== item.job);
+                    channel.activeJob = channel.activeJobs[0] || null;
+                    let status = "BLOCKED",
+                        due = 0;
+                    if (state.status === "COMPLETED") status = "COMPLETED";
+                    else if (
+                        state.status === "COMPLETED_WITH_FAILURES" &&
+                        channel.failurePolicy === "quarantine-and-continue"
+                    )
+                        status = "QUARANTINED";
+                    else if (state.status === "WAITING_DEPENDENCIES") {
+                        status = "HELD";
+                        due = this.clock() + channel.pollSeconds * 1000;
+                        channel.waitingJobs ||= [];
+                        if (!channel.waitingJobs.includes(item.job)) channel.waitingJobs.push(item.job);
+                    } else if (
+                        ["WORKER_UNAVAILABLE", "PROCESSING_INTERRUPTED", "ENGINE_COMPUTE_UNAVAILABLE"].includes(
+                            state.error,
+                        ) &&
+                        item.attempts <= channel.retryLimit
+                    ) {
+                        status = "RETRY";
+                        due = this.clock() + Math.min(300000, 1000 * 2 ** item.attempts);
+                    } else if (channel.status === "STOPPING") status = "INTERRUPTED";
+                    this.inbox.finish(scope, item.digest, status, state.error || null, due);
+                    if (status === "BLOCKED") {
+                        channel.status = "PAUSED";
+                        channel.error = state.error || state.status;
+                    }
+                    if (channel.status === "STOPPING" && !channel.activeJobs.length) channel.status = "STOPPED";
+                    this.persist(channel);
+                })
+                .catch(() => {
+                    channel.activeJobs = channel.activeJobs.filter((id) => id !== item.job);
+                    channel.activeJob = channel.activeJobs[0] || null;
+                    this.inbox.finish(scope, item.digest, "BLOCKED", "WORKER_UNAVAILABLE");
+                    channel.status = "PAUSED";
+                    channel.error = "WORKER_UNAVAILABLE";
+                    this.persist(channel);
+                });
+        }
+    }
     async tick() {
         if (this.ticking || !this.core.ready) return;
         this.ticking = true;
         try {
             for (const channel of this.channels.values()) {
+                if (channel.status !== "RUNNING") continue;
                 if (channel.mode === "deliver" && !this.config.integrationAllowDelivery) {
                     channel.status = "PAUSED";
                     channel.error = "DELIVERY_DISABLED";
                     this.persist(channel);
-                }
-                if (
-                    channel.status !== "RUNNING" ||
-                    channel.activeJob ||
-                    channel.nextPoll > this.clock() ||
-                    this.active.size + this.inspectionRequests >= 2
-                )
                     continue;
-                channel.nextPoll = this.clock() + channel.pollSeconds * 1000;
+                }
                 try {
-                    this.source(channel.owner, channel.projectId, channel.sourceId);
-                    if (channel.lastPollWasIntake && this.resumeHeld(channel)) {
-                        channel.lastPollWasIntake = false;
+                    const source = this.source(channel.owner, channel.projectId, channel.sourceId);
+                    this.dispatch(channel);
+                    if (channel.nextPoll > this.clock()) continue;
+                    channel.nextPoll = this.clock() + channel.pollSeconds * 1000;
+                    const scope = channel.owner + ":" + channel.id,
+                        summary = this.inbox.summary(scope);
+                    const queued = Object.entries(summary.counts)
+                        .filter(([state]) => !["COMPLETED", "QUARANTINED"].includes(state))
+                        .reduce((sum, [, count]) => sum + count, 0);
+                    if (queued >= channel.maxQueued) {
+                        channel.backpressure = "QUEUE_CAPACITY";
                         this.persist(channel);
                         continue;
                     }
-                    channel.lastPollWasIntake = true;
-                    const source = this.source(channel.owner, channel.projectId, channel.sourceId),
-                        names = readdirSync(source.root)
-                            .filter((name) => this.matches(source, name))
-                            .sort();
-                    if (names.length > 10000) throw problem("Source discovery limit reached.");
-                    if (source.vendor && !channel.vendorSnapshotReady) {
-                        if (!channel.vendorExtracting && this.vendor.active.size < 2) {
+                    channel.backpressure = null;
+                    if ((source.kafka || (source.vendor && source.incremental)) && !channel.vendorSnapshotReady) {
+                        const adapter = source.kafka ? this.kafka : this.vendor;
+                        if (!channel.vendorExtracting && adapter.active.size < 2) {
                             channel.vendorExtracting = true;
-                            this.vendor
+                            adapter
                                 .materialise(channel.owner, channel.projectId, channel.sourceId)
                                 .then(() => {
                                     channel.vendorExtracting = false;
@@ -1157,77 +1401,64 @@ export class ProcessingWorkspace {
                                     channel.nextPoll = 0;
                                     this.persist(channel);
                                 })
-                                .catch((error) => {
+                                .catch(() => {
                                     channel.vendorExtracting = false;
                                     channel.status = "PAUSED";
-                                    channel.error = error.message;
+                                    channel.error = "SOURCE_CAPTURE_UNAVAILABLE";
                                     this.persist(channel);
                                 });
                         }
                         continue;
                     }
                     channel.vendorSnapshotReady = false;
-                    for (const name of names) {
-                        const stat = lstatSync(join(source.root, name));
-                        if (!stat.isFile() || stat.isSymbolicLink() || stat.size > LIMIT) continue;
-                        const stableKey = channel.owner + ":" + channel.id + ":" + name,
-                            signature = stat.size + ":" + stat.mtimeMs + ":" + stat.ctimeMs + ":" + stat.ino;
+                    const names = readdirSync(source.root)
+                        .filter((name) => this.matches(source, name))
+                        .map((name) => ({ name, stat: lstatSync(join(source.root, name)) }))
+                        .filter(({ stat }) => stat.isFile() && !stat.isSymbolicLink() && stat.size <= LIMIT)
+                        .sort(
+                            (a, b) =>
+                                (source.ordered ? 0 : a.stat.mtimeMs - b.stat.mtimeMs) ||
+                                (a.name < b.name ? -1 : a.name > b.name ? 1 : 0),
+                        );
+                    if (names.length > 10000) throw problem("Source discovery limit reached.");
+                    const present = new Set(names.map((item) => item.name));
+                    for (const name of Object.keys(channel.completedFiles || {}))
+                        if (!present.has(name)) {
+                            delete channel.completedFiles[name];
+                            this.stable.delete(scope + ":" + name);
+                        }
+                    let admitted = 0;
+                    for (const { name, stat } of names) {
+                        if (admitted >= Math.min(16, channel.maxQueued - queued)) break;
+                        const signature = stat.size + ":" + stat.mtimeMs + ":" + stat.ctimeMs + ":" + stat.ino,
+                            stableKey = scope + ":" + name;
                         if (channel.completedFiles?.[name] === signature) continue;
-                        if (source.vendor) this.stable.set(stableKey, signature);
-                        if (this.stable.get(stableKey) !== signature) {
+                        if (!source.vendor && !source.kafka && this.stable.get(stableKey) !== signature) {
                             this.stable.set(stableKey, signature);
                             continue;
                         }
-                        const file = await this.file(source, name);
-                        if (channel.acknowledged.includes(file.sha256)) {
-                            channel.completedFiles ||= {};
-                            channel.completedFiles[name] = signature;
-                            this.persist(channel);
-                            continue;
-                        }
-                        const job = this.createJob(channel.owner, {
-                            ...channel,
-                            file: name,
-                            sourceSha256: file.sha256,
-                        });
-                        channel.activeJob = job.id;
-                        this.persist(channel);
-                        this.launch(job)
-                            .then((state) => {
-                                channel.activeJob = null;
-                                if (
-                                    state.status === "COMPLETED" ||
-                                    state.status === "WAITING_DEPENDENCIES" ||
-                                    (state.status === "COMPLETED_WITH_FAILURES" &&
-                                        channel.failurePolicy === "quarantine-and-continue")
-                                ) {
-                                    if (state.status === "WAITING_DEPENDENCIES") {
-                                        channel.waitingJobs ||= [];
-                                        if (!channel.waitingJobs.includes(job.id)) channel.waitingJobs.push(job.id);
-                                    }
-                                    channel.completedFiles ||= {};
-                                    channel.completedFiles[name] = signature;
-                                    channel.acknowledged.push(file.sha256);
-                                    if (channel.acknowledged.length > 10000) {
-                                        channel.status = "PAUSED";
-                                        channel.error = "CHECKPOINT_RETENTION_LIMIT";
-                                    }
-                                } else if (channel.status !== "STOPPING") {
-                                    channel.status = "PAUSED";
-                                    channel.error = state.error || state.status;
-                                }
-                                if (channel.status === "STOPPING") channel.status = "STOPPED";
-                                this.persist(channel);
-                            })
-                            .catch(() => {
-                                channel.activeJob = null;
-                                channel.status = "PAUSED";
-                                channel.error = "WORKER_UNAVAILABLE";
-                                this.persist(channel);
+                        const file = await this.file(source, name, true);
+                        const sourceEventId = source.kafka ? /^event-[0-9]+-([a-f0-9]{64})\./.exec(name)?.[1] : null;
+                        if (source.kafka && !sourceEventId) throw problem("Kafka input identity is invalid.", 409);
+                        const intakeId = sourceEventId || file.sha256;
+                        if (!this.inbox.find(scope, intakeId)) {
+                            if (this.checkOwnerQuota(channel.owner) + file.bytes.length > 512 * 1048576)
+                                throw problem("Private intake storage is full.", 413);
+                            const job = this.createJob(channel.owner, {
+                                ...channel,
+                                file: name,
+                                sourceSha256: file.sha256,
+                                sourceBytes: file.bytes,
+                                ...(sourceEventId ? { sourceEventId } : {}),
                             });
-                        break;
+                            this.inbox.enqueue(scope, intakeId, job.id, this.clock());
+                            admitted++;
+                        }
+                        channel.completedFiles ||= {};
+                        channel.completedFiles[name] = signature;
+                        this.persist(channel);
                     }
-                    if (!channel.activeJob) this.resumeHeld(channel);
+                    this.dispatch(channel);
                 } catch {
                     channel.status = "PAUSED";
                     channel.error = "SOURCE_OR_CONNECTION_UNAVAILABLE";
@@ -1241,6 +1472,19 @@ export class ProcessingWorkspace {
     close() {
         clearInterval(this.timer);
         for (const child of this.inspectors.values()) child.kill("SIGTERM");
+        const pending = [...this.active.values()].map((active) => active.promise);
         for (const active of this.active.values()) active.child.kill("SIGTERM");
+        if (!pending.length) {
+            if (!this.inboxClosed) {
+                this.inbox.close();
+                this.inboxClosed = true;
+            }
+        } else
+            return Promise.allSettled(pending).then(() => {
+                if (!this.inboxClosed) {
+                    this.inbox.close();
+                    this.inboxClosed = true;
+                }
+            });
     }
 }

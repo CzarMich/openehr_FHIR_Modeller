@@ -6,9 +6,11 @@ COPY deploy/postgres/001-governance.sql /src/deploy/postgres/001-governance.sql
 RUN dotnet restore Modeller.Mcp -r linux-x64 --locked-mode -p:NuGetAudit=false \
     && dotnet restore Modeller.Processing -r linux-x64 --locked-mode -p:NuGetAudit=false \
     && dotnet restore Modeller.Extraction -r linux-x64 --locked-mode -p:NuGetAudit=false \
+    && dotnet restore Modeller.Kafka -r linux-x64 --locked-mode -p:NuGetAudit=false \
     && dotnet publish Modeller.Mcp -c Release -r linux-x64 --self-contained true --no-restore -o /out/server \
     && dotnet publish Modeller.Processing -c Release -r linux-x64 --self-contained true --no-restore -o /out/worker \
-    && dotnet publish Modeller.Extraction -c Release -r linux-x64 --self-contained true --no-restore -o /out/extractor
+    && dotnet publish Modeller.Extraction -c Release -r linux-x64 --self-contained true --no-restore -o /out/extractor \
+    && dotnet publish Modeller.Kafka -c Release -r linux-x64 --self-contained true --no-restore -o /out/kafka
 
 RUN sh /src/dotnet/notices/collect-notices.sh /root/.nuget/packages /out/server/notices/nuget
 

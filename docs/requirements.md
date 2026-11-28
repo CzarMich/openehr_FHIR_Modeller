@@ -14,7 +14,7 @@ templates, guides, examples, terminology, and Reference/Archetype Model type
 specifications — to AI agents over the [Model Context Protocol](https://modelcontextprotocol.io).
 It is a *knowledge and authoring-assistance* server: it helps agents discover,
 explain, design, and review openEHR artefacts. It is **not** a clinical data
-repository and stores no patient data.
+repository. Clinical processing data is held separately in private operational storage and never exposed through general modelling MCP.
 
 ## Functional requirements
 
@@ -37,7 +37,7 @@ repository and stores no patient data.
 |----|-------------|-----------|
 | **REQ-N1** | All openEHR-standard content must be grounded in authoritative sources (`specifications.openehr.org`, CKM, BMM); never invented from model memory. | Correctness of clinical/standards content is the product's core value. → [ADR-0005](decisions/0005-spec-aligned-content-retrieval.md) |
 | **REQ-N2** | Every application class has a mirrored `*Test`; external HTTP (CKM) is mocked, never called live in tests. | Deterministic, offline-capable test suite. → [ADR-0002](decisions/0002-single-ckmclient-http-boundary.md) |
-| **REQ-N3** | Code follows PSR-12 and passes compiler checks static analysis before merge. | Maintainability and reviewability. |
+| **REQ-N3** | Code follows the current C# and browser formatter/compiler checks before merge. | Maintainability and reviewability. |
 | **REQ-N4** | MCP capability discovery is cached at startup to keep server boot fast. | Responsiveness under repeated client connections. → [ADR-0001](decisions/0001-attribute-driven-discovery.md) |
 | **REQ-N5** | The runtime is Docker-only and reproducible; no host C# toolchain is assumed. | Consistent environment across maintainers (WSL2 on Windows). → [ADR-0004](decisions/0004-docker-only-runtime.md) |
 | **REQ-N6** | Run the official MCP conformance suite against its explicit expected-failure baseline and separately verify the actual product tools over HTTP. | Interoperability with arbitrary MCP clients. |
@@ -134,3 +134,9 @@ a shared workspace, not per-browser-user isolation.
 - **REQ-F45** — Provide explicitly selected native/ODBC database and vendor/API adapters, encrypted UI-managed profiles, bounded metadata discovery, human-confirmed immutable source read plans, verified read-only/TLS controls and atomic private intake for mapping channels. Cover SQL Server, Oracle, PostgreSQL, MySQL, MariaDB, SAP HANA, Epic Clarity on both engines, Epic FHIR, SAP BW and approved clinical APIs. Preserve exact cursor values, original API evidence, source semantics and configuration/runtime/schema pins; fail closed on incomplete windows or unqualified installation dependencies.
 
 Account access under REQ-F23 presents Administrator and User types, requires administrator-controlled promotion, verifies signed organisation role claims and keeps native and organisation identities distinct. Public organisation registration is restricted by a server-side registration-only domain policy; administrator provisioning and existing users are independent of that registration policy. See [Keycloak setup](KEYCLOAK_SETUP.md).
+
+## Durable standards-aware integration
+
+| ID | Requirement | Primary capability surface |
+|---|---|---|
+| **REQ-F46** | Persist accepted input identities and snapshots without fixed-count dedup eviction; support exact Kafka checkpoints acknowledged after durable intake, reviewed append-only polling, strict FIFO/dependency-aware/bounded concurrent channels, managed-heap/queue limits, bounded retries, restart recovery and privacy-preserving monitoring. Keep clinical source databases strictly read-only. Reuse exact-context mapping results without caching approval. Deliver openEHR compositions through verified patient EHRs, parameterised identity lookup, qualified stable UUID creation and authorised If-Match updates; retain uncertain writes for human reconciliation. | `chat/src/channel-inbox.mjs`, `chat/src/kafka-sources.mjs`, `dotnet/Modeller.Kafka`, `dotnet/Modeller.Core/OpenEhrDelivery.cs`, `dotnet/Modeller.Operational/DestinationWriteLease.cs`; [operations](INTEGRATION_ENGINE.md), [ADR-0033](decisions/0033-durable-clinical-integration.md) |

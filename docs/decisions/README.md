@@ -71,3 +71,5 @@ referenced from [requirements.md](../requirements.md),
 - [ADR-0031: Independent clinical routes and protected patient identity](0031-independent-clinical-routes-and-identity.md)
 
 - [ADR-0032: Vendor sources and protected private capture](0032-vendor-source-adapters-and-private-capture.md)
+
+| [0033](0033-durable-clinical-integration.md) | Durable clinical integration | Accepted | REQ-F46 |
