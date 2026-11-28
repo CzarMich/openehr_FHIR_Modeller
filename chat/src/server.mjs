@@ -8,7 +8,7 @@ import { Readable } from "node:stream";
 import { GLOBAL_IDENTITY, workspaceAccess, identityCanUseGlobal } from "./access.mjs";
 import http from "node:http";
 import QRCode from "qrcode";
-import { readFileSync } from "node:fs";
+import { StaticAssets } from "./static-assets.mjs";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import { Auth } from "./auth.mjs";
@@ -34,6 +34,35 @@ import { CHOICE_TOOL, choiceQuestion, choiceAnswer, choiceMessage } from "./choi
 import { TaskOrchestrator, TaskLedger, executionScope } from "./task-execution.mjs";
 
 const publicDir = fileURLToPath(new URL("../../public/chat/", import.meta.url));
+const assets = {
+    "/favicon.ico": ["favicon.ico", "image/x-icon"],
+    "/favicon.svg": ["favicon.svg", "image/svg+xml"],
+    "/apple-touch-icon.png": ["apple-touch-icon.png", "image/png"],
+    "/chat/favicon.ico": ["favicon.ico", "image/x-icon"],
+    "/chat/favicon.svg": ["favicon.svg", "image/svg+xml"],
+    "/chat/apple-touch-icon.png": ["apple-touch-icon.png", "image/png"],
+    "/": ["index.html", "text/html; charset=utf-8"],
+    "/chat/": ["index.html", "text/html; charset=utf-8"],
+    "/chat/michael.js": ["michael.js", "text/javascript"],
+    "/chat/companion-position.js": ["companion-position.js", "text/javascript"],
+    "/chat/michael.css": ["michael.css", "text/css"],
+    "/chat/workspace.js": ["workspace.js", "text/javascript"],
+    "/chat/workspace.css": ["workspace.css", "text/css"],
+    "/chat/app.js": ["app.js", "text/javascript"],
+    "/chat/style.css": ["style.css", "text/css"],
+    "/chat/design-system.css": ["design-system.css", "text/css"],
+    "/chat/reviews.js": ["reviews.js", "text/javascript"],
+    "/chat/mapping-confirmations.js": ["mapping-confirmations.js", "text/javascript"],
+    "/chat/identity.js": ["identity.js", "text/javascript"],
+    "/chat/aql.js": ["aql.js", "text/javascript"],
+    "/chat/aql.css": ["aql.css", "text/css"],
+    "/chat/fhir.js": ["fhir.js", "text/javascript"],
+    "/chat/integration.js": ["integration.js", "text/javascript"],
+    "/chat/integration/": ["integration.html", "text/html"],
+    "/chat/integration.css": ["integration.css", "text/css"],
+    "/chat/fhir.css": ["fhir.css", "text/css"],
+};
+const staticAssets = new StaticAssets(publicDir, assets);
 const json = (res, status, data) => {
     res.writeHead(status, { "Content-Type": "application/json" });
     res.end(JSON.stringify(data));
@@ -227,34 +256,7 @@ export function createApplication(
                 req.headers.host !== new URL(config.origin).host
             )
                 throw Object.assign(new Error("Unknown host"), { status: 421 });
-            const assets = {
-                "/favicon.ico": ["favicon.ico", "image/x-icon"],
-                "/favicon.svg": ["favicon.svg", "image/svg+xml"],
-                "/apple-touch-icon.png": ["apple-touch-icon.png", "image/png"],
-                "/chat/favicon.ico": ["favicon.ico", "image/x-icon"],
-                "/chat/favicon.svg": ["favicon.svg", "image/svg+xml"],
-                "/chat/apple-touch-icon.png": ["apple-touch-icon.png", "image/png"],
-                "/": ["index.html", "text/html; charset=utf-8"],
-                "/chat/": ["index.html", "text/html; charset=utf-8"],
-                "/chat/michael.js": ["michael.js", "text/javascript"],
-                "/chat/companion-position.js": ["companion-position.js", "text/javascript"],
-                "/chat/michael.css": ["michael.css", "text/css"],
-                "/chat/workspace.js": ["workspace.js", "text/javascript"],
-                "/chat/workspace.css": ["workspace.css", "text/css"],
-                "/chat/app.js": ["app.js", "text/javascript"],
-                "/chat/style.css": ["style.css", "text/css"],
-                "/chat/design-system.css": ["design-system.css", "text/css"],
-                "/chat/reviews.js": ["reviews.js", "text/javascript"],
-                "/chat/mapping-confirmations.js": ["mapping-confirmations.js", "text/javascript"],
-                "/chat/identity.js": ["identity.js", "text/javascript"],
-                "/chat/aql.js": ["aql.js", "text/javascript"],
-                "/chat/aql.css": ["aql.css", "text/css"],
-                "/chat/fhir.js": ["fhir.js", "text/javascript"],
-                "/chat/integration.js": ["integration.js", "text/javascript"],
-                "/chat/integration/": ["integration.html", "text/html"],
-                "/chat/integration.css": ["integration.css", "text/css"],
-                "/chat/fhir.css": ["fhir.css", "text/css"],
-            };
+
             if (req.method === "GET" && path === "/chat/reviews") {
                 res.writeHead(302, { Location: "/chat/#governance" });
                 return res.end();
@@ -264,8 +266,7 @@ export function createApplication(
                 return res.end();
             }
             if (req.method === "GET" && assets[path]) {
-                res.writeHead(200, { "Content-Type": assets[path][1] });
-                return res.end(readFileSync(publicDir + assets[path][0]));
+                return staticAssets.send(req, res, path);
             }
             if (req.method === "GET" && path === "/chat/api/session") {
                 const session = auth.session(req);

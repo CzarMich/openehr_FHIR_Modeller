@@ -4,6 +4,8 @@
     persist_config off
 }
 :8343 {
+    @static path /chat/*.css /chat/*.js
+    encode @static zstd gzip
     @ordinary not path /chat/api/conversations/*/attachments /chat/api/cdr/* /api/v1/cdr/* /chat/api/aql-draft /chat/api/fhir/* /chat/api/integration/* /chat/integration/mcp
     request_body @ordinary {
         max_size {$MAX_REQUEST_BYTES:2097152}

@@ -2491,11 +2491,13 @@ test("shared workspace styles load on both pages and navigation identifies the c
         "aria-current",
         "page",
     );
-    const sharedStyle = page.locator('link[href="/chat/design-system.css"]');
+    const sharedStyle = page.locator('link[href^="/chat/design-system.css?v="]');
     await expect(sharedStyle).toHaveCount(1);
     const guide = await page.locator(".sidebar-bottom a").boundingBox();
     expect(guide.height).toBeGreaterThanOrEqual(44);
-    const css = await page.request.get("/chat/design-system.css");
+    await expect(sharedStyle).toHaveAttribute("href", /^\/chat\/design-system\.css\?v=[a-f0-9]{64}$/);
+    const css = await page.request.get(await sharedStyle.getAttribute("href"));
+    expect(css.headers()["cache-control"]).toContain("immutable");
     expect(css.ok()).toBe(true);
     expect(css.headers()["content-type"]).toContain("text/css");
     const font = await page.evaluate(() => getComputedStyle(document.body).fontFamily);

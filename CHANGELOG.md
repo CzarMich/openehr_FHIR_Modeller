@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Cache content-versioned workspace assets and compress stylesheets/scripts for faster repeat loads.
+
 - Add reviewed vendor database/API connections, private source capture and exact append-only checkpoints.
 
 - Add reviewed late-identity resolution and delivery reconciliation while retaining private received originals.

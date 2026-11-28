@@ -23,3 +23,7 @@ For shared Dev use the [validated delivery procedure](FHIR_DEV_DELIVERY.md), not
 Use only synthetic records in generic MCP and provider tests. Keep source profiles separate from internal audit storage. Clinical/source databases are read-only without an override. Patient records and private processing output do not belong in model repositories, chat, reusable project memory or CI artifacts.
 
 Retrieve exact models, dictionaries and standards rather than guessing clinical meaning. Prefer [existing work and checkpoints](REUSE_AND_LEARNING.md) before generation. Update [requirements and traceability](traceability.md) with behavioural changes and retain explicit implementation/qualification limits.
+
+## Browser assets
+
+Workspace HTML stays `no-store`. Its local stylesheet/script URLs include SHA-256 content versions; matching assets are publicly cacheable for one year with `immutable`. Unversioned or mismatched asset URLs must revalidate using an ETag. A new image changes the content URL, preventing old cached styles/scripts from masking an upgrade. Only allowlisted public files use this policy; sessions, APIs, patient data and private downloads retain `no-store`. Ingress compresses public CSS/JavaScript; streaming APIs keep their existing transport.
