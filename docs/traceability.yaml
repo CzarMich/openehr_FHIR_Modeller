@@ -987,12 +987,17 @@
         "chat/src/server.mjs",
         "public/chat/companion-position.js",
         "public/chat/michael.js",
-        "public/chat/michael.css"
+        "public/chat/michael.css",
+        "public/chat/app-shell.js",
+        "public/chat/app-shell.css",
+        "public/chat/appearance.js",
+        "chat/src/static-assets.mjs"
       ],
       "tests": [
-        "chat/test/browser.spec.mjs"
+        "chat/test/browser.spec.mjs",
+        "chat/test/static-assets.test.mjs"
       ],
-      "verification": "Shared visual contract and responsive keyboard navigation; protected confirmation regression tests remain in force."
+      "verification": "Actual HTTP cache/version invalidation checks; application menus, light/dark contrast, persisted pointer/keyboard pane layout, responsive overflow and protected confirmation browser regressions."
     },
     {
       "id": "REQ-F40",

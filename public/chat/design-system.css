@@ -2,18 +2,18 @@
 :root {
     --ui-font: "Segoe UI", Inter, system-ui, -apple-system, sans-serif;
     --ui-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
-    --ui-canvas: #f6f8fb;
+    --ui-canvas: #edf1f5;
     --ui-surface: #ffffff;
     --ui-ink: #17324d;
     --ui-muted: #52677d;
     --ui-primary: #005eb8;
     --ui-primary-hover: #003d78;
     --ui-primary-soft: #e9f2fc;
-    --ui-border: #dbe4ed;
+    --ui-border: #cbd5df;
     --ui-control-border: #9baec0;
     --ui-danger: #a52222;
-    --ui-radius: 8px;
-    --ui-card-radius: 12px;
+    --ui-radius: 5px;
+    --ui-card-radius: 7px;
     --ui-space-1: 4px;
     --ui-space-2: 8px;
     --ui-space-3: 12px;
@@ -100,7 +100,7 @@ input[type="radio"] {
 }
 .content-panel button,
 .identity-form button,
-.integration-page button {
+.integration-page main button {
     min-height: 44px;
     border-radius: var(--ui-radius);
 }
@@ -136,24 +136,30 @@ input[type="radio"] {
 .workspace-switcher {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 0;
     margin: 12px 0 20px;
+    padding: 3px;
+    border: 1px solid var(--ui-control-border);
+    border-radius: 6px;
+    background: #e7ecf2;
+    box-shadow: inset 0 1px 2px #17324d0d;
 }
 .workspace-switcher a {
     display: inline-flex;
     align-items: center;
     min-height: 44px;
     padding: 8px 12px;
-    border: 1px solid var(--ui-border);
-    border-radius: var(--ui-radius);
+    border: 1px solid transparent;
+    border-radius: 4px;
     text-decoration: none;
     font-weight: 600;
-    background: var(--ui-surface);
+    background: transparent;
 }
 .workspace-switcher a[aria-current="page"] {
     color: var(--ui-primary-hover);
-    background: var(--ui-primary-soft);
-    border-color: var(--ui-primary);
+    background: white;
+    border-color: var(--ui-control-border);
+    box-shadow: 0 1px 3px #17324d26;
 }
 .skip-link {
     position: fixed;
@@ -169,8 +175,9 @@ input[type="radio"] {
     top: 12px;
 }
 .integration-page {
-    max-width: 1440px;
-    padding: 24px;
+    max-width: none;
+    min-height: 100dvh;
+    padding: 0 20px 24px;
     margin: auto;
     overflow-wrap: anywhere;
 }
@@ -178,8 +185,15 @@ input[type="radio"] {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 24px;
+    gap: 16px;
     flex-wrap: wrap;
+    min-height: 72px;
+    margin: 0 -20px;
+    padding: 8px 20px;
+    border-top: 3px solid var(--ui-primary);
+    border-bottom: 1px solid var(--ui-border);
+    background: white;
+    box-shadow: 0 1px 3px #17324d0a;
 }
 .integration-page .brand {
     font-size: 22px;
@@ -190,15 +204,15 @@ input[type="radio"] {
     margin: 0;
 }
 .integration-page .page-heading {
-    padding: 24px 0 8px;
+    padding: 18px 0 4px;
 }
 .integration-page h1 {
-    font-size: 28px;
+    font-size: 22px;
     line-height: 1.25;
     margin: 0 0 8px;
 }
 .integration-page h2 {
-    font-size: 19px;
+    font-size: 17px;
     line-height: 1.4;
 }
 .integration-page .page-heading p {
@@ -221,39 +235,53 @@ input[type="radio"] {
 .workflow-nav [role="tablist"] {
     display: flex;
     overflow-x: auto;
-    gap: 4px;
-    border-bottom: 1px solid var(--ui-border);
-    padding: 4px 4px 8px;
+    gap: 2px;
+    border: 1px solid var(--ui-border);
+    border-bottom: 0;
+    border-radius: 6px 6px 0 0;
+    background: #e3e9f0;
+    padding: 4px 4px 0;
 }
 .integration-page .workflow-nav [role="tab"] {
     flex: 0 0 auto;
     min-height: 44px;
     margin: 0;
-    padding: 10px 14px;
+    padding: 9px 13px;
     border: 1px solid transparent;
-    border-radius: var(--ui-radius);
+    border-bottom: 0;
+    border-radius: 4px 4px 0 0;
+    box-shadow: none;
     color: var(--ui-muted);
     white-space: nowrap;
     background: transparent;
 }
 .integration-page .workflow-nav [role="tab"][aria-selected="true"] {
     color: var(--ui-primary);
-    background: var(--ui-primary-soft);
-    border-color: var(--ui-primary);
+    background: white;
+    border-color: var(--ui-border);
+    box-shadow: inset 0 3px var(--ui-primary);
+}
+.integration-page .workflow-nav [role="tab"]:not([aria-selected="true"]):hover {
+    background: #f5f7fa;
+    color: var(--ui-ink);
 }
 .integration-page .workspace-context {
-    margin: 18px 0 8px;
+    margin: 0;
+    padding: 9px 16px;
+    border: 1px solid var(--ui-border);
+    background: #f8fafc;
     color: var(--ui-muted);
-    font-size: 14px;
+    font-size: 12px;
 }
 .integration-page .workspace-context strong {
     color: var(--ui-ink);
 }
 .integration-page main > [role="tabpanel"] {
-    padding: 24px;
+    padding: 20px;
     margin: 0;
-    border: 0;
-    border-radius: 0;
+    border: 1px solid var(--ui-border);
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 2px 4px #17324d08;
     background: var(--ui-surface);
 }
 .integration-page [role="tabpanel"][hidden] {
@@ -274,40 +302,49 @@ input[type="radio"] {
     font-family: var(--ui-mono);
     font-size: 13px;
 }
-.integration-page button {
-    background: var(--ui-surface);
-    color: var(--ui-primary);
-    border-color: var(--ui-control-border);
-    padding: 10px 16px;
+.integration-page main button {
+    background: linear-gradient(#ffffff, #edf1f5);
+    color: var(--ui-ink);
+    border-color: #8fa2b6;
+    border-bottom-color: #71869c;
+    box-shadow:
+        inset 0 1px white,
+        0 1px 2px #17324d26;
+    padding: 8px 14px;
     font-weight: 600;
 }
-.integration-page button:not(:disabled):hover {
-    background: var(--ui-primary-soft);
+.integration-page main button:not(:disabled):hover {
+    background: linear-gradient(#ffffff, #dfe9f4);
+    border-color: var(--ui-primary);
 }
-.integration-page button.primary-button {
+.integration-page main button.primary-button {
     background: var(--ui-primary);
     border-color: var(--ui-primary);
     color: white;
 }
-.integration-page button.primary-button:not(:disabled):hover {
+.integration-page main button.primary-button:not(:disabled):hover {
     background: var(--ui-primary-hover);
 }
-.integration-page button.danger-button {
+.integration-page main button.danger-button {
     color: var(--ui-danger);
     border-color: var(--ui-danger);
     background: var(--ui-surface);
 }
-.integration-page button.danger-button:not(:disabled):hover {
+.integration-page main button.danger-button:not(:disabled):hover {
     background: #fff1f1;
 }
 .integration-page #notice {
     position: static;
     border-color: var(--ui-primary);
     background: var(--ui-primary-soft);
-    border-radius: 0 var(--ui-radius) var(--ui-radius) 0;
+    border-radius: 0;
+    margin: 0;
+    padding: 10px 16px;
+    font-size: 13px;
+    border-right: 1px solid var(--ui-border);
 }
 .integration-page .policy-note {
-    margin: 8px 0 16px;
+    margin: 4px 0 8px;
     padding: 0;
     color: var(--ui-muted);
 }
@@ -330,13 +367,15 @@ input[type="radio"] {
 }
 @media (max-width: 800px) {
     .integration-page {
-        padding: 16px;
+        padding: 0 12px 16px;
     }
     .integration-page main > section {
         padding: 16px;
     }
     .integration-page .platform-header {
         gap: 12px;
+        margin: 0 -12px;
+        padding: 8px 12px;
     }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -402,4 +441,82 @@ input[type="radio"] {
     display: flex;
     align-items: center;
     min-height: 44px;
+}
+
+/* Controls carry depth and a visible pressed state, without changing navigation semantics. */
+.content-panel button:not(.artifact-item):not(.review-item),
+.identity-form button,
+.new-chat {
+    border-bottom-color: #003d78;
+    box-shadow:
+        inset 0 1px 0 #ffffff38,
+        0 1px 2px #17324d24;
+}
+.content-panel button.secondary,
+.content-panel .secondary-button {
+    background: linear-gradient(#ffffff, #edf1f5);
+    color: var(--ui-ink);
+    border-color: #8fa2b6;
+    border-bottom-color: #71869c;
+}
+.content-panel button.secondary:not(:disabled):hover,
+.content-panel .secondary-button:not(:disabled):hover {
+    background: linear-gradient(#ffffff, #dfe9f4);
+    color: var(--ui-primary-hover);
+    border-color: var(--ui-primary);
+}
+:is(.content-panel, .identity-form, .integration-page main) button:not(:disabled):active,
+.new-chat:not(:disabled):active {
+    box-shadow: inset 0 2px 3px #17324d30;
+    translate: 0 1px;
+}
+:is(.content-panel, .identity-form, .integration-page main) :is(input, select, textarea) {
+    box-shadow: inset 0 1px 2px #17324d0c;
+}
+.integration-page main > [role="tabpanel"] > h2 {
+    margin: -20px -20px 18px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--ui-border);
+    background: #f8fafc;
+    font-size: 15px;
+}
+.integration-page #project-step > label {
+    max-width: 680px;
+}
+.integration-page #project-step > details {
+    border-top: 1px solid var(--ui-border);
+    margin: 14px 0 0;
+    padding-top: 4px;
+}
+.sidebar {
+    background: #f7f9fc;
+}
+.workspace-tabs button {
+    border: 1px solid transparent;
+    border-radius: 5px;
+}
+.workspace-tabs button[aria-selected="true"] {
+    background: white;
+    border-color: var(--ui-border);
+    box-shadow:
+        inset 3px 0 var(--ui-primary),
+        0 1px 2px #17324d14;
+}
+.topbar {
+    border-top: 3px solid var(--ui-primary);
+    box-shadow: 0 1px 3px #17324d0a;
+}
+@media (min-width: 801px) {
+    .content-panel {
+        padding: 24px;
+    }
+    .integration-page .page-heading p {
+        font-size: 13px;
+    }
+}
+@media (max-width: 800px) {
+    .integration-page main > [role="tabpanel"] > h2 {
+        margin: -16px -16px 16px;
+        padding: 12px 16px;
+    }
 }

@@ -19,16 +19,15 @@ function restoreTab() {
 for (const [index, tab] of workflowTabs.entries()) {
     tab.addEventListener("click", () => activateTab(tab));
     tab.addEventListener("keydown", (event) => {
-        const next =
-            event.key === "ArrowRight"
-                ? (index + 1) % workflowTabs.length
-                : event.key === "ArrowLeft"
-                  ? (index + workflowTabs.length - 1) % workflowTabs.length
-                  : event.key === "Home"
-                    ? 0
-                    : event.key === "End"
-                      ? workflowTabs.length - 1
-                      : null;
+        const next = ["ArrowRight", "ArrowDown"].includes(event.key)
+            ? (index + 1) % workflowTabs.length
+            : ["ArrowLeft", "ArrowUp"].includes(event.key)
+              ? (index + workflowTabs.length - 1) % workflowTabs.length
+              : event.key === "Home"
+                ? 0
+                : event.key === "End"
+                  ? workflowTabs.length - 1
+                  : null;
         if (next === null) return;
         event.preventDefault();
         activateTab(workflowTabs[next], true);

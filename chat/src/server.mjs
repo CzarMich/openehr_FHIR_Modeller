@@ -35,6 +35,9 @@ import { TaskOrchestrator, TaskLedger, executionScope } from "./task-execution.m
 
 const publicDir = fileURLToPath(new URL("../../public/chat/", import.meta.url));
 const assets = {
+    "/chat/appearance.js": ["appearance.js", "text/javascript"],
+    "/chat/app-shell.js": ["app-shell.js", "text/javascript"],
+    "/chat/app-shell.css": ["app-shell.css", "text/css"],
     "/favicon.ico": ["favicon.ico", "image/x-icon"],
     "/favicon.svg": ["favicon.svg", "image/svg+xml"],
     "/apple-touch-icon.png": ["apple-touch-icon.png", "image/png"],

@@ -1,5 +1,19 @@
 # Browser modelling workspace
 
+## Application workbench
+
+The modelling and integration workspaces use a persistent application shell. Use the left pane to choose a tool and the top **Project**, **Workspace**, **View** and **Help** menus for navigation and layout. Menus invoke the existing operations; they do not grant permissions or approve models. Unavailable account actions remain disabled.
+
+- **View → Light theme / Dark theme** changes both workspaces. The browser remembers the choice and restores it before painting the page.
+- **View → Navigation pane / Context pane** shows or hides a pane. The context pane shows the selected workspace, current project and guidance; it is not an approval or live job-count indicator.
+- Drag either desktop divider to resize a pane, or focus it and use Left/Right arrows. Home/End selects its smallest/largest allowed size. **Reset workspace layout** restores pane sizes and visibility without changing form inputs, models, channels or the chosen theme.
+- Workspace navigation supports arrows and Home/End. Escape closes a menu and returns focus to its heading. On smaller screens the context pane/dividers are omitted and the existing responsive navigation remains available.
+
+The central workspace and side panes scroll independently. Ordinary forms fit their pane; wide tables and source editors can scroll locally. Desktop controls use compact dimensions, while narrow/touch layouts retain larger targets. On wide displays, Accounts places invitation and user management alongside one another rather than stretching a single column across the screen.
+
+Only visual preferences are kept in the layout setting. It contains no credentials, patient data, source configuration or approvals. Private API responses and HTML remain uncached; public stylesheet/script URLs carry content versions so repeat visits reuse unchanged assets and upgrades request new bytes. Ingress compresses those public assets.
+
+
 Open the deployment's main URL to use a single workspace with **Chat**, **Models**, **Governance** and **Help** tabs. No additional browser window, embedded iframe or model-provider account is required for navigation and review. Conversational chat uses the configured optional provider adapter. All tabs share the verified browser identity and one sign-out action.
 
 The interface uses an openEHR blue, white and slate palette with system sans-serif typography, responsive layouts, visible keyboard focus, labelled forms and status messages. Tabs support arrow keys, Home and End, skipping unavailable tabs; the skip link goes directly to the workspace. Mobile navigation keeps the tabs accessible. Motion respects the browser's reduced-motion preference.
@@ -14,7 +28,7 @@ The Models tab lists projects in the deployment's configured repository and filt
 
 **Discuss in chat** keeps the selected revision and prepares a message in the existing conversation. Review the message before sending it. **Open governance** selects the same project for review. Switching tabs retains the conversation, draft message and selected model in memory; normal conversation history remains available after reload. Source changes are refreshed explicitly. If a listed revision disappears, refresh the list rather than silently replacing it with a newer model.
 
-Model browsing uses fixed read-only repository operations over MCP. The browser cannot choose an arbitrary tool, endpoint, tenant or repository credential. Requests require the existing session, have bounded concurrency/deadlines, and return summaries for project lists. This deployment's repository can be shared across its authorized browser users, as in chat; this UI does not introduce per-project membership or native identity administration. Governance separately enforces each signed user's assigned review roles.
+Model browsing uses fixed read-only repository operations over MCP. The browser cannot choose an arbitrary tool, endpoint, tenant or repository credential. Requests require the existing session, have bounded concurrency/deadlines, and return summaries for project lists. This deployment's repository can be shared across its authorized browser users, as in chat; native account administration remains in Accounts, and repository access follows the configured project/session policy. Governance separately enforces each signed user's assigned review roles.
 
 ## Review and decide
 
