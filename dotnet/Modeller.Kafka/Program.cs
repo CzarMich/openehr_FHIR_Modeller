@@ -36,7 +36,7 @@ try {
     if(profile.ClusterId!=cluster || profile.TopicId!=topicId)throw new ProcessingException("KAFKA_CLUSTER_OR_TOPIC_CHANGED");
     var partitions=topic.Partitions.Select(p=>new TopicPartition(profile.Topic,p.Partition)).ToArray();
     List<TopicPartitionOffset>? brokerOffsets=null;
-    for(var attempt=0;brokerOffsets is null;attempt++)try{brokerOffsets=consumer.Committed(partitions,TimeSpan.FromSeconds(15));}catch(KafkaException error)when(attempt<3 && error.Error.Code.ToString() is "NotCoordinatorForGroup" or "GroupCoordinatorNotAvailable" or "GroupLoadInProgress"){await Task.Delay(500*(attempt+1));}
+    for(var attempt=0;brokerOffsets is null;attempt++)try{brokerOffsets=consumer.Committed(partitions,TimeSpan.FromSeconds(15));}catch(KafkaException error)when(attempt<3 && error.Error.Code is ErrorCode.NotCoordinatorForGroup or ErrorCode.GroupCoordinatorNotAvailable or ErrorCode.GroupLoadInProgress or ErrorCode.Local_TimedOut or ErrorCode.RequestTimedOut or ErrorCode.Local_WaitCoord){await Task.Delay(500*(attempt+1));}
     var committed=brokerOffsets.ToDictionary(p=>p.Partition.Value,p=>p.Offset.Value);
     var positions=new Dictionary<string,string>(StringComparer.Ordinal);var assigned=new List<TopicPartitionOffset>();
     foreach(var partition in partitions) {
