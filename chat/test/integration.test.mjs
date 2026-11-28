@@ -726,3 +726,68 @@ test("concurrent channel admits two workers and retains a third input until a sl
         f.close();
     }
 });
+
+test("source capture defers at the global compute limit instead of pausing its channel", async () => {
+    const f = fixture();
+    try {
+        clearInterval(f.workspace.timer);
+        let now = 100000;
+        f.workspace.clock = () => now;
+        const folder = join(f.root, "capture-inputs");
+        mkdirSync(folder);
+        const configured = join(f.root, "connections.json");
+        writeFileSync(
+            configured,
+            JSON.stringify({
+                sources: [
+                    {
+                        id: "capture",
+                        root: folder,
+                        format: "json",
+                        projects: ["lab"],
+                        owners: [hash(f.session.identity)],
+                        identityDomain: "hospital",
+                    },
+                ],
+                destinations: [],
+            }),
+        );
+        f.workspace.config.integrationConnectionsFile = configured;
+        const source = f.workspace.source.bind(f.workspace);
+        f.workspace.source = (...args) => ({ ...source(...args), kafka: true, incremental: true });
+        let captures = 0;
+        f.workspace.kafka = {
+            active: new Map(),
+            connections: () => [],
+            materialise: async () => {
+                captures++;
+                throw Object.assign(new Error("Capacity busy"), { status: 429 });
+            },
+        };
+        const preview = await f.workspace.previewChannel(f.session, {
+            name: "Capture",
+            projectId: "lab",
+            subject: f.subject,
+            sourceId: "capture",
+            mode: "export",
+            pollSeconds: 5,
+            failurePolicy: "pause",
+        });
+        const channel = await f.workspace.commitChannel(f.session, preview.confirmation);
+        await f.workspace.controlChannel(f.session, channel.id, "start");
+        f.workspace.inspectionRequests = 2;
+        await f.workspace.tick();
+        assert.equal(captures, 0);
+        assert.equal(channel.status, "RUNNING");
+        f.workspace.inspectionRequests = 0;
+        now += 6000;
+        await f.workspace.tick();
+        await new Promise((resolve) => setImmediate(resolve));
+        assert.equal(captures, 1);
+        assert.equal(channel.status, "RUNNING");
+        assert.equal(channel.backpressure, "PRIVATE_COMPUTE_CAPACITY");
+    } finally {
+        f.workspace.inspectionRequests = 0;
+        f.close();
+    }
+});

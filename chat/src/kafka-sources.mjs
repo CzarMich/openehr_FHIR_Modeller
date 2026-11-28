@@ -532,6 +532,9 @@ export class KafkaSources {
         for (const name of readdirSync(pending).filter((name) => /^capture-[a-f0-9]{32}$/.test(name))) {
             const directory = join(pending, name);
             if (existsSync(join(directory, "manifest.json"))) {
+                const identity = await this.command("discover", owner, item, directory);
+                if (identity.clusterId !== item.profile.clusterId || identity.topicId !== item.profile.topicId)
+                    throw problem("Kafka source identity changed; preserved capture requires review.", 409);
                 await this.publish(owner, item, directory);
                 rmSync(directory, { recursive: true, force: true });
             } else if (readdirSync(directory).length === 0) {
