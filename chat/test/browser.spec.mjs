@@ -2564,7 +2564,7 @@ test("integration tabs support keyboard navigation, retained fields, deep links 
         await expect(page.getByRole("heading", { name: "1. Choose a project", exact: true })).toBeVisible();
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
         const control = await page.locator("#project").boundingBox();
-        expect(control.height).toBeGreaterThanOrEqual(44);
+        expect(control.height).toBeGreaterThanOrEqual(width > 800 ? 36 : 44);
         await tabs.getByRole("tab", { name: "Models", exact: true }).click();
         await page.locator("#model-id").fill("unsaved-model");
         await tabs.getByRole("tab", { name: "Mapping & review", exact: true }).click();
@@ -3242,5 +3242,90 @@ test("integration narrative handoff preserves direction and prepares the same ag
     await expect(page.locator("#message")).toHaveValue(/source-to-openehr/);
     await expect(page.locator("#message")).toHaveValue(/blood pressure template/);
     expect(await page.evaluate(() => sessionStorage.getItem("mapping-agent-request"))).toBeNull();
+    expect(browserErrors).toEqual([]);
+});
+
+test("Modelling and Integration share frame geometry and locally loaded UI typography", async ({ page }) => {
+    await page.route("**/chat/api/session", (route) =>
+        route.fulfill({ json: { authenticated: false, integrationReady: false } }),
+    );
+    await page.addInitScript(() => localStorage.setItem("modeller.michael.hidden", "true"));
+    const fonts = [];
+    page.on("request", (request) => {
+        if (request.resourceType() === "font") fonts.push(request.url());
+    });
+    for (const width of [1440, 390]) {
+        await page.setViewportSize({ width, height: 1000 });
+        const modes = [];
+        for (const path of ["/chat/#mappings", "/chat/integration/#mapping-step"]) {
+            await page.goto(path);
+            await expect(page.locator(".application-titlebar")).toBeVisible();
+            await page.evaluate(() => document.fonts.ready);
+            modes.push(
+                await page.evaluate(() => {
+                    const rect = (s) => {
+                        const b = document.querySelector(s).getBoundingClientRect();
+                        return [b.x, b.y, b.width, b.height].map((v) => Math.round(v));
+                    };
+                    const font = (s) => {
+                        const c = getComputedStyle(document.querySelector(s));
+                        return [c.fontFamily, c.fontSize, c.fontWeight, c.lineHeight];
+                    };
+                    return {
+                        panes:
+                            innerWidth > 1100
+                                ? [
+                                      rect(".application-navigation"),
+                                      rect(".application-body > main"),
+                                      rect(".application-inspector"),
+                                  ]
+                                : null,
+                        header: rect(".application-titlebar"),
+                        menu: rect(".application-menu"),
+                        body: font("body"),
+                        narrative: font("#mapping-prompt-narrative"),
+                        sample: font("#mapping-prompt-sample"),
+                        loaded: document.fonts.check('13px "Modeller Inter"'),
+                    };
+                }),
+            );
+            expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+            await page.screenshot({
+                path: `test-results/unified-${path.includes("integration") ? "integration" : "modelling"}-${width}.png`,
+                fullPage: true,
+            });
+        }
+        expect(modes[0]).toEqual(modes[1]);
+        expect(modes[0].loaded).toBe(true);
+    }
+    expect(fonts.length).toBeGreaterThan(0);
+    expect(fonts.every((url) => url.startsWith("http://127.0.0.1:8359/chat/InterVariable.woff2?v="))).toBe(true);
+    expect(browserErrors).toEqual([]);
+});
+
+test("Integration uses the shared account area and fresh CSRF sign-out", async ({ page }) => {
+    let signedIn = true,
+        token;
+    await page.route("**/chat/api/session", (route) =>
+        route.fulfill({
+            json: {
+                authenticated: signedIn,
+                user: signedIn ? { name: "Synthetic Owner" } : null,
+                csrf: "shared-frame-csrf",
+                integrationReady: false,
+            },
+        }),
+    );
+    await page.route("**/chat/auth/logout", (route) => {
+        token = route.request().headers()["x-csrf-token"];
+        signedIn = false;
+        return route.fulfill({ status: 204 });
+    });
+    await page.goto("/chat/integration/");
+    await expect(page.locator(".application-titlebar #user-name")).toHaveText("Synthetic Owner");
+    await expect(page.locator(".application-titlebar #sign-in")).toBeHidden();
+    await page.locator(".application-titlebar #sign-out").click();
+    await expect(page.locator(".application-titlebar #sign-in")).toBeVisible();
+    expect(token).toBe("shared-frame-csrf");
     expect(browserErrors).toEqual([]);
 });

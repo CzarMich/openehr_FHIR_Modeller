@@ -1,6 +1,14 @@
+@font-face {
+    font-family: "Modeller Inter";
+    src: url("/chat/InterVariable.woff2?v=693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3")
+        format("woff2");
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+}
 /* Shared visual contract. Layout remains in each workspace stylesheet. */
 :root {
-    --ui-font: "Segoe UI", Inter, system-ui, -apple-system, sans-serif;
+    --ui-font: "Modeller Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
     --ui-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
     --ui-canvas: #edf1f5;
     --ui-surface: #ffffff;

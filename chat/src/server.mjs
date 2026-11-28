@@ -41,6 +41,8 @@ const assets = {
     "/chat/appearance.js": ["appearance.js", "text/javascript"],
     "/chat/app-shell.js": ["app-shell.js", "text/javascript"],
     "/chat/app-shell.css": ["app-shell.css", "text/css"],
+    "/chat/InterVariable.woff2": ["InterVariable.woff2", "font/woff2"],
+    "/chat/Inter-OFL.txt": ["Inter-OFL.txt", "text/plain; charset=utf-8"],
     "/favicon.ico": ["favicon.ico", "image/x-icon"],
     "/favicon.svg": ["favicon.svg", "image/svg+xml"],
     "/apple-touch-icon.png": ["apple-touch-icon.png", "image/png"],
@@ -200,7 +202,7 @@ export function createApplication(
         res.setHeader("X-Frame-Options", "DENY");
         res.setHeader(
             "Content-Security-Policy",
-            "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+            "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
         );
         const path = new URL(req.url, "http://local").pathname;
         try {

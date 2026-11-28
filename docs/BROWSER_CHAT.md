@@ -372,3 +372,9 @@ The server generates the PNG locally at `/chat/auth/mfa-qr`, using only the sign
 ### Account window
 
 Choose **Sign in** at the top right to open the account window without leaving your current workspace view. Sign in with your workspace credentials or **Use organisation account** when available. Choose **Create an account** there if registration is enabled, or **Forgot password or locked out?** for recovery. On a new installation, **Set up the platform owner** opens the one-time owner setup. Invitations and recovery links open their matching step automatically. The window also contains authenticator QR setup and recovery codes; acknowledge saving those codes before continuing. Close the window or press Escape to return to your workspace.
+
+## Shared application window and typography
+
+Modelling and Integration use the same application frame: a compact title bar with the workspace switcher and account controls, one Project/Workspace/View/Help menu row, left navigation, resizable content/context panes, shared themes and focus treatment. Navigation targets retain their existing URLs and permissions. The workspace modules provide their own task controls inside that common frame.
+
+Both use the bundled Inter Variable UI font and shared type/control sizes. Narrative inputs use the UI font; code, structured model definitions and machine-readable output use the common monospace stack. The font is served locally with a content hash and preload; it makes no external CDN request. View preferences persist across workspace switches. On smaller screens both retain compact navigation and avoid page-wide horizontal scrolling.
