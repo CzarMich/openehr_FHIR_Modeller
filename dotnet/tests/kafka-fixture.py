@@ -19,6 +19,9 @@ try:
  envfile=root/'broker.env';envfile.write_text('\n'.join(k+'='+v for k,v in env.items())+'\n');envfile.chmod(0o600)
  run(['docker','run','-d','--name',name,'--memory','1g','--cpus','2','--env-file',str(envfile),'-p',f'127.0.0.1:{port}:9093','-v',f'{root}:/etc/kafka/secrets:ro',image])
  cmd=['docker','run','--rm','--network','host','-v',f'{r}:/repo','-v',f'{root}:/fixture','-v','/tmp/modeller-dotnet-nuget:/root/.nuget/packages','-w','/repo/dotnet',sdk,'dotnet','run','--project','Modeller.Kafka.Tests','-c','Release','-p:NuGetAudit=false','-p:RestoreLockedMode=true','--','/fixture',str(port),'/repo/dotnet/Modeller.Kafka/bin/Release/net10.0/Modeller.Kafka.dll']
+ if os.environ.get('GITHUB_ACTIONS')=='true':
+  # Hosted validation already provisions the pinned SDK. Keep generated build files owned by the runner.
+  cmd=['dotnet','run','--project',str(r/'dotnet/Modeller.Kafka.Tests'),'-c','Release','-p:NuGetAudit=false','-p:RestoreLockedMode=true','--',str(root),str(port),str(r/'dotnet/Modeller.Kafka/bin/Release/net10.0/Modeller.Kafka.dll')]
  result=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=240)
  if result.returncode:print(result.stdout[-8000:]);raise RuntimeError('Synthetic Kafka functional acceptance failed')
  print(result.stdout)

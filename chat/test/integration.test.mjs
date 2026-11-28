@@ -707,6 +707,8 @@ test("concurrent channel admits two workers and retains a third input until a sl
             await f.workspace.tick();
         }
         assert.equal(pending.length, 2);
+        await f.workspace.controlChannel(f.session, channel.id, "start");
+        assert.equal(channel.activeJobs.length, 2);
         assert.equal(f.workspace.active.size, 2);
         assert.equal(f.workspace.listChannels(f.session).items[0].intake.counts.QUEUED, 1);
         pending.shift()();
