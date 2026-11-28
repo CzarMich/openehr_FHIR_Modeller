@@ -14,6 +14,18 @@ The application consumes signed claims from the configured IdP and maps them to 
 
 An MCP bearer token or API key never becomes a human reviewer. Browser role assignment does not bypass exact-revision governance or the qualified-validation gate. In the current product, incomplete validation keeps approval/publication unavailable.
 
+## Administrator and User accounts
+
+The browser presents two account types. **User** maps to `modelling-modeller`: modelling and permitted project work. **Administrator** maps to all five internal governance roles, including `modelling-administrator`. These types do not bypass independent human review, exact model confirmation, qualified validation, project access or publication gates. Shared paid AI connections and private repositories require separate explicit permissions.
+
+Public native registration always creates a User. Only an authenticated native administrator can invite an Administrator or change an account type. Changes revoke affected sessions; the platform owner cannot be demoted. The installation switch `CHAT_SIGNUP_ENABLED=false` takes precedence over the saved registration preference and is shown in Accounts.
+
+For the Keycloak two-type scheme set `CHAT_OIDC_ROLE_SCHEME=platform` and `CHAT_REVIEW_ROLES_CLAIM=platform_roles`. The backend reads the verified signed ID token, accepting only `platform-user` or `platform-admin` and mapping them to the canonical internal role sets. An editable profile attribute, an email domain or an unassigned account does not confer administrator access. The default `governance` scheme retains existing IdP role configurations.
+
+Organisation account administration belongs to Keycloak. Signed platform administrators receive **Project → Manage organisation users**; signed organisation users receive **Help → My organisation account**. Native Accounts manages native identities only. Native and organisation accounts remain separate even when their email addresses match; private profiles and credentials are not silently merged. Retain the native owner as the recovery route.
+
+See [Keycloak installation](KEYCLOAK_SETUP.md) for the openfhir realm, registration domains, email, MFA and the version-matched registration provider.
+
 ## Provisioning Users
 
 1. Create or invite the person in the organisation's IdP. Add the person to the registered browser client and/or API client according to the intended access.

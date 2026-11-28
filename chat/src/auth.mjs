@@ -1,3 +1,4 @@
+import { oidcRoles } from "./user-types.mjs";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { unlinkSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -120,13 +121,17 @@ export class Auth {
             !this.config.allowedGroups.some((group) => Array.isArray(claims.groups) && claims.groups.includes(group))
         )
             throw Object.assign(new Error("Access is not enabled for this account."), { status: 403 });
+        const claim = (path) =>
+            path
+                .split(".")
+                .reduce((value, key) => (value && Object.hasOwn(value, key) ? value[key] : undefined), claims);
+        const mappedRoles =
+            this.config.oidcRoleScheme === "platform" || this.config.reviewEnabled || this.config.cdrEnabled
+                ? oidcRoles(claim(this.config.reviewRolesClaim) ?? [], this.config.oidcRoleScheme)
+                : [];
         let reviewIdentity;
         if (this.config.reviewEnabled || this.config.cdrEnabled) {
-            const claim = (path) =>
-                path
-                    .split(".")
-                    .reduce((value, key) => (value && Object.hasOwn(value, key) ? value[key] : undefined), claims);
-            const roles = claim(this.config.reviewRolesClaim) ?? [];
+            const roles = mappedRoles;
             const tenant = this.config.reviewTenantClaim ? claim(this.config.reviewTenantClaim) : claims.iss;
             const projectScopes = claim(this.config.reviewProjectScopesClaim) ?? [];
             if (
@@ -175,6 +180,23 @@ export class Auth {
             Location: transaction.destination === "/chat/reviews" || !this.config.enabled ? "/chat/reviews" : "/chat/",
         });
         res.end();
+    }
+    organisation(session) {
+        if (
+            this.config.oidcRoleScheme !== "platform" ||
+            !session?.reviewIdentity ||
+            session.reviewIdentity.issuer !== this.config.issuer
+        )
+            return null;
+        const issuer = new URL(this.config.issuer),
+            match = issuer.pathname.match(/^\/realms\/([A-Za-z0-9._-]+)\/?$/);
+        if (issuer.protocol !== "https:" || !match) return null;
+        return {
+            accountUrl: issuer.origin + "/realms/" + match[1] + "/account/",
+            administrationUrl: session.reviewIdentity.roles.includes("modelling-administrator")
+                ? issuer.origin + "/admin/" + match[1] + "/console/"
+                : null,
+        };
     }
     session(req) {
         this.cleanup();

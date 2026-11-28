@@ -950,3 +950,48 @@ test("FHIR workspace requires login, CSRF and exact confirmation before calling 
         404,
     );
 });
+
+test("signed Keycloak account types map to bounded platform permissions", async () => {
+    for (const [claim, expected] of [
+        ["platform-user", ["modelling-modeller"]],
+        [
+            "platform-admin",
+            [
+                "modelling-administrator",
+                "modelling-modeller",
+                "modelling-reviewer",
+                "modelling-approver",
+                "modelling-publisher",
+            ],
+        ],
+    ]) {
+        const f = oidcFixture({
+            platform_roles: ["default-roles-openfhir", claim],
+            roles: ["modelling-administrator"],
+        });
+        Object.assign(f.auth.config, {
+            reviewEnabled: true,
+            reviewRolesClaim: "platform_roles",
+            oidcRoleScheme: "platform",
+        });
+        await f.auth.callback(f.req, f.res);
+        assert.deepEqual([...f.auth.sessions.values()][0].reviewIdentity.roles, expected);
+    }
+});
+test("Keycloak account types cannot come from editable profile fields or a malformed claim", async () => {
+    for (const claims of [
+        { attributes: { userType: "administrator" }, roles: ["platform-admin"] },
+        { platform_roles: "platform-admin" },
+        { platform_roles: ["administrator"] },
+        { platform_roles: [] },
+    ]) {
+        const f = oidcFixture(claims);
+        Object.assign(f.auth.config, {
+            reviewEnabled: true,
+            reviewRolesClaim: "platform_roles",
+            oidcRoleScheme: "platform",
+        });
+        await assert.rejects(() => f.auth.callback(f.req, f.res));
+        assert.equal(f.auth.sessions.size, 0);
+    }
+});

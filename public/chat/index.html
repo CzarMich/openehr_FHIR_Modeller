@@ -2960,28 +2960,20 @@ Help the user model openEHR artefacts in the browser workspace. Use OpenEhrWorks
                         <button id="save-signup-settings" type="button" class="secondary-button">
                             Save registration setting
                         </button>
+                        <p id="signup-installation-note" hidden>
+                            Public local registration is disabled for this installation. Use invitations or organisation
+                            sign-in.
+                        </p>
                     </div>
                     <form id="invite-user-form" class="identity-form identity-admin-form">
                         <h2>Invite a user</h2>
                         <label for="new-user-email">Email address</label
                         ><input id="new-user-email" type="email" autocomplete="email" required />
-                        <fieldset>
-                            <legend>Roles</legend>
-                            <label
-                                ><input type="checkbox" name="invite-role" value="modelling-modeller" checked />
-                                Modeller</label
-                            ><label
-                                ><input type="checkbox" name="invite-role" value="modelling-reviewer" /> Reviewer</label
-                            ><label
-                                ><input type="checkbox" name="invite-role" value="modelling-approver" /> Approver</label
-                            ><label
-                                ><input type="checkbox" name="invite-role" value="modelling-publisher" />
-                                Publisher</label
-                            ><label
-                                ><input type="checkbox" name="invite-role" value="modelling-administrator" />
-                                Administrator</label
-                            >
-                        </fieldset>
+                        <label for="new-user-type">Account type</label>
+                        <select id="new-user-type">
+                            <option value="user">User</option>
+                            <option value="administrator">Administrator</option>
+                        </select>
                         <p>
                             Invite links are created for delivery through your approved channel. The application does
                             not send email.

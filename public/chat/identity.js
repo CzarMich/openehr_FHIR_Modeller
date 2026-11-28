@@ -1,12 +1,5 @@
 "use strict";
 const $ = (id) => document.getElementById(id);
-const roles = [
-    ["modelling-administrator", "Administrator"],
-    ["modelling-modeller", "Modeller"],
-    ["modelling-reviewer", "Reviewer"],
-    ["modelling-approver", "Approver"],
-    ["modelling-publisher", "Publisher"],
-];
 let session = null;
 const query = new URLSearchParams(location.hash.slice(1));
 function notice(message, admin = false) {
@@ -133,7 +126,11 @@ async function loadAdmin() {
     try {
         const data = await adminRequest("users");
         $("owner-signup-settings").hidden = !session?.access?.owner;
-        $("allow-signup").checked = data.signupEnabled !== false;
+        const installationAllows = data.signupAllowedByInstallation !== false;
+        $("allow-signup").checked = installationAllows && data.signupEnabled !== false;
+        $("allow-signup").disabled = !installationAllows;
+        $("save-signup-settings").disabled = !installationAllows;
+        $("signup-installation-note").hidden = installationAllows;
         renderUsers(data.users);
         renderServices(data.serviceAccounts || []);
         renderAudit(data.audit?.events || []);
@@ -161,18 +158,21 @@ function renderUsers(users) {
         email.textContent = user.email || "No email address";
         const fieldset = document.createElement("fieldset");
         const legend = document.createElement("legend");
-        legend.textContent = "Roles";
-        fieldset.append(legend);
-        const selectedRoles = new Set(user.roles);
-        for (const [role, label] of roles) {
-            const item = document.createElement("label");
-            const checkbox = document.createElement("input");
-            checkbox.type = "checkbox";
-            checkbox.value = role;
-            checkbox.checked = selectedRoles.has(role);
-            item.append(checkbox, document.createTextNode(" " + label));
-            fieldset.append(item);
+        legend.textContent = "Account type";
+        const type = document.createElement("select");
+        type.setAttribute("aria-label", "Account type for " + user.username);
+        for (const [value, title] of [
+            ["user", "User"],
+            ["administrator", "Administrator"],
+        ]) {
+            const option = document.createElement("option");
+            option.value = value;
+            option.textContent = title;
+            type.append(option);
         }
+        type.value = user.userType || (user.roles.includes("modelling-administrator") ? "administrator" : "user");
+        if (user.isOwner) type.disabled = true;
+        fieldset.append(legend, type);
         row.append(heading, email, fieldset);
         if (!session?.access?.owner && (user.isOwner || user.permissions?.length)) fieldset.disabled = true;
         if (session?.access?.owner && !user.isOwner) {
@@ -211,11 +211,10 @@ function renderUsers(users) {
         const actions = document.createElement("div");
         actions.className = "identity-actions";
         actions.append(
-            button("Save roles", async () => {
+            button("Save account type", async () => {
                 try {
-                    const selected = [...fieldset.querySelectorAll("input:checked")].map((input) => input.value);
-                    await adminRequest("users/" + user.id + "/roles", "PUT", { roles: selected });
-                    notice("Roles updated; affected sessions were revoked.", true);
+                    await adminRequest("users/" + user.id + "/type", "PUT", { userType: type.value });
+                    notice("Account type updated; affected sessions were revoked.", true);
                     await loadAdmin();
                 } catch (error) {
                     notice(error.message, true);
@@ -465,10 +464,10 @@ $("finish-recovery-codes").onclick = () => location.reload();
 $("invite-user-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     try {
-        const selected = [...document.querySelectorAll("input[name='invite-role']:checked")].map(
-            (input) => input.value,
-        );
-        const result = await adminRequest("invitations", "POST", { email: $("new-user-email").value, roles: selected });
+        const result = await adminRequest("invitations", "POST", {
+            email: $("new-user-email").value,
+            userType: $("new-user-type").value,
+        });
         linkResult(result.token, "invite");
         $("new-user-email").value = "";
         notice("Invitation link created. Deliver it through your approved channel; email was not sent.", true);

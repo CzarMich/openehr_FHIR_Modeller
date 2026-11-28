@@ -8,6 +8,7 @@ import { Readable } from "node:stream";
 import { GLOBAL_IDENTITY, workspaceAccess, identityCanUseGlobal } from "./access.mjs";
 import http from "node:http";
 import QRCode from "qrcode";
+import { rolesForType } from "./user-types.mjs";
 import { StaticAssets } from "./static-assets.mjs";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
@@ -294,6 +295,7 @@ export function createApplication(
                     access: workspaceAccess(auth.identityStore, session),
                     identitySetupRequired: config.identityEnabled && auth.identityStore.read().users.length === 0,
                     oidcEnabled: !!config.issuer,
+                    organisation: auth.organisation?.(session) || null,
                     mcpConnection: { url: config.origin + "/mcp", header: config.mcpKeyHeader },
                     mfaSetupRequired: !!session?.mfaSetupRequired,
                     ...(session?.mfaSetupRequired
@@ -453,7 +455,10 @@ export function createApplication(
                     return json(res, 200, { user });
                 }
                 if (req.method === "GET" && path === "/chat/api/identity/users")
-                    return json(res, 200, store.listUsers(actor));
+                    return json(res, 200, {
+                        ...store.listUsers(actor),
+                        signupAllowedByInstallation: config.signupEnabled,
+                    });
                 if (req.method === "GET" && path === "/chat/api/identity/audit")
                     return json(res, 200, store.listUsers(actor).audit);
                 if (req.method === "POST" && path === "/chat/api/identity/mcp-connection") {
@@ -468,14 +473,27 @@ export function createApplication(
                     return json(res, 200, { key: config.mcpKey });
                 }
                 if (req.method === "POST" && path === "/chat/api/identity/invitations") {
-                    const input = await body(req, ["email", "roles", "expiresSeconds"], "Invalid invitation request.");
-                    return json(res, 201, store.invite(actor, input.email, input.roles, input.expiresSeconds));
+                    const input = await body(
+                        req,
+                        ["email", "roles", "userType", "expiresSeconds"],
+                        "Invalid invitation request.",
+                    );
+                    if (input.roles !== undefined && input.userType !== undefined)
+                        throw Object.assign(new Error("Choose one account-type representation."), { status: 400 });
+                    const roles = input.userType === undefined ? input.roles : rolesForType(input.userType);
+                    return json(res, 201, store.invite(actor, input.email, roles, input.expiresSeconds));
                 }
                 const userRoute = path.match(
-                    /^\/chat\/api\/identity\/users\/([a-f0-9-]{36})\/(roles|disable|reset|sessions)$/,
+                    /^\/chat\/api\/identity\/users\/([a-f0-9-]{36})\/(roles|type|disable|reset|sessions)$/,
                 );
                 if (userRoute) {
                     const [, userId, action] = userRoute;
+                    if (action === "type" && req.method === "PUT") {
+                        const input = await body(req, ["userType"], "Invalid account type assignment.");
+                        const user = store.setRoles(actor, userId, rolesForType(input.userType));
+                        cancelUserWork(userId);
+                        return json(res, 200, { user });
+                    }
                     if (action === "roles" && req.method === "PUT") {
                         const input = await body(req, ["roles"], "Invalid role assignment.");
                         const user = store.setRoles(actor, userId, input.roles);

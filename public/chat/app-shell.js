@@ -114,6 +114,40 @@ if (!integration)
             document.getElementById("new-chat").click();
         }),
     );
+let organisation = null;
+function organisationLink(url, label) {
+    if (!url) return null;
+    try {
+        if (new URL(url).protocol !== "https:") return null;
+    } catch {
+        return null;
+    }
+    const link = document.createElement("a");
+    link.href = url;
+    link.textContent = label;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    return link;
+}
+function organisationSession(session) {
+    organisation = session?.authenticated ? session.organisation || null : null;
+    menu.querySelectorAll("[data-organisation-link]").forEach((link) => link.remove());
+    for (const [url, label, target] of [
+        [organisation?.accountUrl, "My organisation account", menu.querySelectorAll(".application-menu-popup")[3]],
+        [organisation?.administrationUrl, "Manage organisation users", projectMenu],
+    ]) {
+        const link = organisationLink(url, label);
+        if (link) {
+            link.dataset.organisationLink = "true";
+            target.append(link);
+        }
+    }
+}
+document.addEventListener("workspace:session", (event) => organisationSession(event.detail));
+fetch("/chat/api/session")
+    .then((response) => (response.ok ? response.json() : null))
+    .then(organisationSession)
+    .catch(() => {});
 function workspaceMenu() {
     const list = menu.querySelector("[data-workspace-menu]");
     list.replaceChildren();

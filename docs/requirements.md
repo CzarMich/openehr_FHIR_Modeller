@@ -132,3 +132,5 @@ a shared workspace, not per-browser-user isolation.
 
 
 - **REQ-F45** — Provide explicitly selected native/ODBC database and vendor/API adapters, encrypted UI-managed profiles, bounded metadata discovery, human-confirmed immutable source read plans, verified read-only/TLS controls and atomic private intake for mapping channels. Cover SQL Server, Oracle, PostgreSQL, MySQL, MariaDB, SAP HANA, Epic Clarity on both engines, Epic FHIR, SAP BW and approved clinical APIs. Preserve exact cursor values, original API evidence, source semantics and configuration/runtime/schema pins; fail closed on incomplete windows or unqualified installation dependencies.
+
+Account access under REQ-F23 presents Administrator and User types, requires administrator-controlled promotion, verifies signed organisation role claims and keeps native and organisation identities distinct. Public organisation registration is restricted by a server-side registration-only domain policy; administrator provisioning and existing users are independent of that registration policy. See [Keycloak setup](KEYCLOAK_SETUP.md).

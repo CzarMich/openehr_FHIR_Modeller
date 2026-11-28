@@ -1,3 +1,4 @@
+import { userType } from "./user-types.mjs";
 import { GLOBAL_PERMISSIONS } from "./access.mjs";
 import {
     createCipheriv,
@@ -964,6 +965,7 @@ export class IdentityStore {
             displayName: user.displayName,
             email: user.email,
             roles: [...user.roles],
+            userType: userType(user.roles),
             isOwner: !!user.isOwner,
             permissions: [...(user.permissions || [])],
             status: user.status,
