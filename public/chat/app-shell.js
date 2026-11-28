@@ -11,12 +11,55 @@ const shortLabels = {
     "tab-governance": "Review",
     "tab-accounts": "Accounts",
     "tab-help": "Help",
+    "tab-project": "Project",
+    "tab-mapping": "Mapping",
+    "tab-vendor": "Vendors",
+    "tab-source": "Sources",
+    "tab-run": "Channels",
+    "tab-monitor": "Jobs",
+    "tab-sharing": "Access",
 };
-if (!integration)
+for (const tab of tabs) {
+    tab.setAttribute("aria-label", tab.textContent.trim());
+    tab.dataset.shortLabel = shortLabels[tab.id] || tab.textContent.trim();
+}
+const navigationLabel = document.querySelector(".platform-label") || document.createElement("div");
+navigationLabel.classList.add("platform-label");
+navigationLabel.textContent = "WORKSPACE";
+navigation.prepend(navigationLabel);
+{
+    const icons = {
+        "tab-fhir": "M5 3h14v18H5z M8 8h8 M8 12h8 M8 16h5",
+        "tab-mappings": "M3 7h15l-4-4 M21 17H6l4 4 M18 7l-4 4 M6 17l4-4",
+        "tab-project": "M3 7h6l2 2h10v11H3z M3 7V4h6l2 3",
+        "tab-models": "M5 5h13v16H5z M9 5V2h12v15 M8 10h7 M8 14h7 M8 18h5",
+        "tab-mapping": "M3 7h15l-4-4 M21 17H6l4 4 M18 7l-4 4 M6 17l4-4",
+        "tab-vendor": "M7 3v5 M17 3v5 M5 8h14v3a7 7 0 0 1-7 7v4 M8 8h8",
+        "tab-source": "M4 5c0-4 16-4 16 0v14c0 4-16 4-16 0z M4 5c0 4 16 4 16 0 M4 12c0 4 16 4 16 0",
+        "tab-run": "M8 4l12 8-12 8z",
+        "tab-monitor": "M3 17l5-6 4 3 7-10 M3 21h18",
+        "tab-sharing":
+            "M9 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M2 22v-3a7 7 0 0 1 14 0v3 M17 4a4 4 0 0 1 0 8 M19 16a5 5 0 0 1 3 5",
+    };
     for (const tab of tabs) {
-        tab.setAttribute("aria-label", tab.textContent.trim());
-        tab.dataset.shortLabel = shortLabels[tab.id] || tab.textContent.trim();
+        if (tab.querySelector("svg")) continue;
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        for (const [key, value] of Object.entries({
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            "stroke-width": "1.7",
+            "stroke-linecap": "round",
+            "stroke-linejoin": "round",
+            "aria-hidden": "true",
+        }))
+            svg.setAttribute(key, value);
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", icons[tab.id] || icons["tab-models"]);
+        svg.append(path);
+        tab.prepend(svg);
     }
+}
 const key = "modeller.workspace.layout.v1";
 const defaults = { theme: "light", left: 236, right: 272, navigation: true, inspector: true };
 let saved = {};
@@ -34,15 +77,14 @@ state.navigation = state.navigation !== false;
 state.inspector = state.inspector !== false;
 document.body.classList.add("application-workspace");
 if (!navigation.id) navigation.id = "application-navigation";
-if (integration) {
-    const desktop = matchMedia("(min-width: 1101px)");
-    const orientation = () =>
-        navigation
-            .querySelector('[role="tablist"]')
-            .setAttribute("aria-orientation", desktop.matches ? "vertical" : "horizontal");
-    desktop.addEventListener("change", orientation);
-    orientation();
-} else {
+const desktop = matchMedia("(min-width: 1101px)");
+const orientation = () =>
+    navigation
+        .querySelector('[role="tablist"]')
+        .setAttribute("aria-orientation", desktop.matches ? "vertical" : "horizontal");
+desktop.addEventListener("change", orientation);
+orientation();
+if (!integration) {
     const conversations = document.getElementById("conversations");
     if (conversations) conversations.tabIndex = 0;
 }
@@ -59,8 +101,34 @@ menu.innerHTML = `<details><summary>Project</summary><div class="application-men
 <hr><button type="button" data-shell-action="reset">Reset workspace layout</button></div></details>
 <details><summary>Help</summary><div class="application-menu-popup"><a href="/chat/#help">User guide</a><button type="button" data-shell-action="leticia">Show Leticia</button></div></details>
 <span class="application-menu-location">${integration ? "Integration" : "Modelling"}</span>`;
-if (integration) document.querySelector(".platform-header").after(menu);
-else content.prepend(menu);
+// Both documents use the same application frame; workspace modules keep their own controls and IDs.
+const titlebar = document.querySelector(integration ? ".platform-header" : ".topbar");
+titlebar.classList.add("application-titlebar");
+const brand = document.querySelector(".brand"),
+    switcher = document.querySelector(".workspace-switcher");
+const titlebarBrand = document.createElement("div");
+titlebarBrand.className = "application-brand-group";
+titlebarBrand.append(brand, switcher);
+titlebar.prepend(titlebarBrand);
+if (integration) {
+    const title = document.createElement("span");
+    title.className = "workspace-name application-workspace-title";
+    title.textContent = "Integration workspace";
+    titlebarBrand.after(title);
+    const account = document.createElement("div");
+    account.className = "account";
+    account.innerHTML =
+        '<span id="user-name"></span><a id="sign-in" class="sign-in" href="/chat/?signin=1#chat">Sign in</a><button id="sign-out" class="text-button" hidden>Sign out</button><span class="application-account-status" role="status"></span>';
+    titlebar.append(account);
+}
+const skipLink = document.querySelector(".skip-link");
+if (skipLink) skipLink.after(titlebar);
+else document.body.prepend(titlebar);
+titlebar.after(menu);
+navigation.classList.add("application-navigation");
+const layout = document.querySelector(integration ? ".integration-layout" : ".workspace");
+layout.classList.add("application-body");
+
 const pane = document.createElement("aside");
 pane.id = "application-context";
 pane.className = "application-inspector";
@@ -115,6 +183,21 @@ if (!integration)
         }),
     );
 let organisation = null;
+let integrationSession = null;
+if (integration)
+    document.getElementById("sign-out").onclick = async () => {
+        try {
+            const response = await fetch("/chat/auth/logout", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRF-Token": integrationSession?.csrf || "" },
+            });
+            if (!response.ok && response.status !== 401) throw new Error();
+            location.reload();
+        } catch {
+            titlebar.querySelector(".application-account-status").textContent =
+                "Could not sign out. Refresh and retry.";
+        }
+    };
 function organisationLink(url, label) {
     if (!url) return null;
     try {
@@ -131,6 +214,14 @@ function organisationLink(url, label) {
 }
 function organisationSession(session) {
     organisation = session?.authenticated ? session.organisation || null : null;
+    if (integration) {
+        integrationSession = session;
+        document.getElementById("user-name").textContent = session?.authenticated
+            ? session.user?.name || "Signed in"
+            : "";
+        document.getElementById("sign-in").hidden = !!session?.authenticated;
+        document.getElementById("sign-out").hidden = !session?.authenticated;
+    }
     menu.querySelectorAll("[data-organisation-link]").forEach((link) => link.remove());
     for (const [url, label, target] of [
         [organisation?.accountUrl, "My organisation account", menu.querySelectorAll(".application-menu-popup")[3]],
@@ -264,18 +355,14 @@ function splitter(side, target) {
 }
 const leftSplitter = splitter("left", navigation),
     rightSplitter = splitter("right", pane);
+navigation.append(leftSplitter);
+pane.prepend(rightSplitter);
+layout.append(pane);
 if (integration) {
-    const layout = document.querySelector(".integration-layout");
-    navigation.after(leftSplitter);
-    layout.append(rightSplitter, pane);
-    const heading = document.querySelector(".page-heading");
-    content.prepend(heading);
+    content.prepend(document.querySelector(".page-heading"));
     pane.querySelector(".application-inspector-content").append(document.querySelector(".policy-note"));
-} else {
-    navigation.append(leftSplitter);
-    pane.prepend(rightSplitter);
-    document.querySelector(".workspace").append(pane);
 }
+
 function apply() {
     document.documentElement.dataset.theme = state.theme;
     document.documentElement.style.setProperty("--application-left", `${state.navigation ? state.left : 0}px`);
@@ -323,6 +410,13 @@ const descriptions = integration
 function updateContext() {
     const current = tabs.find((tab) => tab.getAttribute("aria-selected") === "true") || tabs[0];
     pane.querySelector("[data-context-title]").textContent = current.textContent.trim();
+    if (integration) {
+        titlebar.querySelector(".application-workspace-title").textContent = current.textContent.trim();
+        content.querySelector(".page-heading h1").textContent = current.textContent.trim();
+        content.querySelector(".page-heading p").textContent =
+            descriptions[current.id] ||
+            "Prepare and confirm versioned mappings, process private files and assign mappings to channels.";
+    }
     pane.querySelector("[data-context-description]").textContent = descriptions[current.id] || "";
     const project = document.getElementById(integration ? "project" : "model-project");
     pane.querySelector("[data-context-project]").textContent = project?.value

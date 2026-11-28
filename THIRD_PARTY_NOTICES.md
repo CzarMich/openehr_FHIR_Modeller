@@ -71,3 +71,7 @@ The proprietary SAP HANA ODBC client is not included in this repository or its d
 ## Kafka client
 
 The private Kafka intake uses Confluent.Kafka and librdkafka.redist (locked NuGet packages). Preserve their Apache-2.0/BSD notices and transitive license material collected in the runtime notice directory. The disposable acceptance fixture uses the prebuilt Apache Kafka image under Apache-2.0; it is not bundled as a broker in the application. See the pinned lockfiles and upstream package notices for complete terms.
+
+## Inter UI font
+
+Both workspaces serve the unmodified Inter Variable 4.1 font locally, under the SIL Open Font License 1.1. Copyright and full terms are included in [Inter-OFL.txt](public/chat/Inter-OFL.txt). Upstream: [rsms/inter v4.1](https://github.com/rsms/inter/tree/v4.1); font SHA-256 `693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3`. Runtime font requests use the application origin and immutable content-versioned caching.

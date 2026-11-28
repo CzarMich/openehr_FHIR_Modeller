@@ -3,6 +3,13 @@
     <head>
         <script src="/chat/appearance.js"></script>
         <meta charset="utf-8" />
+        <link
+            rel="preload"
+            href="/chat/InterVariable.woff2?v=693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3"
+            as="font"
+            type="font/woff2"
+            crossorigin
+        />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
         <title>Integration workspace · openEHR Modeller</title>
         <link rel="stylesheet" href="/chat/integration.css" />
@@ -242,7 +249,9 @@
                             de-identified and approved for the configured AI provider. It contains no
                             credentials.</label
                         >
-                        <button id="mapping-prompt-open" type="button">Continue in modelling chat</button>
+                        <button id="mapping-prompt-open" type="button" class="primary-button">
+                            Continue in modelling chat
+                        </button>
                         <p id="mapping-prompt-status" role="status">
                             The request is prepared for your review in chat. Nothing is sent automatically.
                         </p>

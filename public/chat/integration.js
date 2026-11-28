@@ -84,14 +84,14 @@ function button(label, action) {
 async function run(action) {
     if (busy) return;
     busy = true;
-    document.querySelectorAll('button:not([role="tab"])').forEach((b) => (b.disabled = true));
+    document.querySelectorAll('#integration-content button:not([role="tab"])').forEach((b) => (b.disabled = true));
     try {
         await action();
     } catch (error) {
         notice(error.message);
     } finally {
         busy = false;
-        document.querySelectorAll('button:not([role="tab"])').forEach((b) => (b.disabled = false));
+        document.querySelectorAll('#integration-content button:not([role="tab"])').forEach((b) => (b.disabled = false));
     }
 }
 function showReview(view) {

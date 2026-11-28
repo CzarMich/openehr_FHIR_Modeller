@@ -1201,6 +1201,7 @@ loadSession()
         } else if (location.hash.startsWith("#share=")) {
             sessionStorage.setItem("pending-share", location.hash);
         }
+        if (!session.authenticated && new URL(location.href).searchParams.get("signin") === "1") $("sign-in").click();
         if (session.authenticated) {
             const mappingRequest = sessionStorage.getItem("mapping-agent-request");
             sessionStorage.removeItem("mapping-agent-request");
