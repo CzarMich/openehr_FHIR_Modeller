@@ -51,7 +51,12 @@ export class KafkaSources {
         this.captures = new Map();
         this.runtimeFingerprint =
             runtimeFingerprint ||
-            (() => hash(readFileSync(join(dirname(config.integrationKafkaReader), "Modeller.Kafka.dll"))));
+            (() =>
+                hash(
+                    ["Modeller.Kafka.dll", "Modeller.Core.dll", "Confluent.Kafka.dll", "Modeller.Kafka.deps.json"]
+                        .map((name) => hash(readFileSync(join(dirname(config.integrationKafkaReader), name))))
+                        .join("\n"),
+                ));
         this.root = join(config.dataDir, "kafka-sources");
         mkdirSync(this.root, { recursive: true, mode: 0o700 });
     }
