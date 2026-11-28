@@ -28,19 +28,18 @@ try {
     };
     using var consumer=new ConsumerBuilder<byte[],byte[]>(config).SetLogHandler((_,_)=>{}).SetErrorHandler((_,_)=>{}).Build();
     using var admin=new AdminClientBuilder(new AdminClientConfig(config)).SetLogHandler((_,_)=>{}).Build();
-    var cluster=consumer.ClusterId(TimeSpan.FromSeconds(15));
-    var topic=(await admin.DescribeTopicsAsync(TopicCollection.OfTopicNames([profile.Topic]),new(){RequestTimeout=TimeSpan.FromSeconds(15)})).TopicDescriptions.Single();
+    var cluster=await ReadMetadata("CLUSTER",()=>consumer.ClusterId(TimeSpan.FromSeconds(15)));
+    var topic=(await ReadMetadataAsync("TOPIC",()=>admin.DescribeTopicsAsync(TopicCollection.OfTopicNames([profile.Topic]),new(){RequestTimeout=TimeSpan.FromSeconds(15)}))).TopicDescriptions.Single();
     if(topic.Error.IsError||topic.IsInternal||topic.Partitions.Count is <1 or >256)throw new ProcessingException("KAFKA_TOPIC_UNAVAILABLE");
     var topicId=topic.TopicId.ToString();
     if(args[0]=="discover") {Console.WriteLine(JsonSerializer.Serialize(new{clusterId=cluster,topicId,partitions=topic.Partitions.Count,tlsVerified=true,autoCommit=false,readCommitted=true},Data.Json));return;}
     if(profile.ClusterId!=cluster || profile.TopicId!=topicId)throw new ProcessingException("KAFKA_CLUSTER_OR_TOPIC_CHANGED");
     var partitions=topic.Partitions.Select(p=>new TopicPartition(profile.Topic,p.Partition)).ToArray();
-    List<TopicPartitionOffset>? brokerOffsets=null;
-    for(var attempt=0;brokerOffsets is null;attempt++)try{brokerOffsets=consumer.Committed(partitions,TimeSpan.FromSeconds(15));}catch(KafkaException error)when(attempt<3 && error.Error.Code is ErrorCode.NotCoordinatorForGroup or ErrorCode.GroupCoordinatorNotAvailable or ErrorCode.GroupLoadInProgress or ErrorCode.Local_TimedOut or ErrorCode.RequestTimedOut or ErrorCode.Local_WaitCoord){await Task.Delay(500*(attempt+1));}
+    var brokerOffsets=await ReadMetadata("GROUP_OFFSETS",()=>consumer.Committed(partitions,TimeSpan.FromSeconds(15)));
     var committed=brokerOffsets.ToDictionary(p=>p.Partition.Value,p=>p.Offset.Value);
     var positions=new Dictionary<string,string>(StringComparer.Ordinal);var assigned=new List<TopicPartitionOffset>();
     foreach(var partition in partitions) {
-        var marks=consumer.QueryWatermarkOffsets(partition,TimeSpan.FromSeconds(15));var key=partition.Partition.Value.ToString(CultureInfo.InvariantCulture);long offset;
+        var marks=await ReadMetadata("WATERMARK",()=>consumer.QueryWatermarkOffsets(partition,TimeSpan.FromSeconds(15)));var key=partition.Partition.Value.ToString(CultureInfo.InvariantCulture);long offset;
         if(request.AfterOffsets?.TryGetValue(key,out var after)==true) {
             if(!long.TryParse(after,NumberStyles.None,CultureInfo.InvariantCulture,out offset)||offset<0)throw new ProcessingException("KAFKA_CHECKPOINT_INVALID");
             if(committed[partition.Partition.Value]>offset)throw new ProcessingException("KAFKA_BROKER_CHECKPOINT_AHEAD_OF_DURABLE_INTAKE");
@@ -74,6 +73,9 @@ try {
         positions[partition]=checked(record.Offset.Value+1).ToString(CultureInfo.InvariantCulture);total+=value.Length;
         Data.Write(Path.Combine(directory,"manifest.json"),manifest);
     }
+    // Recheck source identity after consuming, before permitting any durable acknowledgment.
+    var finalTopic=(await ReadMetadataAsync("TOPIC_RECHECK",()=>admin.DescribeTopicsAsync(TopicCollection.OfTopicNames([profile.Topic]),new(){RequestTimeout=TimeSpan.FromSeconds(15)}))).TopicDescriptions.Single();
+    if(finalTopic.Error.IsError||finalTopic.TopicId.ToString()!=topicId)throw new ProcessingException("KAFKA_CLUSTER_OR_TOPIC_CHANGED");
     // No offset is stored or committed until the supervisor acknowledges durable private publication.
     Console.WriteLine(JsonSerializer.Serialize(new{ready=true,records=manifest.Items.Count,bytes=total,manifest="manifest.json"},Data.Json));
     var acknowledgment=await Console.In.ReadLineAsync().WaitAsync(TimeSpan.FromSeconds(60));
@@ -83,6 +85,15 @@ try {
 } catch(ProcessingException error) {Console.Error.WriteLine(error.Code);Environment.ExitCode=2;}
 catch(KafkaException error) {Console.Error.WriteLine("KAFKA_"+Regex.Replace(error.Error.Code.ToString().ToUpperInvariant(),"[^A-Z0-9_]","_"));Environment.ExitCode=2;}
 catch {Console.Error.WriteLine("KAFKA_CAPTURE_UNAVAILABLE");Environment.ExitCode=2;}
+
+// Only read-only metadata is retried. Neither record consumption nor offset commit is replayed by this helper.
+static bool TransientMetadata(ErrorCode code)=>code is ErrorCode.NotCoordinatorForGroup or ErrorCode.GroupCoordinatorNotAvailable or ErrorCode.GroupLoadInProgress or ErrorCode.Local_TimedOut or ErrorCode.RequestTimedOut or ErrorCode.Local_WaitCoord or ErrorCode.Local_DestroyBroker or ErrorCode.Local_Transport or ErrorCode.Local_AllBrokersDown or ErrorCode.BrokerNotAvailable or ErrorCode.NetworkException;
+static async Task<T> ReadMetadata<T>(string operation,Func<T> read)=>await ReadMetadataAsync(operation,()=>Task.FromResult(read()));
+static async Task<T> ReadMetadataAsync<T>(string operation,Func<Task<T>> read) {
+    for(var attempt=0;;attempt++)try{return await read();}
+    catch(KafkaException error) when(attempt<3 && TransientMetadata(error.Error.Code)){await Task.Delay(500*(attempt+1));}
+    catch(KafkaException error){throw new ProcessingException("KAFKA_"+operation+"_"+Regex.Replace(error.Error.Code.ToString().ToUpperInvariant(),"[^A-Z0-9_]","_"));}
+}
 
 public sealed record KafkaProfile(string[] Brokers,string Topic,string GroupId,string Authentication,string? Username=null,string? Password=null,string? CaPem=null,string? CertificatePem=null,string? KeyPem=null,string? ClusterId=null,string? TopicId=null,string StartPosition="earliest",int MaximumMessages=16,int MaximumBytes=16777216);
 public sealed record KafkaRequest(KafkaProfile Profile,Dictionary<string,string>? AfterOffsets=null);

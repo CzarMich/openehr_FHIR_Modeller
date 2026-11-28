@@ -1391,7 +1391,11 @@ export class ProcessingWorkspace {
                     channel.backpressure = null;
                     if ((source.kafka || (source.vendor && source.incremental)) && !channel.vendorSnapshotReady) {
                         const adapter = source.kafka ? this.kafka : this.vendor;
-                        if (!channel.vendorExtracting && adapter.active.size < 2) {
+                        if (
+                            !channel.vendorExtracting &&
+                            adapter.active.size < 2 &&
+                            this.active.size + this.inspectionRequests < 2
+                        ) {
                             channel.vendorExtracting = true;
                             adapter
                                 .materialise(channel.owner, channel.projectId, channel.sourceId)
@@ -1401,10 +1405,15 @@ export class ProcessingWorkspace {
                                     channel.nextPoll = 0;
                                     this.persist(channel);
                                 })
-                                .catch(() => {
+                                .catch((error) => {
                                     channel.vendorExtracting = false;
-                                    channel.status = "PAUSED";
-                                    channel.error = "SOURCE_CAPTURE_UNAVAILABLE";
+                                    if (error.status === 429) {
+                                        channel.backpressure = "PRIVATE_COMPUTE_CAPACITY";
+                                        channel.nextPoll = this.clock() + channel.pollSeconds * 1000;
+                                    } else {
+                                        channel.status = "PAUSED";
+                                        channel.error = "SOURCE_CAPTURE_UNAVAILABLE";
+                                    }
                                     this.persist(channel);
                                 });
                         }

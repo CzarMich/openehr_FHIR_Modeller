@@ -38,7 +38,8 @@ function fixture() {
     let captures = 0,
         acks = 0,
         failCommit = false,
-        corrupt = false;
+        corrupt = false,
+        changedIdentity = false;
     const launcher = (_, args) => {
         const child = new EventEmitter();
         child.stdout = new PassThrough();
@@ -65,7 +66,7 @@ function fixture() {
                         child.stdout.write(
                             JSON.stringify({
                                 clusterId: "cluster",
-                                topicId: "topic-id",
+                                topicId: changedIdentity ? "replacement-topic" : "topic-id",
                                 partitions: 1,
                                 tlsVerified: true,
                             }),
@@ -141,6 +142,9 @@ function fixture() {
         },
         set corrupt(v) {
             corrupt = v;
+        },
+        set changedIdentity(v) {
+            changedIdentity = v;
         },
         async setup() {
             const t = await kafka.preview(session, input);
@@ -259,6 +263,22 @@ test("destination UI profiles encrypt credentials, rotate without changing polic
         }
     } finally {
         dest.close();
+        f.close();
+    }
+});
+
+test("recovered Kafka captures verify current source identity before publishing preserved values", async () => {
+    const f = fixture();
+    try {
+        const profile = await f.setup();
+        f.corrupt = true;
+        const owner = f.processing.owner(f.session);
+        await assert.rejects(f.kafka.materialise(owner, "lab", profile.sourceId));
+        f.changedIdentity = true;
+        await assert.rejects(f.kafka.materialise(owner, "lab", profile.sourceId), /source identity changed/);
+        assert.equal(f.acks, 0);
+        assert.equal(f.kafka.all(owner)[0].afterOffsets, null);
+    } finally {
         f.close();
     }
 });
