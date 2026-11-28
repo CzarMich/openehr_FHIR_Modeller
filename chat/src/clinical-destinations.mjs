@@ -1,5 +1,5 @@
 import { createHash, hkdfSync, randomBytes } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, lstatSync, chmodSync, renameSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { ProviderStore } from "./provider-store.mjs";
@@ -12,7 +12,16 @@ export class ClinicalDestinations {
         this.processing = processing;
         this.store = store;
         this.root = join(config.dataDir, "clinical-destinations");
-        this.temporary = mkdtempSync(join(tmpdir(), "modeller-destination-"));
+        this.temporary = join(tmpdir(), "modeller-destination-" + hash(config.dataDir));
+        mkdirSync(this.temporary, { recursive: true, mode: 0o700 });
+        const temporary = lstatSync(this.temporary);
+        if (
+            !temporary.isDirectory() ||
+            temporary.isSymbolicLink() ||
+            (process.getuid && temporary.uid !== process.getuid())
+        )
+            throw problem("Private destination runtime directory is unavailable.", 503);
+        chmodSync(this.temporary, 0o700);
     }
     vault() {
         if (this.store) return this.store;
@@ -242,8 +251,11 @@ export class ClinicalDestinations {
                 const directory = join(this.temporary, owner);
                 mkdirSync(directory, { recursive: true, mode: 0o700 });
                 const file = join(directory, item.id + ".token");
-                if (!existsSync(file) || readFileSync(file, "utf8") !== item.token)
-                    writeFileSync(file, item.token, { mode: 0o600 });
+                if (!existsSync(file) || readFileSync(file, "utf8") !== item.token) {
+                    const temporary = file + "." + randomBytes(8).toString("hex") + ".tmp";
+                    writeFileSync(temporary, item.token, { mode: 0o600, flag: "wx" });
+                    renameSync(temporary, file);
+                }
                 return {
                     id: item.id,
                     displayName: item.displayName,

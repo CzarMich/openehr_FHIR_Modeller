@@ -243,6 +243,20 @@ test("destination UI profiles encrypt credentials, rotate without changing polic
         const temporary = dest.temporary;
         dest.close();
         assert.equal(existsSync(temporary), false);
+        const restarted = new ClinicalDestinations(f.config, f.core, f.processing);
+        try {
+            assert.equal(restarted.temporary, temporary);
+            await restarted.setEnabled(f.session, {
+                projectId: "lab",
+                id: saved.id,
+                expectedRevision: 3,
+                enabled: true,
+                comment: "Resume after synthetic restart",
+            });
+            assert.equal(restarted.connections(owner, "lab")[0].tokenFile, connection.tokenFile);
+        } finally {
+            restarted.close();
+        }
     } finally {
         dest.close();
         f.close();
