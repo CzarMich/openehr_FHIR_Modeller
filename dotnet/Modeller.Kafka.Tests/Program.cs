@@ -20,9 +20,23 @@ using var verifier=new ConsumerBuilder<byte[],byte[]>(new ConsumerConfig(config)
 List<TopicPartitionOffset> Committed()=>verifier.Committed([new(topic,0),new(topic,1)],TimeSpan.FromSeconds(10));
 var discovery=await Start("discover");await discovery.Process.WaitForExitAsync();profile["clusterId"]=discovery.Reply["clusterId"]!.DeepClone();profile["topicId"]=discovery.Reply["topicId"]!.DeepClone();
 var first=await Start("capture");var m1=await Manifest(first);if(Committed().Any(p=>p.Offset.Value>=0))throw new Exception("Offsets committed before durable acknowledgment");first.Process.Kill(true);await first.Process.WaitForExitAsync();if(Committed().Any(p=>p.Offset.Value>=0))throw new Exception("Killed unacknowledged capture advanced offsets");
-var again=await Start("capture");var m2=await Manifest(again);if(m1["items"]![0]!["eventId"]!.GetValue<string>()!=m2["items"]![0]!["eventId"]!.GetValue<string>())throw new Exception("Unacknowledged input was skipped");await again.Process.StandardInput.WriteLineAsync("DURABLY_ACCEPTED");await again.Process.WaitForExitAsync();if(again.Process.ExitCode!=0)throw new Exception("Explicit commit failed: "+await again.Process.StandardError.ReadToEndAsync());
-var offsets=m2["nextOffsets"]!.AsObject();foreach(var value in Committed())if(value.Offset.Value.ToString()!=offsets[value.Partition.Value.ToString()]!.GetValue<string>())throw new Exception("Committed prefetched rather than accepted offset");
-var next=await Start("capture",offsets);var m3=await Manifest(next);var seen=m2["items"]!.AsArray().Select(v=>v!["eventId"]!.GetValue<string>()).ToHashSet();if(m3["items"]!.AsArray().Any(v=>seen.Contains(v!["eventId"]!.GetValue<string>())))throw new Exception("Resumed intake reread a durable event");await next.Process.StandardInput.WriteLineAsync("DURABLY_ACCEPTED");await next.Process.WaitForExitAsync();if(next.Process.ExitCode!=0)throw new Exception("Resumed commit failed");
+// Different partitions may be interleaved differently after restart. Verify the full source-position set, not a global first-message order.
+var expected=new HashSet<string>(StringComparer.Ordinal);
+for(var partition=0;partition<2;partition++)for(var offset=0;offset<3;offset++)expected.Add(Data.Hash(Data.Canonical(new JsonArray(profile["clusterId"]!.GetValue<string>(),profile["topicId"]!.GetValue<string>(),topic,partition.ToString(),offset.ToString()))));
+var seen=new HashSet<string>(StringComparer.Ordinal);
+JsonObject? offsets=null;
+for(var batch=0;batch<8 && seen.Count<expected.Count;batch++) {
+    var capture=await Start("capture",offsets);var manifest=await Manifest(capture);
+    foreach(var item in manifest["items"]!.AsArray()) {
+        var identity=item!["eventId"]!.GetValue<string>();
+        if(!expected.Contains(identity)||!seen.Add(identity))throw new Exception("Durable resume skipped or duplicated a source position");
+    }
+    await capture.Process.StandardInput.WriteLineAsync("DURABLY_ACCEPTED");await capture.Process.WaitForExitAsync();
+    if(capture.Process.ExitCode!=0)throw new Exception("Explicit durable commit failed: "+await capture.Process.StandardError.ReadToEndAsync());
+    offsets=manifest["nextOffsets"]!.AsObject();
+    foreach(var value in Committed())if(value.Offset.Value.ToString()!=offsets[value.Partition.Value.ToString()]!.GetValue<string>())throw new Exception("Committed prefetched rather than accepted offset");
+}
+if(!seen.SetEquals(expected)||m1["items"]!.AsArray().Any(item=>!seen.Contains(item!["eventId"]!.GetValue<string>())))throw new Exception("Unacknowledged source messages were not replayed completely");
 async Task Denied(string code,JsonObject checkpoint){var dir=Path.Combine(root,Guid.NewGuid().ToString("N"));Directory.CreateDirectory(dir);var start=new ProcessStartInfo("dotnet"){RedirectStandardInput=true,RedirectStandardOutput=true,RedirectStandardError=true};foreach(var arg in new[]{reader,"capture",dir})start.ArgumentList.Add(arg);using var child=Process.Start(start)!;await child.StandardInput.WriteLineAsync(new JsonObject{["profile"]=profile.DeepClone(),["afterOffsets"]=checkpoint.DeepClone()}.ToJsonString());await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(90));var error=await child.StandardError.ReadToEndAsync();if(child.ExitCode==0||!error.Contains(code,StringComparison.Ordinal))throw new Exception("Expected safe refusal "+code+": "+error);}
 await Denied("KAFKA_BROKER_CHECKPOINT_AHEAD_OF_DURABLE_INTAKE",new JsonObject{["0"]="0",["1"]="0"});
 profile["groupId"]="modeller-"+new string('c',64);
