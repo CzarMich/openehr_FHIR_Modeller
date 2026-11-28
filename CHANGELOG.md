@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Omit request objects from proxy runtime logs so custom authentication headers remain private.
+
 - Add application menus, resizable navigation/context panes, light/dark themes and compact responsive controls.
 
 - Cache content-versioned workspace assets and compress stylesheets/scripts for faster repeat loads.

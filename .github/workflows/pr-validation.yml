@@ -25,6 +25,8 @@ jobs:
           python3 tests/production/java-memory-guard.test.py
           bash -n scripts/fhir-prod-nginx.sh
           python3 tests/production/nginx-delivery.test.py
+      - name: Verify proxy runtime log privacy using synthetic requests
+        run: python3 scripts/test-proxy-log-privacy.py --base-image
   fhir-engine:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
